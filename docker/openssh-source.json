@@ -1,0 +1,13 @@
+{
+  "name": "openssh",
+  "version": "10.5p1",
+  "url": "https://cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-10.5p1.tar.gz",
+  "sha256": "d44d28a839ea9daf969cc69150fde59910b2b39361dad81a3bd6cbd19218db11",
+  "configure": [
+    "--prefix=/usr/local",
+    "--sysconfdir=/etc/ssh",
+    "--with-privsep-path=/var/empty",
+    "--with-privsep-user=nobody"
+  ],
+  "clients": ["ssh", "ssh-add", "ssh-agent", "ssh-keygen", "ssh-keyscan", "scp", "sftp"]
+}
