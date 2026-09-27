@@ -109,13 +109,13 @@ jobs:
           jq -e --arg revision "$GITHUB_SHA" '.revision == $revision' distribution-metadata/source-manifest.json
           jq -n --arg digest "$digest" --arg revision "$GITHUB_SHA" --arg arch "$ARCH" --arg run "$GITHUB_RUN_ID" \
             '{digest: $digest, revision: $revision, architecture: $arch, run: $run}' > distribution-metadata/tested-image.json
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
           name: distribution-metadata-${{ matrix.arch }}
           path: distribution-metadata/
           retention-days: 30
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
           name: docker-evidence-${{ matrix.os }}
@@ -180,7 +180,7 @@ jobs:
           docker buildx imagetools create --tag "$image:latest" "$image@$digest"
           docker buildx imagetools inspect "$image:sha-$GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
           echo 'Package visibility is independent of repository visibility. Verify anonymous pull before announcing public availability.' >> "$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
           name: container-provenance-verification
