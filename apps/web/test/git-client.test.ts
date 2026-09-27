@@ -248,6 +248,58 @@ describe('browser writes and native Git coordination', () => {
 });
 
 describe('definitive rejection versus lost operation response', () => {
+  it.each([
+    ['commit', 'incompatible'],
+    ['commit', 'unreachable'],
+    ['branch', 'incompatible'],
+    ['branch', 'unreachable'],
+  ] as const)(
+    'retains recovery when verified %s loses %s post-operation observation',
+    async (kind, reason) => {
+      const f = await fixture();
+      const healthy = f.behavior.health;
+      f.operation.kind = kind;
+      const unavailable =
+        reason === 'incompatible'
+          ? async () =>
+              Response.json({
+                product: 'Agile Project UI Git Connector',
+                version: '9.0.0',
+                protocol: 2,
+              })
+          : async () => {
+              throw new Error('Simulated post-operation transport failure');
+            };
+      f.behavior.execute = async () => {
+        f.behavior.health = unavailable;
+        return Response.json(f.operation);
+      };
+      const error = await f.client.execute('reviewed-plan', context).catch((error) => error);
+      expect(error).toMatchObject({ code: 'POST_OPERATION_CHECK_FAILED' });
+      expect(definitiveRejection(error)).toBe(false);
+      expect(f.requests).toHaveLength(1);
+      await expect(
+        f.store.save('docs/a.md', 'Must wait', await contentHash('Original A')),
+      ).rejects.toMatchObject({ code: 'recovery-pending' });
+      // Even a successful journal lookup cannot clear recovery if its subsequent
+      // repository observation fails again.
+      let reads = 0;
+      f.behavior.health = async () => (++reads === 1 ? healthy() : unavailable());
+      await expect(f.client.operationByPlan('reviewed-plan')).rejects.toMatchObject({
+        code: 'POST_OPERATION_CHECK_FAILED',
+      });
+      await expect(
+        f.store.save('docs/a.md', 'Still must wait', await contentHash('Original A')),
+      ).rejects.toMatchObject({ code: 'recovery-pending' });
+      expect(f.fs.files.get('docs/a.md')).toBe('Original A');
+      f.behavior.health = healthy;
+      expect((await f.client.operationByPlan('reviewed-plan')).status).toBe('verified');
+      await f.store.save('docs/a.md', 'After observation', await contentHash('Original A'));
+      expect(f.fs.files.get('docs/a.md')).toBe('After observation');
+      expect(f.requests).toHaveLength(1);
+    },
+  );
+
   it.each(['incompatible', 'unreachable'])(
     'allows saving after a %s health rejection before execution',
     async (reason) => {

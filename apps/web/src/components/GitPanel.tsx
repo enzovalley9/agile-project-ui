@@ -191,8 +191,10 @@ export function GitPanel({
     const reviewed = plan;
     setPlan(null);
     await run(async () => {
+      let receivedResult = false;
       try {
         const result = await client.execute(reviewed.id, mutationContext());
+        receivedResult = true;
         setOperation(result);
         setLostPlan('');
         if (result.status === 'verified') {
@@ -204,7 +206,8 @@ export function GitPanel({
           }
         } else setPhase('attention');
       } catch (e) {
-        setLostPlan(definitiveRejection(e) ? '' : reviewed.id);
+        if (receivedResult) client.requireRecovery();
+        setLostPlan(!receivedResult && definitiveRejection(e) ? '' : reviewed.id);
         setPhase('attention');
         throw e;
       }
@@ -213,26 +216,27 @@ export function GitPanel({
   async function reconcile() {
     if (!client) return;
     await run(async () => {
-      if (operation) {
-        const result = await client.reconcile(operation.id);
-        setOperation(result);
-        if (result.status === 'verified') {
-          setLostPlan('');
-          await reload();
-          await onRefresh();
-        }
-      } else if (lostPlan) {
-        const recorded = await client.operationByPlan(lostPlan);
-        if (!recorded)
+      const planId = operation?.planId || lostPlan;
+      try {
+        const result = operation
+          ? await client.reconcile(operation.id)
+          : lostPlan
+            ? await client.operationByPlan(lostPlan)
+            : null;
+        if (!result)
           throw new Error(
             'The connector has no result for this plan yet. The operation still needs verification.',
           );
-        setOperation(recorded);
-        setLostPlan('');
-        if (recorded.status === 'verified') {
+        setOperation(result);
+        if (result.status === 'verified') {
           await reload();
           await onRefresh();
         }
+        setLostPlan('');
+      } catch (error) {
+        client.requireRecovery();
+        setLostPlan(planId);
+        throw error;
       }
     }, true);
   }

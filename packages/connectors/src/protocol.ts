@@ -1,4 +1,5 @@
-import { version } from '../../../package.json';
+import metadata from '../../../package.json' with { type: 'json' };
+const version = metadata.version;
 
 export const CONNECTOR_VERSION = version;
 export const CONNECTOR_PROTOCOL = 1;

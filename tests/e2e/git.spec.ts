@@ -219,3 +219,63 @@ test('opens a preexisting merge safely and resumes editing only after external r
     await instance.close();
   }
 });
+
+for (const phase of ['operation observation', 'panel refresh'] as const) {
+  test(`verified commit retains recovery when health fails during ${phase}`, async ({
+    page,
+    project,
+  }) => {
+    const port = phase === 'operation observation' ? 43223 : 43224;
+    const instance = await setup(project, port);
+    const notePath = join(project, 'docs/notes/meeting.md');
+    const before = await readFile(notePath, 'utf8');
+    await writeFile(notePath, before + '\nOne recoverable native commit.\n');
+    let failHealth = false;
+    let healthAllowance = phase === 'operation observation' ? 0 : 1;
+    let mutations = 0;
+    await page.route(`http://127.0.0.1:${port}/v1/health`, async (route) => {
+      if (failHealth && healthAllowance-- <= 0) await route.abort('failed');
+      else await route.continue();
+    });
+    await page.route(`http://127.0.0.1:${port}/v1/operations`, async (route) => {
+      if (route.request().method() !== 'POST') {
+        await route.continue();
+        return;
+      }
+      mutations++;
+      const response = await route.fetch();
+      expect(response.ok()).toBe(true);
+      failHealth = true;
+      await route.fulfill({ response });
+    });
+    try {
+      await open(page);
+      await connect(page, port, instance.tokenFile);
+      await page
+        .locator('label')
+        .filter({ hasText: 'docs/notes/meeting.md' })
+        .getByRole('checkbox')
+        .check();
+      await page.getByLabel('Commit message').fill('Preserve verified operation recovery');
+      await page.getByRole('button', { name: 'Review commit' }).click();
+      await page.getByRole('button', { name: 'Confirm local commit' }).click();
+      await expect(page.getByText('Result awaiting verification', { exact: true })).toBeVisible();
+      await expect(page.getByText(/^Plan [a-zA-Z0-9-]+$/)).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Review push', exact: true })).toBeDisabled();
+      expect(await command(project, 'log', '-1', '--format=%s')).toBe(
+        'Preserve verified operation recovery',
+      );
+      expect(await command(project, 'rev-list', '--count', 'HEAD')).toBe('2');
+      expect(mutations).toBe(1);
+      failHealth = false;
+      await page.getByRole('button', { name: 'Check result', exact: true }).click();
+      await expect(page.getByText('Result awaiting verification', { exact: true })).toHaveCount(0);
+      await expect(page.getByText('Verified result', { exact: true })).toBeVisible();
+      expect(mutations).toBe(1);
+      expect(await command(project, 'rev-list', '--count', 'HEAD')).toBe('2');
+      expect(await readFile(notePath, 'utf8')).toContain('One recoverable native commit.');
+    } finally {
+      await instance.close();
+    }
+  });
+}

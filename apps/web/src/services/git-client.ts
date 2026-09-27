@@ -92,19 +92,28 @@ export class GitClient {
       recoveryPending: context.recoveryPending || !!this.store?.recoveryPending || this.pending,
     };
   }
+  /** A completed request can still need repository/UI observation before editing resumes. */
+  requireRecovery() {
+    this.pending = true;
+  }
   private async observe(operation: GitOperation) {
-    this.pending = operation.status === 'running' || operation.status === 'uncertain';
     if (operation.status === 'verified') {
-      const repo = await this.repository();
-      if (operation.head && repo.head !== operation.head) {
-        this.pending = true;
+      this.pending = true;
+      try {
+        const repo = await this.repository();
+        if (operation.head && repo.head !== operation.head)
+          throw new Error('Git changed after the operation.');
+        this.expected = { branch: repo.branch, head: repo.head };
+      } catch {
+        // A health error here concerns observation after the operation response,
+        // never a preflight refusal of the original mutation.
         throw new ConnectorError(
-          'git-context-changed',
-          'Git changed after the operation. Review the result before saving.',
+          'POST_OPERATION_CHECK_FAILED',
+          'Git returned an operation result, but the current repository could not be verified. Check the existing result before saving or repeating the operation.',
         );
       }
-      this.expected = { branch: repo.branch, head: repo.head };
     }
+    this.pending = operation.status === 'running' || operation.status === 'uncertain';
     return operation;
   }
   readonly baseUrl: string;
@@ -268,14 +277,16 @@ export class GitClient {
       await this.store?.recoveryStatus();
       const actual = this.context(context);
       this.pending = true;
+      let operation: GitOperation;
       try {
-        return await this.observe(
-          await this.request<GitOperation>('/v1/operations', { planId, ...actual }),
-        );
+        operation = await this.request<GitOperation>('/v1/operations', { planId, ...actual });
       } catch (e) {
         this.pending = !definitiveRejection(e);
         throw e;
       }
+      // Only the send phase can definitively reject this mutation. Failures while
+      // inspecting a returned result must retain the pending/recovery boundary.
+      return this.observe(operation);
     };
     return this.store ? this.store.withProjectLock(run) : run();
   }

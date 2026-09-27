@@ -30,16 +30,16 @@ describe('connector compatibility boundary', () => {
           {
             ok: true,
             product: 'Agile Project UI Atlassian Connector',
-            provider: 'jira',
+            provider,
             protocolVersion: 1,
           },
-          'jira',
+          provider,
         ),
-      ).toMatchObject({ version: '0.1.0', legacyVersion: true });
+      ).toMatchObject({ provider, version: '0.1.0', legacyVersion: true });
       expect(() =>
         validateConnectorHealth(
-          { product: 'Agile Project UI Atlassian Connector', provider: 'jira', protocolVersion: 1 },
-          'jira',
+          { product: 'Agile Project UI Atlassian Connector', provider, protocolVersion: 1 },
+          provider,
         ),
       ).toThrow(/ready health state/);
     },

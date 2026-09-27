@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { registerConnectorShutdown } from '../../../packages/connectors/src/shutdown';
 import { serve } from '@hono/node-server';
 import { randomBytes, createHash } from 'node:crypto';
 import { lstat, mkdir, readFile, writeFile } from 'node:fs/promises';
@@ -129,14 +130,7 @@ export async function main(args = process.argv.slice(2)) {
   console.log(
     `${provider} connector listening on ${values['listen-host']}:${port}; capability file: ${tokenFile}`,
   );
-  const shutdown = () => {
-    server.close();
-    setTimeout(() => {
-      if ('closeAllConnections' in server) server.closeAllConnections();
-    }, 10_000).unref();
-  };
-  process.once('SIGINT', shutdown);
-  process.once('SIGTERM', shutdown);
+  registerConnectorShutdown(server);
   return server;
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href)

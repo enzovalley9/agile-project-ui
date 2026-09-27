@@ -1,3 +1,4 @@
+import { inspectProcessLeases } from './launch-connectors.mjs';
 import { promises as fs, constants, createReadStream } from 'node:fs';
 import { createHash, randomUUID } from 'node:crypto';
 import { execFile } from 'node:child_process';
@@ -147,28 +148,6 @@ async function verifyRuntime(root, manifest) {
   if (stdout.trim() !== JSON.stringify([manifest.nodeVersion, manifest.platform, manifest.arch]))
     throw new Error('The copied runtime did not pass verification.');
 }
-async function ensureStopped() {
-  const directory = destination + '.running';
-  if (!(await exists(directory))) return;
-  if ((await fs.lstat(directory)).isSymbolicLink())
-    throw new Error('Invalid connector process registry.');
-  for (const file of await fs.readdir(directory)) {
-    if (!/^\d+\.json$/.test(file))
-      throw new Error('Unrecognized connector process registry entry.');
-    const pid = Number(file.slice(0, -5));
-    if (!Number.isSafeInteger(pid) || pid <= 0)
-      throw new Error('Invalid connector process registry entry.');
-    try {
-      process.kill(pid, 0);
-    } catch (error) {
-      if (error.code === 'ESRCH') continue;
-      throw new Error('Cannot verify that every connector has stopped.');
-    }
-    throw new Error(
-      'A connector is still running. Stop its terminal before updating or rolling back.',
-    );
-  }
-}
 async function install() {
   if (inside(source, destination) || inside(destination, source))
     throw new Error('Choose an installation folder separate from the extracted package.');
@@ -193,7 +172,7 @@ async function install() {
     if (mode === 'install' && (await exists(destination)))
       throw new Error('An installation already exists. Preserve it before installing.');
     if (mode !== 'install') {
-      await ensureStopped();
+      await inspectProcessLeases(destination, true);
       await verifyPackage(destination, false, true);
     }
     if (mode === 'rollback') {

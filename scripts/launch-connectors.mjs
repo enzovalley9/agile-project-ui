@@ -1,6 +1,6 @@
 import { spawn, execFile } from 'node:child_process';
 import { promises as fs, createReadStream } from 'node:fs';
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { createServer } from 'node:net';
 import { createInterface } from 'node:readline/promises';
 import { promisify } from 'node:util';
@@ -214,6 +214,91 @@ async function setup(provider) {
     prompt.close();
   }
 }
+/** A PID alone can be reused. Store birth identity without logging process arguments. */
+export async function processIdentity(pid) {
+  if (!Number.isSafeInteger(pid) || pid <= 0) throw new Error('Invalid process identity.');
+  const alive = () => {
+    try {
+      process.kill(pid, 0);
+      return true;
+    } catch (error) {
+      if (error.code === 'ESRCH') return false;
+      throw new Error('Cannot inspect connector process identity.');
+    }
+  };
+  if (!alive()) return null;
+  try {
+    const { stdout } =
+      process.platform === 'win32'
+        ? await exec(
+            'powershell.exe',
+            [
+              '-NoProfile',
+              '-NonInteractive',
+              '-Command',
+              `$p = Get-Process -Id ${pid} -ErrorAction Stop; [Console]::Write($p.StartTime.ToUniversalTime().Ticks.ToString([System.Globalization.CultureInfo]::InvariantCulture))`,
+            ],
+            { timeout: 10000, windowsHide: true, maxBuffer: 4096 },
+          )
+        : await exec('ps', ['-p', String(pid), '-o', 'lstart=', '-o', 'comm='], {
+            timeout: 5000,
+            maxBuffer: 4096,
+            env: { ...process.env, LC_ALL: 'C', TZ: 'UTC' },
+          });
+    const identity = stdout.trim();
+    if (!identity || identity.length > 2048) throw new Error();
+    return process.platform + ':' + identity;
+  } catch {
+    if (!alive()) return null;
+    throw new Error('Cannot verify connector process birth identity. Maintenance was not applied.');
+  }
+}
+/** Call only while holding this installation's maintenance lock. */
+export async function inspectProcessLeases(installation, requireStopped) {
+  const directory = installation + '.running';
+  let stat;
+  try {
+    stat = await fs.lstat(directory);
+  } catch (error) {
+    if (error.code === 'ENOENT') return;
+    throw error;
+  }
+  if (!stat.isDirectory() || stat.isSymbolicLink())
+    throw new Error('Invalid connector process registry.');
+  for (const name of await fs.readdir(directory)) {
+    if (!/^[1-9]\d*\.json$/.test(name))
+      throw new Error('Unrecognized connector process registry entry.');
+    const file = path.join(directory, name);
+    const item = await fs.lstat(file);
+    if (!item.isFile() || item.isSymbolicLink() || item.size > 4096)
+      throw new Error('Invalid connector process registry entry.');
+    const text = await fs.readFile(file, 'utf8');
+    let lease;
+    try {
+      lease = JSON.parse(text);
+    } catch {
+      throw new Error('Invalid connector process registry entry.');
+    }
+    const pid = Number(name.slice(0, -5));
+    if (
+      lease.pid !== pid ||
+      !Number.isSafeInteger(pid) ||
+      (lease.identity !== undefined &&
+        (typeof lease.identity !== 'string' || !lease.identity.startsWith(process.platform + ':')))
+    )
+      throw new Error('Invalid connector process registry entry.');
+    const identity = await processIdentity(pid);
+    if (identity === null || (lease.identity !== undefined && identity !== lease.identity)) {
+      // PID reuse is stale metadata, never a reason to terminate the new process.
+      if ((await fs.readFile(file, 'utf8')) !== text)
+        throw new Error('Process registry changed during maintenance.');
+      await fs.unlink(file);
+    } else if (requireStopped)
+      throw new Error(
+        'A connector is still running or its legacy lease cannot prove otherwise. Stop its terminal before updating or rolling back.',
+      );
+  }
+}
 async function start(connector, args) {
   const lock = path.join(path.dirname(root), `.${path.basename(root)}.install-lock`);
   try {
@@ -223,50 +308,79 @@ async function start(connector, args) {
       throw new Error('Installation maintenance is in progress. Retry after it finishes.');
     throw error;
   }
-  let child, lease;
+  let child, lease, leaseText;
+  let shutdownRequested = false,
+    childReady = false,
+    shutdownSent = false;
+  const shutdown = () => {
+    shutdownRequested = true;
+    if (!childReady || shutdownSent) return;
+    shutdownSent = true;
+    // IPC provides graceful shutdown on Windows, where child.kill() terminates
+    // forcibly. On Unix the child owns a separate group and cannot receive a
+    // duplicate foreground-console signal before this message.
+    if (child?.connected) child.send({ type: 'agile-project-ui:shutdown' }, () => {});
+  };
+  process.on('SIGINT', shutdown);
+  process.on('SIGTERM', shutdown);
   try {
     const registry = root + '.running';
     await fs.mkdir(registry, { recursive: true, mode: 0o700 });
-    if ((await fs.lstat(registry)).isSymbolicLink())
-      throw new Error('Invalid connector process registry.');
-    // Forward arguments as an array, never through a shell. The child PID lease
-    // keeps maintenance blocked even if its launcher is interrupted separately.
+    await inspectProcessLeases(root, false);
     child = spawn(process.execPath, [path.join(root, 'connectors', connector + '.mjs'), ...args], {
-      stdio: 'inherit',
+      stdio: ['inherit', 'inherit', 'inherit', 'ipc'],
       shell: false,
       windowsHide: false,
+      detached: process.platform !== 'win32',
+    });
+    child.on('message', (value) => {
+      if (value && value.type === 'agile-project-ui:ready') {
+        childReady = true;
+        if (shutdownRequested) shutdown();
+      }
     });
     await new Promise((resolve, reject) => {
       child.once('spawn', resolve);
       child.once('error', reject);
     });
-    lease = path.join(registry, child.pid + '.json');
-    await fs.writeFile(lease, JSON.stringify({ pid: child.pid, connector }) + '\n', {
-      flag: 'wx',
-      mode: 0o600,
-    });
+    const identity = await processIdentity(child.pid);
+    if (identity !== null && child.exitCode === null && child.signalCode === null) {
+      lease = path.join(registry, child.pid + '.json');
+      leaseText =
+        JSON.stringify({
+          schemaVersion: 1,
+          pid: child.pid,
+          identity,
+          connector,
+          nonce: randomUUID(),
+        }) + '\n';
+      await fs.writeFile(lease, leaseText, { flag: 'wx', mode: 0o600 });
+    }
+    if (shutdownRequested) shutdown();
   } catch (error) {
     child?.kill();
     throw error;
   } finally {
     await fs.rmdir(lock);
   }
-  const forward = (signal) => child.kill(signal);
-  const interrupt = () => forward('SIGINT'),
-    terminate = () => forward('SIGTERM');
-  process.once('SIGINT', interrupt);
-  process.once('SIGTERM', terminate);
-  const result = await new Promise((resolve) => {
-    if (child.exitCode !== null || child.signalCode !== null)
-      resolve({ code: child.exitCode, signal: child.signalCode });
-    else child.once('exit', (code, signal) => resolve({ code, signal }));
-  });
-  process.removeListener('SIGINT', interrupt);
-  process.removeListener('SIGTERM', terminate);
-  await fs.unlink(lease).catch((error) => {
-    if (error.code !== 'ENOENT') throw error;
-  });
-  process.exitCode = result.signal ? 1 : (result.code ?? 1);
+  try {
+    const result = await new Promise((resolve) => {
+      if (child.exitCode !== null || child.signalCode !== null)
+        resolve({ code: child.exitCode, signal: child.signalCode });
+      else child.once('exit', (code, signal) => resolve({ code, signal }));
+    });
+    process.exitCode = result.signal ? 1 : (result.code ?? 1);
+  } finally {
+    process.removeListener('SIGINT', shutdown);
+    process.removeListener('SIGTERM', shutdown);
+    if (lease) {
+      try {
+        if ((await fs.readFile(lease, 'utf8')) === leaseText) await fs.unlink(lease);
+      } catch (error) {
+        if (error.code !== 'ENOENT') throw error;
+      }
+    }
+  }
 }
 async function main() {
   const [command, ...args] = process.argv.slice(2);
@@ -292,7 +406,9 @@ async function main() {
   if (!['git', 'atlassian'].includes(command)) throw new Error(usage);
   return start(command, args);
 }
-main().catch((error) => {
-  process.stderr.write(`${error.message}\n`);
-  process.exitCode = 1;
-});
+if (process.argv[1] && (await fs.realpath(process.argv[1])) === fileURLToPath(import.meta.url)) {
+  main().catch((error) => {
+    process.stderr.write(`${error.message}\n`);
+    process.exitCode = 1;
+  });
+}

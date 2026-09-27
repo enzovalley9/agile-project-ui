@@ -1,3 +1,4 @@
+import { registerConnectorShutdown } from '../../../packages/connectors/src/shutdown';
 import { serve } from '@hono/node-server';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
@@ -112,14 +113,7 @@ export async function startGitConnector(args = process.argv.slice(2)) {
   process.stdout.write(
     `Git connector listening on ${listenHost}:${port}. Local capability is in the configured private file.\n`,
   );
-  const shutdown = () => {
-    server.close();
-    setTimeout(() => {
-      if ('closeAllConnections' in server) server.closeAllConnections();
-    }, 10_000).unref();
-  };
-  process.once('SIGINT', shutdown);
-  process.once('SIGTERM', shutdown);
+  registerConnectorShutdown(server);
   return server;
 }
 

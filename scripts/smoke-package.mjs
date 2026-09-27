@@ -9,6 +9,11 @@ import path from 'node:path';
 import assert from 'node:assert/strict';
 
 const exec = promisify(execFile);
+await exec(process.execPath, ['--test', 'tests/launcher/lifecycle.test.mjs'], {
+  timeout: 60000,
+  windowsHide: true,
+  maxBuffer: 1024 * 1024,
+});
 const name = `agile-project-ui-connectors-${process.platform}-${process.arch}`;
 const archive = path.resolve(process.argv[2] || `dist/artifacts/${name}.tar.gz`);
 const root = await fs.mkdtemp(path.join(tmpdir(), 'agile-project-ui-package-smoke-'));
@@ -92,12 +97,29 @@ async function startedConnector(launcher, args, port) {
     assert.equal(response, null, 'The installed connector listener stopped.');
   };
   try {
-    for (let attempt = 0; attempt < 100; attempt++) {
+    for (let attempt = 0; attempt < 300; attempt++) {
       if (done) throw new Error('Installed connector exited before becoming ready.');
       const response = await fetch(`http://127.0.0.1:${port}/v1/health`, {
         signal: AbortSignal.timeout(300),
       }).catch(() => null);
-      if (response?.ok) return { stop, health: await response.json() };
+      if (response?.ok) {
+        const registry = path.dirname(launcher) + '.running';
+        const registered = await fs
+          .readdir(registry)
+          .then(async (names) => {
+            for (const name of names) {
+              const lease = await fs
+                .readFile(path.join(registry, name), 'utf8')
+                .then(JSON.parse)
+                .catch(() => null);
+              if (lease?.connector === args[0] && lease.identity) return true;
+            }
+            return false;
+          })
+          .catch(() => false);
+        if (registered) return { stop, health: await response.json() };
+        await response.body?.cancel();
+      }
       await pause(50);
     }
     throw new Error('Installed connector did not become ready.');
