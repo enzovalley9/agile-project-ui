@@ -69,6 +69,7 @@ export class ProjectStore {
     return this.lock(async()=>{
       if(this.mode!=='edit')throw new ProjectError('read-only','Activa Editor para restaurar.');
       const current=await this.recoveryStatus();if(!current||JSON.stringify(current)!==JSON.stringify(reviewed))throw new ProjectError('stale-recovery','Los archivos cambiaron después de la revisión.');
+      if(current.entries.some(entry=>entry.state==='changed'))throw new ProjectError('external-recovery-change','Hay cambios externos posteriores al guardado interrumpido. Exporta las copias y revisa los archivos antes de restaurar; no se sobrescribirá esa versión.');
       const result=await this.validRecoveryCopies();if(!result)throw new ProjectError('backup-unavailable','No hay copias privadas verificables en este navegador.');
       if(version==='before'&&result.copies.some(copy=>copy.before===null))throw new ProjectError('new-file-recovery','Este plan creó un archivo nuevo. Exporta las copias y revisa ese archivo antes de retirarlo manualmente.');
       await this.mutationGuard?.();
@@ -112,6 +113,19 @@ export class ProjectStore {
     if (file.size > LIMITS.bytesPerFile) throw new ProjectError('file-too-large', 'El archivo supera el límite de 2 MiB.', path);
     return new TextDecoder('utf-8',{fatal:true,ignoreBOM:true}).decode(await file.arrayBuffer());
   }
+  async readImage(path:string):Promise<Blob> {
+    safePath(path);
+    const snapshot=this.lastSnapshot;
+    if(!snapshot||path.startsWith('.bmad-project-ui/')||!snapshot.index.roots.some(root=>root.exists&&(!root.path||path.startsWith(root.path+'/')))||snapshot.diagnostics.some(d=>d.code==='nested-repository'&&d.path&&(path===d.path||path.startsWith(d.path+'/'))))throw new ProjectError('image-outside-scope','La imagen queda fuera de las raíces documentales autorizadas.',path);
+    const file=await(await this.file(path)).getFile();
+    if(file.size>8*1024*1024)throw new ProjectError('image-too-large','La imagen supera el límite de 8 MiB.',path);
+    const bytes=new Uint8Array(await file.arrayBuffer());
+    const ascii=(start:number,end:number)=>String.fromCharCode(...bytes.subarray(start,end));
+    const png=[137,80,78,71,13,10,26,10].every((value,i)=>bytes[i]===value);
+    const mime=png?'image/png':bytes[0]===255&&bytes[1]===216&&bytes[2]===255?'image/jpeg':['GIF87a','GIF89a'].includes(ascii(0,6))?'image/gif':ascii(0,4)==='RIFF'&&ascii(8,12)==='WEBP'?'image/webp':null;
+    if(!mime)throw new ProjectError('unsupported-image','Vista previa disponible para PNG, JPEG, GIF y WebP. SVG y otros formatos se conservan como referencias.',path);
+    return new Blob([bytes],{type:mime});
+  }
   async addDocumentationFolder(): Promise<void> {
     const selected=await window.showDirectoryPicker({mode:'read',id:'bmad-documentation'});
     const relative=await this.handle.resolve(selected);
@@ -125,7 +139,8 @@ export class ProjectStore {
   async refresh(): Promise<ProjectSnapshot> {
     await this.loadRecovery();
     const files: Record<string, string> = Object.create(null), revisions: Record<string, string> = Object.create(null);
-    const diagnostics: StoreDiagnostic[] = []; let count = 0, total = 0;
+    const diagnostics: StoreDiagnostic[] = []; let count = 0, total = 0, unsupportedCount=0;
+    const unsupportedPaths:string[]=[];
     let stopped=false;
     const walk = async (dir: FileSystemDirectoryHandle, prefix: string, depth: number): Promise<void> => {
       if (depth > LIMITS.depth) { diagnostics.push({code: 'depth-limit', path: prefix, message: 'Se alcanzó el límite de profundidad; el inventario es parcial.'}); return; }
@@ -145,7 +160,7 @@ export class ProjectStore {
           if(nestedRepository) { diagnostics.push({code:'nested-repository',path,message:'Repositorio anidado omitido. Ábrelo como proyecto independiente.'}); continue; }
           await walk(child, path, depth + 1); continue;
         }
-        if (!textTypes.test(name)) continue;
+        if (!textTypes.test(name)) {unsupportedCount++;if(unsupportedPaths.length<20)unsupportedPaths.push(path);continue;}
         if (++count > LIMITS.files) { stopped=true;diagnostics.push({code: 'file-limit', message: 'Se alcanzó el límite de archivos; el inventario es parcial.'}); return; }
         try {
           const f = await (entry as FileSystemFileHandle).getFile();
@@ -158,6 +173,7 @@ export class ProjectStore {
     };
     try { await walk(this.handle, '', 0); } catch (e) { throw new ProjectError('permission-lost', `No se ha podido releer la carpeta: ${message(e)}`); }
     const index=indexProject(files,revisions,{projectName:this.name,additionalRoots:this.additionalRoots});
+    if(unsupportedCount)diagnostics.push({code:'unsupported-formats',message:`${unsupportedCount} archivos fuera del inventario de texto. Los adjuntos no se editan como documentos: ${unsupportedPaths.join(', ')}${unsupportedCount>unsupportedPaths.length?'…':''}`});
     if(diagnostics.length){index.coverage.partial=true;index.coverage.exclusions.push(...diagnostics.map(d=>[d.code,d.path].filter(Boolean).join(': ')));}
     this.lastSnapshot = {name:this.name,files,revisions,diagnostics,index};
     return this.lastSnapshot;

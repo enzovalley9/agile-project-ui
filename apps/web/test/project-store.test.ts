@@ -87,6 +87,17 @@ describe('private recovery copies',()=>{
    await next.restoreRecovery(reviewed,'before');expect(fs.files.get('docs/a.md')).toBe(initial['docs/a.md']);expect(fs.files.get('docs/b.md')).toBe('B');expect(next.recoveryPending).toBe(false);expect(privateFs.files.size).toBe(0);
   }finally{vi.unstubAllGlobals();}
  });
+ it('preserves external edits during a reviewed partial recovery instead of overwriting them',async()=>{
+  const privateFs=memoryDirectory({});vi.stubGlobal('navigator',{storage:{getDirectory:async()=>privateFs.handle}});
+  try{const fs=memoryDirectory({...initial,'docs/b.md':'B'}),store=new ProjectStore(fs.handle);await store.setMode('edit');
+   fs.state.beforeWrite=(path)=>{if(path==='docs/b.md')throw new Error('disk full');};
+   await expect(store.applyChanges([{path:'docs/a.md',before:initial['docs/a.md'],after:'Planned A',expectedRevision:await contentHash(initial['docs/a.md'])},{path:'docs/b.md',before:'B',after:'Planned B',expectedRevision:await contentHash('B')}])).rejects.toThrow();
+   fs.state.beforeWrite=undefined;fs.files.set('docs/a.md','External later edit');const reviewed=(await store.recoveryStatus())!,writes=fs.state.writes;
+   expect(reviewed.entries.map(entry=>entry.state)).toEqual(['changed','original']);
+   for(const version of ['before','after'] as const)await expect(store.restoreRecovery(reviewed,version)).rejects.toThrow('cambios externos');
+   expect(fs.files.get('docs/a.md')).toBe('External later edit');expect(fs.files.get('docs/b.md')).toBe('B');expect(fs.state.writes).toBe(writes);expect(store.recoveryPending).toBe(true);expect((await store.recoveryCopies())?.[0].after).toBe('Planned A');
+  }finally{vi.unstubAllGlobals();}
+ });
  it('rejects altered private backups and keeps the recovery gate',async()=>{
   const privateFs=memoryDirectory({});vi.stubGlobal('navigator',{storage:{getDirectory:async()=>privateFs.handle}});
   try{const fs=memoryDirectory(initial),store=new ProjectStore(fs.handle);await store.setMode('edit');fs.state.beforeWrite=(path)=>{if(path==='docs/a.md')throw new Error('interrupted');};await expect(store.save('docs/a.md','Planned',await contentHash(initial['docs/a.md']))).rejects.toThrow();
@@ -97,6 +108,11 @@ describe('private recovery copies',()=>{
 });
 
 describe('scan coverage',()=>{
+ it('identifies unsupported attachments without treating the text inventory as exhaustive',async()=>{
+  const fs=memoryDirectory({...initial,'docs/attachment.pdf':'PDF','docs/image.png':'PNG'}),store=new ProjectStore(fs.handle),snapshot=await store.refresh();
+  expect(snapshot.diagnostics.find(item=>item.code==='unsupported-formats')?.message).toContain('2 archivos');expect(snapshot.files['docs/attachment.pdf']).toBeUndefined();expect(snapshot.index.coverage.partial).toBe(true);expect(fs.state.writes).toBe(0);
+ });
+
  it('exposes invalid encoding and interrupted reads as partial coverage without breaking valid files',async()=>{
   const fs=memoryDirectory(initial),store=new ProjectStore(fs.handle);fs.state.beforeRead=(path)=>{if(path==='docs/a.md')throw new Error('read denied');};const snapshot=await store.refresh();expect(snapshot.diagnostics.some(d=>d.path==='docs/a.md'&&d.code==='read-error')).toBe(true);expect(snapshot.index.coverage.partial).toBe(true);expect(fs.state.writes).toBe(0);
  });

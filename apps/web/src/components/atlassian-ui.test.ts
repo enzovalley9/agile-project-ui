@@ -5,7 +5,7 @@ import {createElement} from 'react';
 import {StoryDescription} from './WorkViews';
 
 describe('Atlassian operation evidence',()=>{
- it('allows re-comparison after an explicitly rejected pre-effect request',()=>{for(const code of ['plan_expired','blocked_plan','remote_stale','session_expired','reconciliation_required'])expect(indeterminateAtlassianApply(Object.assign(new Error('Rejected'),{code}))).toBe(false);});
+ it('allows re-comparison after an explicitly rejected pre-effect request',()=>{for(const code of ['plan_expired','blocked_plan','remote_stale','session_expired','journal_locked','invalid_content_type','invalid_plan','reconciliation_required'])expect(indeterminateAtlassianApply(Object.assign(new Error('Rejected'),{code}))).toBe(false);});
  it('requires reconciliation after transport loss or unexplained internal failure',()=>{expect(indeterminateAtlassianApply(new TypeError('Connection lost'))).toBe(true);expect(indeterminateAtlassianApply({code:'internal_error'})).toBe(true);});
 });
 describe('story description rendering',()=>{

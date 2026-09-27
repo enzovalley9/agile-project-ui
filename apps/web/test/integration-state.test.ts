@@ -1,6 +1,6 @@
-import {describe,it,expect} from 'vitest';
+import {describe,it,expect,vi} from 'vitest';
 import {ProjectStore,contentHash} from '../src/services/project-store';
-import {previewIntegrationImport,importIntegrationPlan,saveIntegrationConnection,saveIntegrationBinding,loadIntegrationState,saveComparisonBase} from '../src/services/integration-state';
+import {previewIntegrationImport,importIntegrationPlan,saveIntegrationConnection,saveIntegrationBinding,loadIntegrationState,saveComparisonBase,getComparisonBase,comparisonBasePersistence} from '../src/services/integration-state';
 import {memoryDirectory} from '../../../tests/support/memory-handles';
 import type {IntegrationPlan,IntegrationBinding} from '../../../packages/integrations/src/types';
 const config={'_bmad/_config/manifest.yaml':'installation:\n  version: 6.12.0\n','_bmad/config.toml':'[core]\noutput_folder="_bmad-output"\n'};
@@ -25,8 +25,15 @@ describe('reviewed field imports through the browser',()=>{
   await expect(importIntegrationPlan(store,proposed,{confirmed:true,reviewedChanges:[]})).rejects.toThrow('mapping');fs.files.set('docs/a.md','External');await expect(importIntegrationPlan(store,proposed,{confirmed:true,reviewedChanges:changes})).rejects.toThrow('cambió');expect(fs.state.writes).toBe(0);
  });
  it('persists associations without saving private comparison bodies or credentials',async()=>{
-  const fs=memoryDirectory({...config,'docs/a.md':'# Local'}),store=new ProjectStore(fs.handle);await store.setMode('edit');let snapshot=await store.refresh();await saveIntegrationConnection(store,snapshot,'confluence',{instance:'https://fixture.atlassian.net',deployment:'cloud',scopeId:'space',scopeName:'Test',localRoot:'docs',checkedAt:new Date().toISOString()});snapshot=await store.refresh();
+  const privateFs=memoryDirectory({});vi.stubGlobal('navigator',{storage:{getDirectory:async()=>privateFs.handle}});
+  try{const fs=memoryDirectory({...config,'docs/a.md':'# Local'}),store=new ProjectStore(fs.handle);await store.setMode('edit');let snapshot=await store.refresh();await saveIntegrationConnection(store,snapshot,'confluence',{instance:'https://fixture.atlassian.net',deployment:'cloud',scopeId:'space',scopeName:'Test',localRoot:'docs',checkedAt:new Date().toISOString()});snapshot=await store.refresh();
   const binding:IntegrationBinding={schemaVersion:1,normalizerVersion:1,id:'binding',projectId:loadIntegrationState(snapshot,'confluence').state.projectId,provider:'confluence',deployment:'cloud',instance:'https://fixture.atlassian.net',resourceId:'42',resourceUrl:'https://fixture.atlassian.net/wiki/pages/42',scopeId:'space',local:{path:'docs/a.md'},fields:['body'],policy:'review-both-directions'};
   await saveIntegrationBinding(store,snapshot,binding);snapshot=await store.refresh();const before=fs.files.get('.bmad-project-ui/integrations/confluence.json');await saveComparisonBase(store,snapshot,'confluence','binding',{schemaVersion:1,normalizerVersion:1,provider:'confluence',instance:binding.instance,resourceId:'42',local:{body:'PRIVATE LOCAL BASE'},remote:{body:'PRIVATE REMOTE BASE'},observedAt:new Date().toISOString()});expect(fs.files.get('.bmad-project-ui/integrations/confluence.json')).toBe(before);expect(before).not.toContain('PRIVATE');expect(await contentHash(before!)).toBe(snapshot.revisions['.bmad-project-ui/integrations/confluence.json']);
+  expect(comparisonBasePersistence(store)).toBe('persistent');const reloaded=new ProjectStore(fs.handle),reopened=await reloaded.refresh();
+  expect((await getComparisonBase(reloaded,reopened,'confluence','binding'))?.local.body).toBe('PRIVATE LOCAL BASE');expect(comparisonBasePersistence(reloaded)).toBe('persistent');
+  const changed=structuredClone(reopened);const mapping=JSON.parse(changed.files['.bmad-project-ui/integrations/confluence.json']);mapping.bindings[0].resourceId='different';changed.files['.bmad-project-ui/integrations/confluence.json']=JSON.stringify(mapping);expect(await getComparisonBase(reloaded,changed,'confluence','binding')).toBeUndefined();
+  const key=[...privateFs.files.keys()][0],corrupt=JSON.parse(privateFs.files.get(key)!);corrupt.normalizerVersion=999;privateFs.files.set(key,JSON.stringify(corrupt));expect(await getComparisonBase(new ProjectStore(fs.handle),reopened,'confluence','binding')).toBeUndefined();
+  }finally{vi.unstubAllGlobals();}
+
  });
 });

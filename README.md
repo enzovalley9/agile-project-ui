@@ -39,6 +39,15 @@ La compilación produce la web estática en `dist/web` y los conectores en `dist
 
 Todos los documentos compatibles pueden editarse, incluidos los derivados. La interfaz avisa cuando BMAD puede regenerar un archivo. No actualiza implícitamente `.memlog` ni inventa estados que no existen en los originales.
 
+| Formato | Lectura y edición |
+| --- | --- |
+| Markdown | Vista renderizada, fuente y edición; HTML activo bloqueado. |
+| YAML, TOML, JSON, CSV, TXT, MDX, HTML, XML | Fuente de texto UTF-8; proyecciones estructuradas solo cuando existe un adaptador. No ejecuta plantillas ni componentes. |
+| PNG, JPEG, GIF, WebP | Imágenes referenciadas desde Markdown dentro de las raíces autorizadas, hasta 8 MiB; sin edición. |
+| SVG, PDF y otros adjuntos | No se editan ni se ejecutan. El diagnóstico identifica su exclusión del inventario de texto. |
+
+Los documentos de texto tienen un límite de 2 MiB por archivo, 32 MiB por inventario, 5.000 archivos y 20 niveles de profundidad. Un límite o fallo de lectura se muestra como cobertura parcial. Las rutas de secretos, herramientas, dependencias y repositorios anidados se excluyen.
+
 ## Conectores opcionales
 
 Los conectores son procesos separados. La edición local y los comentarios funcionan sin ellos.
@@ -65,6 +74,8 @@ Cada servicio tiene su propio proceso, sesión, instancia, credenciales y ámbit
 Se implementan lectura, búsqueda, historial disponible, comparación por campos, propuestas exportables e importación local revisada. **La escritura remota de los perfiles actuales está bloqueada** cuando la API no puede garantizar la condición de concurrencia o la conservación de borradores requerida. Los tests con un adaptador atómico simulado verifican el flujo de publicación y recuperación; no certifican garantías de una cuenta real.
 
 Consulta [configuración, perfiles y límites de Atlassian](docs/atlassian-connectors.md). No introduzcas credenciales del proveedor en la web ni en el repositorio.
+
+Las bases de comparación verificadas se guardan en el almacenamiento privado del navegador, separadas de los vínculos versionados. Se recuperan al reabrir la misma asociación; cambiar su identidad invalida la base. Si ese almacenamiento no está disponible, la interfaz indica que la base solo dura durante la sesión.
 
 ## Paquetes con runtime incluido
 

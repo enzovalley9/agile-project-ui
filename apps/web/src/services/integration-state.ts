@@ -6,13 +6,43 @@ import {ProjectStore,safePath,contentHash,type ProjectSnapshot} from './project-
 export interface IntegrationConnection {instance:string;deployment:Deployment;scopeId:string;scopeName:string;localRoot:string;include?:string[];exclude?:string[];checkedAt:string}
 export interface IntegrationState {schemaVersion:1;projectId:string;connection?:IntegrationConnection;bindings:IntegrationBinding[];bases:Record<string,ComparisonBase>}
 const privateBases=new WeakMap<ProjectStore,Map<string,ComparisonBase>>();
-export function getComparisonBase(store:ProjectStore,provider:Provider,bindingId:string){const base=privateBases.get(store)?.get(provider+':'+bindingId);return base?structuredClone(base):undefined;}
+const basePersistence=new WeakMap<ProjectStore,'persistent'|'session'>();
+export function comparisonBasePersistence(store:ProjectStore){return basePersistence.get(store);}
+async function baseIdentity(snapshot:ProjectSnapshot,provider:Provider,bindingId:string){
+  const loaded=loadIntegrationState(snapshot,provider),binding=loaded.state.bindings.find(item=>item.id===bindingId);
+  if(!binding)return undefined;
+  return {binding,key:await contentHash(JSON.stringify({projectId:loaded.state.projectId,binding}))};
+}
+function validBase(value:unknown,binding:IntegrationBinding):value is ComparisonBase{
+  if(!value||typeof value!=='object')return false;
+  const base=value as ComparisonBase;
+  return base.schemaVersion===1&&base.normalizerVersion===1&&base.provider===binding.provider&&base.instance===binding.instance&&base.resourceId===binding.resourceId&&typeof base.observedAt==='string'&&Number.isFinite(Date.parse(base.observedAt))&&[base.local,base.remote].every(fields=>fields&&typeof fields==='object'&&!Array.isArray(fields)&&Object.entries(fields).every(([key,text])=>['title','description','body','status'].includes(key)&&typeof text==='string'&&text.length<=2*1024*1024));
+}
+async function baseDirectory(create:boolean){
+  const root=await navigator.storage.getDirectory();
+  return root.getDirectoryHandle('bmad-project-ui-comparison-bases',{create});
+}
+export async function getComparisonBase(store:ProjectStore,snapshot:ProjectSnapshot,provider:Provider,bindingId:string):Promise<ComparisonBase|undefined>{
+  const identity=await baseIdentity(snapshot,provider,bindingId);if(!identity)return undefined;
+  const memory=privateBases.get(store)?.get(identity.key);
+  if(memory&&validBase(memory,identity.binding))return structuredClone(memory);
+  try{
+    const directory=await baseDirectory(false),handle=await directory.getFileHandle(identity.key+'.json');
+    const file=await handle.getFile();if(file.size>8*1024*1024)return undefined;
+    const value:unknown=JSON.parse(await file.text());
+    if(!validBase(value,identity.binding))return undefined;
+    basePersistence.set(store,'persistent');
+    return structuredClone(value);
+  }catch{return undefined;}
+}
 const pathFor=(provider:Provider)=>`.bmad-project-ui/integrations/${provider}.json`;
 export function loadIntegrationState(snapshot:ProjectSnapshot,provider:Provider):{state:IntegrationState;path:string;revision:string|null}{
   const path=pathFor(provider);const text=snapshot.files[path];
   if(!text)return {path,revision:null,state:{schemaVersion:1,projectId:crypto.randomUUID(),bindings:[],bases:{}}};
   const state=JSON.parse(text) as IntegrationState;
   if(state.schemaVersion!==1||typeof state.projectId!=='string'||!Array.isArray(state.bindings)||!state.bases||typeof state.bases!=='object')throw new Error('Configuración de integración incompatible. Se conserva el archivo original.');
+  if(Object.keys(state).some(key=>!['schemaVersion','projectId','connection','bindings','bases'].includes(key))||Object.keys(state.bases).length)throw new Error('La configuración contiene campos privados o desconocidos; revísala antes de usarla.');
+  if(state.connection){const c=state.connection;if(typeof c!=='object'||!['cloud','data-center'].includes(c.deployment)||typeof c.instance!=='string'||typeof c.scopeId!=='string'||!c.scopeId||typeof c.scopeName!=='string'||typeof c.localRoot!=='string'||!c.localRoot||typeof c.checkedAt!=='string'||!Number.isFinite(Date.parse(c.checkedAt))||[c.include,c.exclude].some(list=>list!==undefined&&(!Array.isArray(list)||list.some(item=>typeof item!=='string'))))throw new Error('El ámbito de integración no es válido.');safeInstance(c.instance);if(c.localRoot!=='.')safePath(c.localRoot);}
   for(const binding of state.bindings){validateBinding(binding);if(binding.schemaVersion!==1||binding.provider!==provider||binding.projectId!==state.projectId||!binding.id||!binding.resourceId||!binding.local?.path)throw new Error('Asociación inválida. Revisa el archivo de integración.');safePath(binding.local.path);}
   return {state,path,revision:snapshot.revisions[path]??null};
 }
@@ -38,10 +68,21 @@ export async function unlinkIntegrationBinding(store:ProjectStore,snapshot:Proje
   const loaded=loadIntegrationState(snapshot,provider);loaded.state.bindings=loaded.state.bindings.filter(b=>b.id!==bindingId);delete loaded.state.bases[bindingId];await persist(store,loaded);
 }
 export async function saveComparisonBase(store:ProjectStore,snapshot:ProjectSnapshot,provider:Provider,bindingId:string,base:ComparisonBase){
-  const loaded=loadIntegrationState(snapshot,provider);const binding=loaded.state.bindings.find(b=>b.id===bindingId);
-  if(!binding||base.provider!==provider||base.instance!==binding.instance||base.resourceId!==binding.resourceId||base.normalizerVersion!==1)throw new Error('La referencia no corresponde a la asociación vigente.');
+  const identity=await baseIdentity(snapshot,provider,bindingId);
+  if(!identity||!validBase(base,identity.binding))throw new Error('La referencia no corresponde a la asociación vigente.');
   // Baselines contain private document content: never persist them in a shareable sidecar.
-  let bases=privateBases.get(store);if(!bases){bases=new Map();privateBases.set(store,bases);}bases.set(provider+':'+bindingId,structuredClone(base));
+  let bases=privateBases.get(store);if(!bases){bases=new Map();privateBases.set(store,bases);}bases.set(identity.key,structuredClone(base));
+  basePersistence.set(store,'session');
+  try{
+    const directory=await baseDirectory(true),handle=await directory.getFileHandle(identity.key+'.json',{create:true});
+    const text=JSON.stringify(base),writer=await handle.createWritable();
+    try{await writer.write(text);await writer.close();}catch(error){await writer.abort().catch(()=>{});throw error;}
+    if(await (await handle.getFile()).text()!==text)throw new Error('No se pudo verificar la base privada.');
+    basePersistence.set(store,'persistent');
+  }catch{
+    // The verified document operation has already completed. Retain a session
+    // fallback without misreporting that operation as failed or replaying it.
+  }
 }
 function checkPlan(plan:IntegrationPlan){
   if(plan.direction!=='import')throw new Error('Este plan no importa contenido al proyecto.');

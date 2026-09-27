@@ -1,4 +1,4 @@
-import { useMemo, useRef, type HTMLAttributes } from 'react';
+import { memo, useCallback, useMemo, useRef, type HTMLAttributes } from 'react';
 import { unified } from 'unified';
 import remarkParse from 'remark-parse';
 import remarkFrontmatter from 'remark-frontmatter';
@@ -6,6 +6,8 @@ import { headingAnchor } from '../../../../packages/domain/src/index';
 import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Link2, ImageOff } from 'lucide-react';
+import type {ProjectStore} from '../services/project-store';
+import {DocumentImage} from './DocumentImage';
 import type { SourceSelection } from './SourceEditor';
 import styles from '../App.module.css';
 
@@ -32,30 +34,35 @@ export function resolveDocumentLink(current:string, target:string): string | nul
   for (const part of decoded.split('/')) {if(!part||part==='.')continue;if(part==='..'){if(!parts.length)return null;parts.pop();}else parts.push(part);}
   return parts.join('/');
 }
-export function DocumentReader({ source,path,editable,onChange,onNavigate,onSelect,highlightLine }: { source:string; path:string; editable:boolean; onChange:(source:string)=>void; onNavigate:(path:string,fragment?:string)=>void; onSelect:(selection:SourceSelection|null)=>void; highlightLine?:number }) {
+interface DocumentReaderProps {store?:ProjectStore;source:string;path:string;editable:boolean;onChange:(source:string)=>void;onNavigate:(path:string,fragment?:string)=>void;onSelect:(selection:SourceSelection|null)=>void;highlightLine?:number;onDraftChange?:(dirty:boolean)=>void}
+export function DocumentReader(props:DocumentReaderProps){const callbacks=useRef(props);callbacks.current=props;const onChange=useCallback((source:string)=>callbacks.current.onChange(source),[]),onNavigate=useCallback((path:string,fragment?:string)=>callbacks.current.onNavigate(path,fragment),[]),onSelect=useCallback((selection:SourceSelection|null)=>callbacks.current.onSelect(selection),[]),onDraftChange=useCallback((dirty:boolean)=>callbacks.current.onDraftChange?.(dirty),[]);return <DocumentContent {...props} onChange={onChange} onNavigate={onNavigate} onSelect={onSelect} onDraftChange={onDraftChange}/>;}
+const DocumentContent=memo(function DocumentContent({ source,path,editable,onChange,onNavigate,onSelect,highlightLine,onDraftChange,store }:DocumentReaderProps) {
   const ref=useRef<HTMLElement>(null);
   const headings=useMemo(()=>{ const tree=unified().use(remarkParse).use(remarkFrontmatter).use(remarkGfm).parse(source) as MarkdownNode; const result:{id:string;level:number;title:string}[]=[]; const counts=new Map<string,number>(); const text=(node:MarkdownNode):string=>node.value??node.children?.map(text).join('')??''; const walk=(node:MarkdownNode)=>{if(node.type==='heading'){const title=text(node),base=headingAnchor(title),count=counts.get(base)??0;counts.set(base,count+1);result.push({id:count?`${base}-${count}`:base,level:node.depth??1,title});}node.children?.forEach(walk);};walk(tree);return result;},[source]);
-  const components: Components = {
+  const rendererContext=useRef({source,path,editable,onChange,onNavigate,highlightLine,onDraftChange,store});rendererContext.current={source,path,editable,onChange,onNavigate,highlightLine,onDraftChange,store};
+  const components=useMemo<Components>(()=>({
     span: (props) => {
+      const {source,editable,onChange,highlightLine,onDraftChange}=rendererContext.current;
       const attrs=props as HTMLAttributes<HTMLSpanElement> & {'data-source-start'?:number;'data-source-end'?:number;'data-source-line'?:number};
       const start=Number(attrs['data-source-start']),end=Number(attrs['data-source-end']),line=Number(attrs['data-source-line']);
       const text=typeof props.children==='string'?props.children:Array.isArray(props.children)&&props.children.every(x=>typeof x==='string')?props.children.join(''):null;
       const canEdit=editable&&Number.isFinite(start)&&text!==null&&source.slice(start,end)===text;
       return <span data-source-start={Number.isFinite(start)?start:undefined} data-source-end={Number.isFinite(end)?end:undefined} data-source-line={Number.isFinite(line)?line:undefined} className={highlightLine===line?styles.highlight:undefined} contentEditable={canEdit?'plaintext-only':undefined} suppressContentEditableWarning={canEdit} aria-label={canEdit?`Editar texto de la línea ${line}`:undefined} role={canEdit?'textbox':undefined} tabIndex={canEdit?0:undefined}
         onKeyDown={canEdit?e=>{if(e.key==='Enter')e.preventDefault();}:undefined}
-        onBlur={canEdit?e=>{const next=e.currentTarget.textContent??'';if(next!==text)onChange(source.slice(0,start)+next+source.slice(end));}:undefined}>{props.children}</span>;
+        onInput={canEdit?()=>onDraftChange?.(true):undefined} onBlur={canEdit?e=>{const next=e.currentTarget.textContent??'';if(next!==text)onChange(source.slice(0,start)+next+source.slice(end));onDraftChange?.(false);}:undefined}>{props.children}</span>;
     },
     a: ({href,children})=> {
+      const {path,onNavigate}=rendererContext.current;
       if(!href)return <span>{children}</span>;
       if(href.startsWith('#')) return <a href={href} onClick={e=>{e.preventDefault();onNavigate(path,href.slice(1));}}>{children}</a>;
       if(/^https?:\/\//i.test(href)) return <a href={href} target="_blank" rel="noopener noreferrer">{children}<Link2 size={11} aria-label="Enlace externo"/></a>;
       const resolved=resolveDocumentLink(path,href);
       return resolved ? <a href={`#document/${encodeURIComponent(resolved)}`} onClick={e=>{e.preventDefault();onNavigate(resolved,href.split('#')[1]);}}>{children}</a>:<span title="Enlace fuera del ámbito autorizado">{children}</span>;
     },
-    img: ({alt})=> <span className={styles.imagePlaceholder}><ImageOff size={16}/>{alt||'Imagen del documento'} <small>Referencia de imagen; consulta la fuente para ver su ruta.</small></span>,
+    img:({src,alt})=>{const {path,store}=rendererContext.current;return <DocumentImage src={src} alt={alt} documentPath={path} store={store}/>;},
     input: ({node: _node,...props})=> <input {...props} disabled aria-label="Casilla del documento"/>,
     table: ({node: _node,...props})=> <div className={styles.tableScroll}><table {...props}/></div>,
-  };
+  }),[]);
   function selection() {
     const selected=window.getSelection();if(!selected||selected.isCollapsed||!ref.current?.contains(selected.anchorNode))return;
     const range=selected.getRangeAt(0);
@@ -70,4 +77,4 @@ export function DocumentReader({ source,path,editable,onChange,onNavigate,onSele
     {editable&&<p className={styles.editorHint}>Edita el texto directamente. Para añadir estructura o modificar formato, abre Markdown. Guarda al terminar.</p>}
     <article ref={ref} className={styles.document} onMouseUp={selection} onKeyUp={selection} aria-label="Contenido del documento"><ReactMarkdown remarkPlugins={[remarkFrontmatter,remarkGfm,sourcePositions]} components={components} skipHtml>{source}</ReactMarkdown></article>
   </>;
-}
+});
