@@ -87,9 +87,9 @@ docker run -d --name agile-project-ui --init \
   -p 127.0.0.1:8080:8080 ghcr.io/enzovalley9/agile-project-ui:latest
 ```
 
-Open **http://127.0.0.1:8080**. Public image access is independent of the private source repository. If a pull is denied, check the package visibility/tag or follow the guide to build from an authorized source checkout. The web app needs no project mount or secrets. Optional connectors use private state folders; Git mounts the same host repository you open in the browser, and Jira/Confluence mount separate credential files read-only. Configure paths, exact app origin, provider URLs and deployments in `.env`; credentials belong in private files, never build arguments or the image.
+Open **http://127.0.0.1:8080**. The public image can be used without cloning the source repository. If a pull is denied, check the package visibility/tag or follow the guide to build from a source checkout. The web app needs no project mount or secrets. Optional connectors use private state folders; Git mounts the same host repository you open in the browser, and Jira/Confluence mount separate credential files read-only. Configure paths, exact app origin, provider URLs and deployments in `.env`; credentials belong in private files, never build arguments or the image.
 
-The [Docker guide](docs/docker.md) covers running a published image without source access, extracting its included Compose files, variables, Linux/Docker Desktop ownership, connector setup, Git authentication, updates and registry mirrors. Docker packaging preserves the [current provider limits](docs/atlassian-connectors.md).
+The [Docker guide](docs/docker.md) covers running a published image without a source checkout, extracting its included Compose files, variables, Linux/Docker Desktop ownership, connector setup, Git authentication, updates and registry mirrors. Docker packaging preserves the [current provider limits](docs/atlassian-connectors.md).
 
 ## Your files stay in your project
 
