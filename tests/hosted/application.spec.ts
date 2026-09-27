@@ -26,9 +26,9 @@ test('published assets expose help and licenses while private files stay unavail
   expect(await license.text()).toContain('MIT License');
   const version = await request.get('/version.json');
   expect(version.ok()).toBeTruthy();
-  expect(await version.json()).toMatchObject({
-    version: '0.1.0',
-    revision: expect.stringMatching(/^[a-f0-9]{40}$/),
+  expect(await version.json()).toEqual({
+    version: JSON.parse(await readFile('package.json', 'utf8')).version,
+    revision: await git(process.cwd(), 'rev-parse', 'HEAD'),
   });
   await page.goto('/help/connector-setup/');
   await expect(page.getByRole('main')).toContainText('Git');

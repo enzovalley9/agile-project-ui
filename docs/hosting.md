@@ -78,7 +78,7 @@ npm run build:connectors
 BMAD_HOSTED_URL='https://YOUR_WORKER_NAME.YOUR_SUBDOMAIN.workers.dev' npm run test:hosted
 ```
 
-This suite uses real disposable files through an automated picker boundary and the actual local Git CLI. It checks headers, private-path rejection, public help, saving, a reviewed commit, story movement and theme persistence. The browser context grants local-network permission for the test. A separate native browser run must still verify the real folder picker and permission prompts.
+Run from the same source revision as the deployment: the suite requires `/version.json` to match the local package version and exact Git HEAD. It uses real disposable files through an automated picker boundary and the actual local Git CLI. It checks headers, private-path rejection, public help, saving, a reviewed commit, story movement and theme persistence. The browser context grants local-network permission for the test. A separate native browser run must still verify the real folder picker and permission prompts.
 
 ## Connect the hosted page to local services
 
