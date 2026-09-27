@@ -56,6 +56,9 @@ test('opens a preexisting merge safely and resumes editing only after external r
   await connect(page,43222,instance.tokenFile);await expect(page.getByRole('alert').filter({hasText:'Hay conflictos'})).toBeVisible();await expect(page.getByRole('alert').filter({hasText:'MERGE_HEAD'})).toBeVisible();await expect(page.getByRole('button',{name:'Revisar push',exact:true})).toBeDisabled();
   await edit(page,before+'\nBorrador conservado durante merge.\n');await page.getByRole('button',{name:'Guardar',exact:true}).click();await expect(page.getByText('Resuelve la operación o los conflictos de Git antes de guardar.',{exact:true})).toBeVisible();
   expect(await readFile(notePath,'utf8')).toBe(before);expect(await readFile(conflictPath,'utf8')).toBe(conflict);expect(await command(project,'ls-files','-u')).toBe(unmerged);await expect(page.getByLabel('Fuente Markdown')).toContainText('Borrador conservado durante merge.');
+  // The error is shown before the post-rejection disk refresh finishes. Wait
+  // for the same enabled control a user observes before leaving this context.
+  await expect(page.getByRole('button',{name:'Volver a lectura'})).toBeEnabled();
   await writeFile(conflictPath,'# Riego\n\nResolución externa revisada.\n');await command(project,'add','docs/manual/riego.md');await command(project,'commit','-m','Resolve watering externally');expect(await command(project,'ls-files','-u')).toBe('');
   await page.getByRole('button',{name:/Conexión con Git/}).click();await page.getByRole('button',{name:'Descartar borradores y continuar'}).click();await page.getByRole('button',{name:'Comprobar',exact:true}).click();await expect(page.getByRole('alert').filter({hasText:'Hay conflictos'})).toHaveCount(0);
   await page.getByRole('button',{name:'Desconectar',exact:true}).click();await connect(page,43222,instance.tokenFile);await page.getByRole('button',{name:'Releer archivos'}).click();
