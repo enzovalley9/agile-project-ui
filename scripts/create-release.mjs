@@ -532,7 +532,17 @@ async function main() {
     const publishPath = join(temp, 'publish-release.json');
     await writeFile(
       publishPath,
-      JSON.stringify({ draft: false, make_latest: 'true', body: notes }),
+      // Echo the identity that readDraft just verified. Omitting draft identity
+      // fields can make GitHub replace the requested tag with an untagged alias.
+      JSON.stringify({
+        tag_name: tag,
+        target_commitish: revision,
+        name: title,
+        prerelease: false,
+        draft: false,
+        make_latest: 'true',
+        body: notes,
+      }),
     );
     publishAttempted = true;
     await api(`${base}/releases/${draft.id}`, { method: 'PATCH', input: publishPath });

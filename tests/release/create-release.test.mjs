@@ -156,6 +156,12 @@ async function runScenario(scenario) {
 
 const cases = [
   [
+    'resume-preserve-identity',
+    'preserves the reviewed tag when the API resets omitted draft identity fields',
+    ['upload', 'publish'],
+    null,
+  ],
+  [
     'resume-conflicting',
     'does not resume while another draft claims the same tag',
     [],

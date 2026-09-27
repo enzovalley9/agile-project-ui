@@ -180,8 +180,26 @@ if (basename(process.argv[1]) === 'git') {
     if (scenario === 'resume-missing') missing();
     if (method === 'PATCH') {
       const patch = JSON.parse(readFileSync(input, 'utf8'));
-      if (Object.keys(patch).some((key) => !['draft', 'body', 'make_latest'].includes(key)))
+      if (
+        Object.keys(patch).some(
+          (key) =>
+            ![
+              'draft',
+              'body',
+              'make_latest',
+              'tag_name',
+              'target_commitish',
+              'name',
+              'prerelease',
+            ].includes(key),
+        )
+      )
         process.exit(2);
+      for (const key of ['tag_name', 'target_commitish', 'name', 'prerelease'])
+        if (key in patch && patch[key] !== state.release[key]) process.exit(2);
+      // Observed GitHub behavior: an omitted draft tag can become an untagged alias.
+      if (scenario === 'resume-preserve-identity')
+        state.release.tag_name = patch.tag_name ?? 'untagged-synthetic-regression';
       state.mutations.push('publish');
       state.release = { ...state.release, ...patch };
       state.published = true;
