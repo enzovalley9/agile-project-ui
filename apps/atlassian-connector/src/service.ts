@@ -37,7 +37,7 @@ class Journal {
     try{await this.refresh();return await run();}finally{await rmdir(lock);}
   }
   private pending=Promise.resolve();
-  save(operation:IntegrationOperation){this.operations.set(operation.id,structuredClone(operation));const snapshot=JSON.stringify([...this.operations.values()]);this.pending=this.pending.then(async()=>{const temp=join(this.directory,`operations-${randomUUID()}.tmp`);await writeFile(temp,snapshot,{mode:0o600,flag:'wx'});await rename(temp,join(this.directory,'operations.json'));});return this.pending;}
+  save(operation:IntegrationOperation){this.operations.set(operation.id,structuredClone(operation));const snapshot=JSON.stringify([...this.operations.values()]);this.pending=this.pending.catch(()=>undefined).then(async()=>{const temp=join(this.directory,`operations-${randomUUID()}.tmp`);await writeFile(temp,snapshot,{mode:0o600,flag:'wx'});await rename(temp,join(this.directory,'operations.json'));});return this.pending;}
 }
 export async function createAtlassianApp(options:ServiceOptions):Promise<Hono> {
   const originUrl=new URL(options.origin);
@@ -103,9 +103,10 @@ export async function createAtlassianApp(options:ServiceOptions):Promise<Hono> {
     if(plans.size>=200)throw new ConnectorError('plan_limit','Too many pending plans',429);
     plans.set(id,{plan,session:checkSession(c.req.header('authorization'))});return c.json(plan);
   });
-  const findOperation=(id:string)=>{const operation=journal.operations.get(id);if(!operation||operation.provider!==adapter.capabilities.provider||operation.instance!==adapter.instance)throw new ConnectorError('operation_not_found','Operation was not found',404);return operation;};
-  app.get('/v1/operations',async c=>{await journal.refresh();const operations=[...journal.operations.values()].filter(o=>o.provider===adapter.capabilities.provider&&o.instance===adapter.instance).sort((a,b)=>Number(['running','uncertain','partial','prepared'].includes(b.status))-Number(['running','uncertain','partial','prepared'].includes(a.status))||b.createdAt.localeCompare(a.createdAt));return c.json({items:operations.slice(0,20),complete:operations.length<=20,warnings:operations.length>20?['Older completed operations omitted']:[]});});
-  app.get('/v1/operations/by-plan/:planId',async c=>{await journal.refresh();const operation=[...journal.operations.values()].find(o=>o.planId===c.req.param('planId')&&o.provider===adapter.capabilities.provider&&o.instance===adapter.instance);if(!operation)throw new ConnectorError('operation_not_found','Operation was not found',404);return c.json(operation);});
+  const publicOperation=(op:IntegrationOperation):IntegrationOperation=>['prepared','running'].includes(op.status)&&!busy.has(op.resourceId)?{...op,status:'uncertain',message:'An earlier connector left an unfinished intent; inspect and reconcile without replaying'}:op;
+  const findOperation=(id:string)=>{const operation=journal.operations.get(id);if(!operation||operation.provider!==adapter.capabilities.provider||operation.instance!==adapter.instance)throw new ConnectorError('operation_not_found','Operation was not found',404);return publicOperation(operation);};
+  app.get('/v1/operations',async c=>{await journal.refresh();const operations=[...journal.operations.values()].filter(o=>o.provider===adapter.capabilities.provider&&o.instance===adapter.instance).sort((a,b)=>Number(['running','uncertain','partial','prepared'].includes(b.status))-Number(['running','uncertain','partial','prepared'].includes(a.status))||b.createdAt.localeCompare(a.createdAt));return c.json({items:operations.slice(0,20).map(publicOperation),complete:operations.length<=20,warnings:operations.length>20?['Older completed operations omitted']:[]});});
+  app.get('/v1/operations/by-plan/:planId',async c=>{await journal.refresh();const operation=[...journal.operations.values()].find(o=>o.planId===c.req.param('planId')&&o.provider===adapter.capabilities.provider&&o.instance===adapter.instance);if(!operation)throw new ConnectorError('operation_not_found','Operation was not found',404);return c.json(publicOperation(operation));});
   app.get('/v1/operations/:id',async c=>{await journal.refresh();return c.json(findOperation(c.req.param('id')));});
   const observe=async(operation:IntegrationOperation):Promise<IntegrationOperation>=>{
     const remote=await adapter.read(operation.resourceId);const expected=Object.entries(operation.expectedFields) as [ManagedField,string][];
@@ -117,7 +118,7 @@ export async function createAtlassianApp(options:ServiceOptions):Promise<Hono> {
   };
   app.post('/v1/operations',async c=>journal.exclusive(async()=>{
     const body=await c.req.json();if(!body||typeof body.planId!=='string'||Object.keys(body).some(k=>k!=='planId'))throw new ConnectorError('invalid_operation','Execute by reviewed planId only');
-    const duplicate=[...journal.operations.values()].find(o=>o.planId===body.planId&&o.provider===adapter.capabilities.provider&&o.instance===adapter.instance);if(duplicate)return c.json(duplicate);
+    const duplicate=[...journal.operations.values()].find(o=>o.planId===body.planId&&o.provider===adapter.capabilities.provider&&o.instance===adapter.instance);if(duplicate)return c.json(publicOperation(duplicate));
     const saved=plans.get(body.planId),session=checkSession(c.req.header('authorization'));
     if(!saved||saved.session!==session)throw new ConnectorError('plan_not_found','Prepare and review a plan in this session',404);
     const plan=saved.plan;if(Date.parse(plan.expiresAt)<=now())throw new ConnectorError('plan_expired','The reviewed plan expired',409);

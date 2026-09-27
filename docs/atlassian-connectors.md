@@ -61,7 +61,7 @@ On Windows, protect these files and their parent directory using the operator's 
 2. Load its local capability file in the corresponding Jira or Confluence wizard.
 3. The connector authenticates an independent provider current-user request, then the browser selects and checks a remote project or space and a local folder.
 4. Search, inspect and explicitly link an existing resource. The link records instance plus immutable remote ID, scope, local path/entity and selected fields. A Jira key alone is not identity.
-5. Compare selected fields. A comparison is read-only and does not establish a common base merely because a link exists. Bodies use versioned canonical Markdown/ADF nodes; raw text hashes are not semantic equality.
+5. Compare selected fields. For a document mapping, a leading H1 is excluded from managed body only when it exactly matches the explicit local title; entity descriptions are preserved intact. A comparison is read-only and does not establish a common base merely because a link exists. Bodies use versioned canonical Markdown/ADF nodes; raw text hashes are not semantic equality.
 6. Review the proposed import/export. Imports remain local and require browser revision validation. The connector returns body content separately from title/status, with no local frontmatter. The browser's appropriate BMAD editor owns field placement.
 
 Supported portable body constructs include paragraphs, headings, lists, block quotes, rules, fenced code, basic tables and safe text/link marks. Images, attachments, mentions, macros, cards, HTML, task lists, table layout and other unsupported attributes produce partial coverage. A round-trip check catches content the Markdown serializer cannot preserve. Such body writes/imports are blocked; unsupported data is never silently discarded to claim equality. Selecting only a comparable title does not require replacing a partially comparable body.
@@ -84,6 +84,7 @@ Every authenticated request needs the exact configured `Origin`, `Host: 127.0.0.
 | `GET /v1/resources/:id/history` | Bounded provider history; incomplete coverage is explicit. |
 | `POST /v1/plans` | `{resourceId,scopeId,local:{path,revision,text,title?,status?,entityId?},base?,direction,fields,transitionId?}`. Revision is the browser's SHA256. |
 | `POST /v1/operations` | `{planId}` only. Production remote updates are currently rejected. Imports are applied by the browser. |
+| `GET /v1/operations` | Up to 20 operation records, unresolved first, for reload/reconnect recovery. |
 | `GET /v1/operations/by-plan/:planId` | Recover a recorded operation after losing the initial response. |
 | `GET /v1/operations/:id` | Read current recorded outcome. |
 | `POST /v1/operations/:id/reconcile` | Re-read remote state and compare reviewed fields; never resends the update. |
@@ -96,7 +97,7 @@ Session expiry defaults to 30 minutes; reviewed plans expire after five minutes.
 
 Operation journals default to `~/.bmad-project-ui/atlassian/<provider>/<instance-hash>/operations.json`, outside the project. `--journal-directory` selects an explicitly private alternative. The directory and journal require `0700`/`0600` on POSIX. The journal holds desired fields needed for reconciliation, which can contain private document content. It must not be committed or shared. It does not contain provider credentials.
 
-The write state machine persists intent before transmission, verifies selected fields afterward and deduplicates repeated plan execution. It distinguishes provider rejection, partial application and unknown outcome. An unresolved resource blocks another operation. Restarted in-flight operations become uncertain. Reconciliation observes current data; it does not prove who changed it or grant permission to replay. There is no automatic rollback across fields or resources.
+The write state machine persists intent before transmission, verifies selected fields afterward and deduplicates repeated plan execution. It distinguishes provider rejection, partial application and unknown outcome. An unresolved resource blocks another operation. Previously unfinished operations observed outside this service's active mutation become uncertain. An exclusive private `.operation-lock` directory serializes writers across connector processes; every transaction reloads the journal. A lock left by a stopped process is never stolen by timeout. Stop all writers, preserve and inspect the private journal, then remove only that stale lock directory before using reconciliation. Reconciliation observes current data; it does not prove who changed it or grant permission to replay. There is no automatic rollback across fields or resources.
 
 ## Validation
 
