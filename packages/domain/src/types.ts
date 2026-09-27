@@ -166,6 +166,14 @@ export interface ProjectIndex {
 export interface IndexOptions {
   additionalRoots?: string[];
   projectName?: string;
+  /** The browser observed _bmad as a directory even if no readable metadata was found. */
+  localInstallationPresent?: boolean;
+  /** Read-only installation metadata from an explicitly authorized ancestor folder. */
+  sharedInstallation?: {
+    files: FileSnapshot;
+    /** Selected project's safe path relative to that ancestor. */
+    projectRelativePath: string;
+  };
 }
 export interface FileChange {
   path: string;

@@ -17,11 +17,17 @@ To read your own files without the directory-access API, select **Import folder 
 
 If access is blocked, use HTTPS or localhost and open the app directly rather than inside an embedded frame. Managed browsers can restrict folder/local-network access. Unsaved changes live in the tab: save or export before closing. Never delete recovery records to dismiss a failed write.
 
+### Projects with a shared BMAD installation
+
+If your repository contains `_bmad-output` but no `_bmad`, choose the repository itself with **Choose project folder**. Supported text documents and work items can still be read and edited. Diagnostics explains that no installation was detected; the BMAD version remains unknown without installation metadata. Comments are saved under `.bmad-project-ui` in the selected project root when it has a project-root marker such as `.git`.
+
+If `_bmad` is in a parent folder, choose **Choose shared BMAD installation** and select that parent. The app shows configured document locations as hints, then asks you to choose the child project folder explicitly. Chrome or Edge requests access to both folders. The installation supplies BMAD configuration; document reads and writes, comments and optional Git use the selected child project. You can also open the child project first and use **Connect shared BMAD installation** in Diagnostics to select its parent later. Choose the project repository root for Git, not the shared parent: the connector requires that exact repository root. Selecting a parent never scans its nested Git repositories automatically.
+
 ## 3. Add Git when you need it
 
 Git is optional. Initialize only your disposable example, or open an existing repository you trust. Install and start the [Git connector](connector-setup.md) on the same computer, using the exact app origin. Its preflight checks and setup helper explain the required paths.
 
-Bind the same project folder in the connection panel. Saving, committing and pushing are separate actions. Review every change and commit locally first. A push additionally needs an existing remote and your usual native Git authentication; the web app never asks for a GitHub password. Trusting Git permits that repository's configured hooks, filters, signing tools and credential helpers.
+Bind the same project repository root in the connection panel, even when its BMAD installation lives in a parent folder. Saving, committing and pushing are separate actions. Review every change and commit locally first. A push additionally needs an existing remote and your usual native Git authentication; the web app never asks for a GitHub password. Trusting Git permits that repository's configured hooks, filters, signing tools and credential helpers.
 
 Jira and Confluence each have their own optional connector and credentials. They are experimental, do not require Git, and do not currently publish production remote changes. Reading your project never requires either service.
 

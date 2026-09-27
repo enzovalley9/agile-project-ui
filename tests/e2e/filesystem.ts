@@ -84,9 +84,11 @@ export async function installDiskPicker(page: Page, root: string) {
     type BridgeWindow = Window & {
       __testDisk: (a: unknown) => Promise<unknown>;
       __testPermission: PermissionState;
+      __testPickerQueue: { id: string; path: string }[];
     };
     const w = window as unknown as BridgeWindow;
     w.__testPermission = 'granted';
+    w.__testPickerQueue = [];
     const call = async (op: string, path: string, extra = {}) => {
       const result = await w.__testDisk({ op, path, ...extra });
       if (result && typeof result === 'object' && 'error' in result)
@@ -99,6 +101,13 @@ export async function installDiskPicker(page: Page, root: string) {
       queryPermission: async () => w.__testPermission,
       requestPermission: async () => w.__testPermission,
       isSameEntry: async (other: any) => other.__path === path,
+      resolve: async (other: any) => {
+        const selected = other?.__path;
+        if (typeof selected !== 'string') return null;
+        if (selected === path) return [];
+        if (!selected.startsWith(path ? path + '/' : '')) return null;
+        return selected.slice(path ? path.length + 1 : 0).split('/');
+      },
       __path: path,
       getFile: async () => {
         const data = await call('read', path);
@@ -134,8 +143,24 @@ export async function installDiskPicker(page: Page, root: string) {
         };
       },
     });
-    window.showDirectoryPicker = async () => make('', 'directory');
+    window.showDirectoryPicker = async (options?: { id?: string }) => {
+      const index = w.__testPickerQueue.findIndex((selection) => selection.id === options?.id);
+      const path = index < 0 ? '' : w.__testPickerQueue.splice(index, 1)[0].path;
+      await call('directory', path);
+      return make(path, 'directory');
+    };
   });
+}
+/** Queue a native picker selection for a named call. Paths are relative to the
+ * disposable fixture root; the disk bridge enforces that boundary. */
+export async function queueDiskPickerSelections(
+  page: Page,
+  selections: { id: string; path: string }[],
+) {
+  await page.evaluate((queued) => {
+    const w = window as unknown as Window & { __testPickerQueue: { id: string; path: string }[] };
+    w.__testPickerQueue.push(...queued);
+  }, selections);
 }
 export const test = base.extend<{ project: string }>({
   project: async ({ page }, use) => {

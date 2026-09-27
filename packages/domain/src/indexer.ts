@@ -43,6 +43,18 @@ export const RETRO_STATES = ['optional', 'done'];
 export const ACTION_STATES = ['open', 'in-progress', 'done'];
 const TEXT_EXTENSIONS = /\.(md|mdx|txt|yaml|yml|toml|json|csv|html|xml)$/i;
 const MD_EXTENSIONS = /\.(md|mdx)$/i;
+const SHARED_METADATA_PATHS = new Set([
+  '_bmad/config.toml',
+  '_bmad/config.user.toml',
+  '_bmad/custom/config.toml',
+  '_bmad/custom/config.user.toml',
+  '_bmad/_config/manifest.yaml',
+  '_bmad/_config/bmad-help.csv',
+  '_bmad/bmm/config.yaml',
+  '_bmad/bmm/config.user.yaml',
+  '_bmad/core/config.yaml',
+  '_bmad/core/config.user.yaml',
+]);
 const baseName = (path: string) => path.split('/').at(-1)!;
 const sibling = (path: string, name: string) => [...path.split('/').slice(0, -1), name].join('/');
 const displayFile = (path: string) => baseName(path).replace(/\.[^.]+$/, '');
@@ -188,7 +200,56 @@ export function indexProject(
   const interpretableFiles = Object.fromEntries(
     Object.entries(files).filter(([path]) => !conflicted.has(path)),
   );
-  const config = discoverConfiguration(interpretableFiles, diagnostics, options);
+  const hasLocalInstallation =
+    options.localInstallationPresent ||
+    Object.keys(files).some((path) => path.startsWith('_bmad/'));
+  const requestedShared = hasLocalInstallation ? undefined : options.sharedInstallation;
+  let sharedInstallation: IndexOptions['sharedInstallation'];
+  const sharedFiles: Record<string, string> = Object.create(null);
+  if (requestedShared) {
+    if (!isSafePath(requestedShared.projectRelativePath)) {
+      diagnostics.push({
+        code: 'shared-project-path-invalid',
+        severity: 'error',
+        message: 'The selected project path is outside the authorized installation folder.',
+      });
+    } else {
+      sharedInstallation = requestedShared;
+      for (const [path, text] of Object.entries(requestedShared.files)) {
+        if (!SHARED_METADATA_PATHS.has(path)) continue;
+        if (
+          typeof text !== 'string' ||
+          text.includes('\0') ||
+          new TextEncoder().encode(text).length > 2 * 1024 * 1024
+        ) {
+          diagnostics.push({
+            code: 'shared-metadata-unreadable',
+            severity: 'warning',
+            path,
+            message: 'Shared installation metadata is unreadable or larger than 2 MiB.',
+          });
+          continue;
+        }
+        if (hasMergeConflict(text)) {
+          diagnostics.push({
+            code: 'shared-metadata-conflicted',
+            severity: 'warning',
+            path,
+            message: 'Shared installation metadata contains conflict markers and is ignored.',
+          });
+          continue;
+        }
+        sharedFiles[path] = text;
+      }
+    }
+  }
+  const configurationFiles = { ...sharedFiles, ...interpretableFiles };
+  const config = discoverConfiguration(
+    configurationFiles,
+    diagnostics,
+    { ...options, sharedInstallation },
+    interpretableFiles,
+  );
   const documents: DocumentRecord[] = [],
     workItems: WorkItem[] = [];
   const parsedFiles = new Map<string, ParsedYaml>();
@@ -437,7 +498,7 @@ export function indexProject(
       severity: 'info',
       message: 'No sprint tracking was found; this does not mean there is no work.',
     });
-  const result = catalog(interpretableFiles, config, diagnostics);
+  const result = catalog(configurationFiles, config, diagnostics);
   return {
     name: config.name,
     declaredVersion: config.version,
