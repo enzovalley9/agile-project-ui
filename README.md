@@ -17,6 +17,34 @@ Agile Project UI is an independent project and is not affiliated with, endorsed 
 - **Native Git:** optional local connector for reviewed commits, existing-branch changes and pushes. Save, commit and push remain separate actions.
 - **Jira and Confluence:** independent optional connectors for linking, reading, comparing and reviewed local imports, with explicit provider limits.
 
+## See it in action
+
+These screenshots show the included fictional [Community Garden project](tests/fixtures/community-garden). [Open the app](https://agile-project-ui.enzovalley9.workers.dev) to explore your own project in Chrome or Edge.
+
+### Stories and dark mode
+
+See stories grouped by status, filter the board, and switch between light, dark and system themes. In edit mode, drag stories to another state or use the keyboard controls, then review the affected files before confirming the move.
+
+![Story board in dark mode, with status columns, story cards, filters and the edit-mode switch](docs/screenshots/stories-dark.png)
+
+### Documents and comments
+
+Browse the file tree, read formatted Markdown and discuss specific passages in a side panel. Comments, replies and reactions stay in versionable files inside your project. Switch to edit mode to change document text visually or in the Markdown source editor.
+
+![Rendered requirements document with its file tree, document outline and a saved comment thread](docs/screenshots/documents-comments.png)
+
+### Epics and their tasks
+
+Open an epic to see its related stories, expand their task lists and check completion markers. Each story opens directly from the list, with links back to its source files.
+
+![Epic detail showing related stories, task checklists, completion markers and source links](docs/screenshots/epic-tasks.png)
+
+### Sprint overview
+
+Review the sprint board and the task lists beneath it, or filter by epic as shown here. Move stories in edit mode while keeping sprint tracking and source documents consistent through the change review.
+
+![Sprint view with its story board and expanded task lists](docs/screenshots/sprint.png)
+
 ## Quick start
 
 Use desktop **Chrome or Microsoft Edge**. The application needs the browser's directory-access API and a secure origin: HTTPS or localhost. Firefox, Safari and mobile browsers are not supported for the complete local-folder workflow.
