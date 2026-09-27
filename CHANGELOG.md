@@ -22,6 +22,9 @@ Public-beta readiness release. The source repository remains private until its o
 - Release validation now checks the real CI workflow contract, including Docker and every supported native target.
 - Release automation supports an explicit expected private or public repository policy without changing visibility; public publication requires verified build attestations.
 - Native archive ownership and permission headers are normalized across build platforms.
+- The Docker example download preserves ZIP bytes and works from the welcome page.
+- Native Git enforces the supported HTTPS/SSH transports through URL rewrites and redirects.
+- Docker uses Debian 13 and a verified upstream OpenSSH client, omits unsupported legacy WebDAV pushes, and checks every high or critical scanner finding against an exact, expiring evidence-based disposition before publication.
 
 ### Limits
 

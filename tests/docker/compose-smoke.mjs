@@ -24,6 +24,7 @@ const distribution = await exec(
   { timeout: 120_000 },
 );
 console.log(distribution.stdout.trim());
+await import('./transport-smoke.mjs');
 const root = await realpath(await mkdtemp(join(tmpdir(), 'agile-compose-')));
 const project = join(root, 'project');
 await mkdir(project, { mode: 0o700 });

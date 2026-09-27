@@ -2,7 +2,7 @@
 
 Contributions should improve the local-file workflow while preserving source fidelity, explicit review and predictable recovery. Read the [MIT license](LICENSE) and [code of conduct](CODE_OF_CONDUCT.md) before participating.
 
-The repository currently accepts issues and pull requests from people with repository access. See [SUPPORT.md](SUPPORT.md) for current contact options; a public application URL does not make a private GitHub repository accessible.
+The repository is public and welcomes issues and pull requests. Sign in to GitHub to participate, and fork the repository before submitting a pull request from your branch. Reading the source and downloading releases requires no account. See [SUPPORT.md](SUPPORT.md) for contact options.
 
 ## Propose a change
 

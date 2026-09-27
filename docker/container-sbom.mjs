@@ -12,7 +12,7 @@ const components = inventory.debianPackages.map((pkg) => ({
   name: pkg.name,
   version: pkg.version,
   'bom-ref': `deb:${pkg.name}@${pkg.version}`,
-  purl: `pkg:deb/debian/${encodeURIComponent(pkg.name.replace(/:.+$/, ''))}@${encodeURIComponent(pkg.version)}?arch=${pkg.architecture}&distro=debian-12`,
+  purl: `pkg:deb/debian/${encodeURIComponent(pkg.name.replace(/:.+$/, ''))}@${encodeURIComponent(pkg.version)}?arch=${pkg.architecture}&distro=${inventory.distro.id}-${inventory.distro.versionId}`,
   properties: [
     { name: 'agile:source-package', value: pkg.source },
     { name: 'agile:source-version', value: pkg.sourceVersion },
@@ -35,6 +35,18 @@ const root = {
   version: npm.metadata.component.version,
   'bom-ref': `agile-container@${inventory.revision}`,
 };
+for (const component of inventory.builtComponents)
+  components.push({
+    type: 'application',
+    name: component.name,
+    version: component.version,
+    'bom-ref': `upstream:${component.name}@${component.version}`,
+    purl: `pkg:generic/${component.name}@${component.version}`,
+    properties: [
+      { name: 'agile:source-build-manifest', value: 'openssh-build.json' },
+      { name: 'agile:license-file', value: 'sources/openssh/LICENCE' },
+    ],
+  });
 await writeFile(
   path.join(directory, 'container.cdx.json'),
   JSON.stringify(
@@ -50,7 +62,7 @@ await writeFile(
           {
             name: 'agile:scope',
             value:
-              'Installed Debian runtime packages and Node. The separate npm build inventory includes build tools and optional packages; bundled dependencies are described in THIRD_PARTY_NOTICES.md.',
+              'Installed Debian runtime packages, Node and the separately compiled OpenSSH client. The separate npm build inventory includes build tools and optional packages; bundled dependencies are described in THIRD_PARTY_NOTICES.md.',
           },
         ],
       },

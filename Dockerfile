@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # Pin the multi-platform Node 24.21.0 manifest, matching .node-version.
-ARG NODE_IMAGE=node:24.21.0-bookworm-slim@sha256:0e0ff40c39bc087845bfb27465a0df4ea419520094bc35842ff83dd8cbe6f9b6
+ARG NODE_IMAGE=node:24.21.0-trixie-slim@sha256:8ec5d7557396cfe32d21c3f9c13072355ceab22b584578ca4bb28af31120cffe
 FROM --platform=$BUILDPLATFORM ${NODE_IMAGE} AS build
 WORKDIR /build
 COPY package.json package-lock.json ./
@@ -12,6 +12,14 @@ RUN AGILE_PROJECT_UI_BUILD_REVISION="${AGILE_PROJECT_UI_BUILD_REVISION}" npm run
     && npm sbom --sbom-format cyclonedx > /build/npm-build.cdx.json \
     && sed -i '/^\/\/# sourceMappingURL=/d' dist/connectors/*.mjs
 
+# Build the patched upstream client separately. No server reaches the runtime.
+FROM ${NODE_IMAGE} AS openssh-client-build
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential libssl-dev zlib1g-dev ca-certificates git
+COPY docker/openssh-source.json docker/build-openssh.mjs docker/ssh-smoke.mjs /recipe/
+COPY Dockerfile /recipe/Dockerfile
+RUN node /recipe/build-openssh.mjs
+
 FROM ${NODE_IMAGE} AS runtime-base
 ARG AGILE_PROJECT_UI_BUILD_REVISION
 LABEL org.opencontainers.image.title="Agile Project UI" \
@@ -21,7 +29,7 @@ LABEL org.opencontainers.image.title="Agile Project UI" \
       org.opencontainers.image.revision="${AGILE_PROJECT_UI_BUILD_REVISION}"
 RUN apt-get update \
     && apt-get upgrade -y \
-    && apt-get install -y --no-install-recommends git openssh-client ca-certificates \
+    && apt-get install -y --no-install-recommends git ca-certificates libssl3t64 zlib1g \
     && mkdir -p /opt/agile-project-ui/licenses /state /workspace \
     && chmod 0700 /state \
     && chown node:node /state /workspace \
@@ -31,6 +39,14 @@ RUN apt-get update \
        -C /usr/local/lib node_modules -C /opt "yarn-v${YARN_VERSION}" \
     && rm -rf /usr/local/lib/node_modules /opt/yarn* \
     && rm -f /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack /usr/local/bin/yarn /usr/local/bin/yarnpkg
+COPY --from=openssh-client-build /openssh-output/bin/ /usr/local/bin/
+COPY --from=openssh-client-build /openssh-output/sources/ /opt/agile-project-ui/licenses/sources/
+COPY --from=openssh-client-build /openssh-output/openssh-build.json /opt/agile-project-ui/licenses/
+RUN rm /usr/lib/git-core/git-http-push /usr/bin/infocmp \
+    && find /usr/share/perl -path '*/Archive/Tar.pm' -type f -delete \
+    && find /usr -xdev -type f \( -perm -4000 -o -perm -2000 \) -exec chmod a-s {} + \
+    && test ! -e /usr/bin/ssh && test ! -e /usr/sbin/sshd \
+    && ssh -V
 
 # Exact source accompanies each binary image, including private-repository builds.
 # Missing source fails the build; no silent URL-only fallback is permitted.

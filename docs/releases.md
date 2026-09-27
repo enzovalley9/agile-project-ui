@@ -2,7 +2,7 @@
 
 ## Access
 
-[GitHub Releases](https://github.com/enzovalley9/agile-project-ui/releases) contains versioned connector packages and release notes. The repository and its releases are currently private: sign in to an account with repository access to download them. A public frontend URL does not grant GitHub repository or release access. A 404 from GitHub can indicate missing access as well as a missing release.
+[GitHub Releases](https://github.com/enzovalley9/agile-project-ui/releases) contains public, versioned connector packages and release notes. No GitHub account is required to read the source or download release assets. If a release link returns 404, check the repository address and published tag rather than assuming that sign-in is required.
 
 The MIT license applies to first-party copies you receive. Repository visibility and license permissions are separate decisions. Do not publish private planning documents, credentials, local session files or user projects with a release.
 
@@ -58,7 +58,7 @@ See [CHANGELOG.md](../CHANGELOG.md) for user-visible changes and the [developmen
 
 1. Update the package version and its matching changelog section, complete the documented checks, then push the reviewed commit to `main`.
 2. Wait for **Verify application and connectors** to pass all ten required jobs at that exact commit, including all six native builds, Chromium, Edge, repository hygiene, Docker acceptance and the static frontend/local connector journey.
-3. Run **Release verified connector packages** through GitHub Actions' manual workflow dispatch on `main`. Deliberately select `expected_visibility`: `private` for the current repository, or `public` only after a separate authorized visibility change. This input is a check, not a visibility-change command.
+3. Run **Release verified connector packages** through GitHub Actions' manual workflow dispatch on `main`. Select `expected_visibility: public` for this repository. Use `private` only for an intentionally private repository. This input is a check, not a visibility-change command.
 4. The workflow validates the six native CI packages and their provenance, generates the source dependency SBOM, creates a draft, uploads the archives, SBOM and checksums, and verifies their remote hashes before publishing the release. Inspect the workflow result and release assets before sharing the link.
 
 The workflow supports both private and public repositories and never changes visibility. It requires the explicitly selected visibility to match the repository before validation, before mutation, before publication and after publication; either direction of visibility drift aborts the run. It rejects an existing release, a conflicting tag, incomplete CI, or a changed `main` revision. Creation retains the release ID returned by GitHub; uploads and publication use that exact ID rather than rediscovering unpublished drafts through a release list. The contract in `scripts/release-contract.mjs` names the required jobs, critical successful steps and native artifacts. Regression tests compare it with the real CI matrix and steps, including Docker; adding, dropping or renaming a job requires an intentional contract update. Every required job must succeed at the release commit, and additional or duplicate jobs are rejected.
@@ -67,7 +67,7 @@ If an operation fails or has an uncertain outcome, inspect the retained draft/re
 
 Resume accepts either an empty draft or all fourteen already-uploaded assets (six native archives, one source SBOM and seven checksums) with exactly the expected filenames, sizes and SHA-256 digests. Partial, unexpected or mismatching assets stop the workflow without overwriting anything. Exact-commit CI and native package validation still run. On explicit resume, publication refreshes the release notes from the verified changelog and current CI provenance, while preserving the selected draft ID, tag, target and existing verified assets.
 
-To validate a selected draft without changing it, run `node scripts/create-release.mjs --expected-visibility private --check --resume-draft-id RELEASE_ID` from a clean checkout with `GITHUB_REPOSITORY`, `GITHUB_SHA` and `GITHUB_REF=refs/heads/main` set to the expected repository and exact commit. Normal first-time validation omits `--resume-draft-id`. Use `--expected-visibility public` for a public repository. Omitting the visibility policy is rejected even for read-only validation. Actual publication remains restricted to manual GitHub Actions dispatch.
+To validate a selected draft without changing it, run `node scripts/create-release.mjs --expected-visibility public --check --resume-draft-id RELEASE_ID` from a clean checkout with `GITHUB_REPOSITORY`, `GITHUB_SHA` and `GITHUB_REF=refs/heads/main` set to the expected repository and exact commit. Normal first-time validation omits `--resume-draft-id`. Use `--expected-visibility private` only for an intentionally private repository. Omitting the visibility policy is rejected even for read-only validation. Actual publication remains restricted to manual GitHub Actions dispatch.
 
 ## Native release matrix
 
@@ -90,7 +90,9 @@ Each release includes `agile-project-ui-source-sbom.spdx.json` and its SHA-256 c
 
 For a public repository, the manual workflow first exports the exact verified CI assets without publishing them. A pinned GitHub attestation action signs those bytes. Final release validation independently downloads and rechecks the CI packages and requires valid attestations for every release asset, constrained to this repository, `release.yml`, `main`, the exact source/workflow commit and a GitHub-hosted runner. Attestation failure stops before draft creation or publication. This is provenance for the verified release promotion; the archive manifest and linked CI run identify the native builds. It is not a claim of a particular SLSA level or an operating-system signature.
 
-Consumers can verify a public release asset using an installed recent [GitHub CLI](https://cli.github.com/manual/gh_attestation_verify), replacing the filename and source commit with the values from the release:
+Releases v0.1.0 and v0.2.0 were originally published while the repository was private. They are now publicly downloadable, with their original assets preserved, but have no GitHub artifact attestations. Use their published checksums, manifests and linked CI evidence. Changing visibility does not retroactively attest an existing release. Future releases created through the public workflow require attestations before publication.
+
+For a release that includes GitHub attestations, verify an asset using an installed recent [GitHub CLI](https://cli.github.com/manual/gh_attestation_verify), replacing the filename and source commit with the values from the release:
 
 ```sh
 gh attestation verify agile-project-ui-connectors-linux-x64.tar.gz \

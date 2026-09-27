@@ -38,6 +38,14 @@ export function sourceChecksums(dsc, name, version) {
 }
 
 const sha256 = (bytes) => createHash('sha256').update(bytes).digest('hex');
+export function distributionIdentity(text) {
+  const field = (name) => {
+    const value = new RegExp(`^${name}=(?:"([a-z0-9.]+)"|([a-z0-9.]+))$`, 'm').exec(text);
+    assert.ok(value, `Missing distribution ${name}`);
+    return value[1] ?? value[2];
+  };
+  return { id: field('ID'), versionId: field('VERSION_ID') };
+}
 const run = (command, args, options = {}) =>
   execFileSync(command, args, { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024, ...options });
 
@@ -148,7 +156,35 @@ export async function collect(output, revision) {
       { name: 'SHASUMS256.txt', sha256: sha256(sums), size: sums.length },
     ],
   });
-  const manifest = { schemaVersion: 1, revision, debianPackages: packages, sources };
+  const opensshPath = '/opt/agile-project-ui/licenses';
+  const openssh = JSON.parse(await readFile(path.join(opensshPath, 'openssh-build.json'), 'utf8'));
+  assert.equal(openssh.name, 'openssh');
+  assert.equal(openssh.directory, 'sources/openssh');
+  await mkdir(path.join(output, openssh.directory), { recursive: true });
+  for (const file of openssh.files) {
+    assert.match(file.name, /^[A-Za-z0-9][A-Za-z0-9._-]*$/);
+    const original = path.join(opensshPath, openssh.directory, file.name);
+    const info = await lstat(original);
+    assert.ok(info.isFile() && !info.isSymbolicLink());
+    const bytes = await readFile(original);
+    assert.equal(bytes.length, file.size);
+    assert.equal(sha256(bytes), file.sha256);
+    await copyFile(original, path.join(output, openssh.directory, file.name));
+  }
+  await copyFile(
+    path.join(opensshPath, 'openssh-build.json'),
+    path.join(output, 'openssh-build.json'),
+  );
+  sources.push(openssh);
+  const distro = distributionIdentity(await readFile('/etc/os-release', 'utf8'));
+  const manifest = {
+    schemaVersion: 1,
+    revision,
+    distro,
+    debianPackages: packages,
+    sources,
+    builtComponents: [openssh],
+  };
   await writeFile(
     path.join(output, 'source-manifest.json'),
     JSON.stringify(manifest, null, 2) + '\n',
@@ -166,6 +202,7 @@ export async function collect(output, revision) {
   );
   for (const name of [
     'source-manifest.json',
+    'openssh-build.json',
     'debian-packages.tsv',
     ...packages.map(({ copyright }) => copyright),
   ])

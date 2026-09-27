@@ -4,9 +4,9 @@
 
 Do not post exploit details, capabilities, provider credentials or private project content in a public issue or pull request.
 
-Email **Enzo Valley** at [enzovalley9@gmail.com](mailto:enzovalley9@gmail.com) with a subject beginning with `Security report`. This contact is available regardless of GitHub repository access. Do not use a general issue for sensitive details, even when the repository itself is private.
+Email **Enzo Valley** at [enzovalley9@gmail.com](mailto:enzovalley9@gmail.com) with a subject beginning with `Security report`. This contact requires no GitHub account. Do not use a public issue for sensitive details.
 
-GitHub issue and advisory URLs for this repository are not anonymous reporting channels while repository access is restricted. This policy does not promise that GitHub's **Report a vulnerability** form is available.
+You can also sign in to GitHub and use [Report a vulnerability](https://github.com/enzovalley9/agile-project-ui/security/advisories/new). Private vulnerability reporting is enabled; a report sent through that form is shared privately with the maintainers. Use email if you prefer not to sign in to GitHub.
 
 Include the affected commit/version, component, OS/browser, a minimal synthetic reproduction, observed impact and any proposed mitigation. Remove tokens, personal data and real project documents. Report only systems you are authorized to test.
 
@@ -22,3 +22,9 @@ The latest released 0.x version is the maintenance target. There is no long-term
 - Comment identity is self-declared local identity, not authentication or access control for a team.
 
 See [architecture](docs/architecture.md) and the [connector guides](docs/git-connector.md) for detailed boundaries. Known secret-path filtering is not a complete secret scanner. Checksums establish file integrity, not publisher identity; current packaged runtimes are unsigned.
+
+## Container vulnerability policy
+
+Publication and scheduled scans reject every unreviewed HIGH or CRITICAL finding, including vulnerabilities without a vendor fix. A reviewed disposition must match the exact CVE, package version, architecture and severity, cite primary evidence and expire within 30 days. Runtime checks enforce its prerequisites; raw findings remain in the retained report. The separately compiled OpenSSH client has an additional version, binary identity and time-limited upstream review requirement.
+
+A passing gate is not a claim of zero vulnerabilities. Dispositions apply to the supplied non-root image and supported application routes; arbitrary repository hooks or a modified/privileged container can invalidate them. See the [distribution security policy](docs/supply-chain.md#security-maintenance) for the checks and maintenance procedure.

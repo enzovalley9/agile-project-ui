@@ -6,13 +6,13 @@ Use Docker Engine with Compose v2 on Linux, or Docker Desktop in Linux-container
 
 ## Image availability
 
-The image reference is `ghcr.io/enzovalley9/agile-project-ui:latest`; use a published `sha-<full-commit>` tag or digest to pin a specific build. Image visibility is separate from the source repository, which currently requires access. A public GHCR image can be pulled without a GitHub account. If the registry denies a pull, check the package visibility/tag or build from an authorized source checkout. The public website alone does not prove registry availability. No Docker Hub image is implied.
+The image reference is `ghcr.io/enzovalley9/agile-project-ui:latest`; use a published `sha-<full-commit>` tag or digest to pin a specific build. Both the source repository and GHCR image are public. Image visibility is managed separately from repository visibility; anonymous pulls require no GitHub account. If the registry denies a pull, check the package visibility/tag or build from the public source checkout. The public website alone does not prove registry availability. No Docker Hub image is implied.
 
 Pulling and running the image and extracting its Compose files require no source checkout. The image includes both AMD64 and ARM64 variants when published through the container workflow.
 
 ## Licenses, sources and supply-chain verification
 
-Every image includes exact corresponding Debian and Node.js source archives, copyright notices and machine-readable inventories. They can be extracted without running a container or accessing GitHub. This source payload increases image size. See [distribution and verification](supply-chain.md) for `docker cp` instructions, checksum validation, signed provenance and security scan policy.
+Every image includes exact corresponding Debian, Node.js and OpenSSH source archives, copyright notices and machine-readable inventories. They can be extracted without running a container or accessing GitHub. This source payload increases image size. See [distribution and verification](supply-chain.md) for `docker cp` instructions, checksum validation, signed provenance and security scan policy.
 
 ## Start the web app
 
@@ -101,6 +101,10 @@ docker compose --profile git up -d
 ```
 
 In the app's Git panel, keep the connector address `http://127.0.0.1:43120`, load the generated `git-token` file from your host state directory, and complete the folder-binding/trust flow. Treat session files as private credentials; do not paste their contents into terminals, reports or project files.
+
+The supplied image supports smart HTTPS and SSH Git remotes. Legacy HTTP/WebDAV push is disabled: the XML-parsing `git-http-push` helper is absent. The connector restricts native remote transports to HTTPS and SSH, including redirects. The image ships a verified OpenSSH 10.5p1 client and no SSH server. SSH host-key verification remains enabled; configure a dedicated trusted `known_hosts` file for your remote.
+
+The image removes privileged setuid/setgid execution, `infocmp`, and Perl's `Archive::Tar` entry point. Perl itself remains available for Git. These removals do not affect the tested core Git workflows, but optional repository hooks requiring them, PKCS#11/FIDO helper programs, or other external tooling require a maintained custom image. Review such additions and their security updates before trusting repository hooks.
 
 The container uses **its own Linux Git**, configuration and executables. It does not inherit the host keychain, SSH agent, credential helper, global identity, GPG signer or hooks' dependencies. Configure repository-local `user.name`/`user.email`, or set all four optional `GIT_AUTHOR_NAME`, `GIT_AUTHOR_EMAIL`, `GIT_COMMITTER_NAME` and `GIT_COMMITTER_EMAIL` values in `.env`. These identify commits; they do not authenticate remote access.
 
@@ -205,7 +209,7 @@ Select a service with the final command `web`, `git`, `jira` or `confluence`. Co
 
 ## Build from source
 
-With authorized access to the source checkout, build without installing Node.js locally:
+From a clone of the public source repository, build without installing Node.js locally:
 
 ```sh
 docker build \
@@ -251,7 +255,7 @@ An interrupted commit can leave a native `.git/index.lock` and an isolated `<ope
 
 | Symptom                    | Check                                                                                                                 |
 | -------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| Image pull denied          | Confirm the published image/tag exists and is public, or build from an authorized source checkout.                    |
+| Image pull denied          | Confirm the published image/tag exists and is public, or build from the public source checkout.                       |
 | Port already allocated     | Stop another container or native connector using that port; keep connector ports stable.                              |
 | Missing mount source       | Correct the absolute host path and create only the intended private state folder yourself.                            |
 | Permission/ownership error | Check UID/GID and Linux-visible `700` state / `600` credential modes; do not run as root to bypass them.              |
