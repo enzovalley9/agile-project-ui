@@ -4,7 +4,20 @@ import { mkdtemp, writeFile, rm, symlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { test } from 'node:test';
-import { inventory, sourceChecksums, verifySourceDirectory } from './collect-sources.mjs';
+import {
+  inventory,
+  sourceChecksums,
+  verifySourceDirectory,
+  distributionIdentity,
+} from './collect-sources.mjs';
+
+test('distribution identity follows the runtime instead of hardcoding Debian 12', () => {
+  assert.deepEqual(distributionIdentity('ID=debian\nVERSION_ID="13"\n'), {
+    id: 'debian',
+    versionId: '13',
+  });
+  assert.throws(() => distributionIdentity('ID=debian\nVERSION_ID="../13"\n'));
+});
 
 test('binary inventories preserve Debian source versions, epochs and architecture suffixes', () => {
   assert.deepEqual(inventory('libgit:arm64\t1:2.0-1+b1\tarm64\tgit\t1:2.0-1\n'), [

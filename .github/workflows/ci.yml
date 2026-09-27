@@ -100,6 +100,7 @@ jobs:
       - run: npm run format:check
       - run: npm run test:release
       - run: npm run test:maintenance
+      - run: npm run test:security
       - run: npm run test:docker:runtime
       - run: npm run notices:check
       - run: npm run audit:dependencies

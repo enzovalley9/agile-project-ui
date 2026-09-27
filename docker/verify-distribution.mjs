@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 import { readFile, lstat, realpath } from 'node:fs/promises';
@@ -60,6 +60,7 @@ for (const line of (await readFile(path.join(root, 'SHA256SUMS'), 'utf8')).trim(
 }
 const expected = new Set([
   'source-manifest.json',
+  'openssh-build.json',
   'debian-packages.tsv',
   'Node.js-LICENSE',
   'base-tools.tar.gz',
@@ -75,6 +76,53 @@ assert.deepEqual(
   expected,
   'Every supplied source and inventory file must be covered by checksums',
 );
+assert.equal(manifest.builtComponents.length, 1);
+for (const component of manifest.builtComponents) {
+  assert.deepEqual(component.binaries.map(({ path: file }) => path.basename(file)).sort(), [
+    'scp',
+    'sftp',
+    'ssh',
+    'ssh-add',
+    'ssh-agent',
+    'ssh-keygen',
+    'ssh-keyscan',
+  ]);
+  assert.equal(component.name, 'openssh');
+  for (const binary of component.binaries) {
+    assert.match(binary.path, /^\/usr\/local\/bin\/[a-z-]+$/);
+    const hash = createHash('sha256')
+      .update(await readFile(binary.path))
+      .digest('hex');
+    assert.equal(hash, binary.sha256, `Built client differs from source build: ${binary.path}`);
+  }
+  const version = spawnSync('/usr/local/bin/ssh', ['-V'], { encoding: 'utf8' });
+  assert.equal(version.status, 0);
+  assert.ok(version.stderr.startsWith(`OpenSSH_${component.version},`));
+}
+for (const absent of [
+  '/usr/bin/ssh',
+  '/usr/bin/scp',
+  '/usr/bin/sftp',
+  '/usr/sbin/sshd',
+  '/usr/local/sbin/sshd',
+  '/usr/lib/git-core/git-http-push',
+  '/usr/bin/infocmp',
+]) {
+  await assert.rejects(lstat(absent), { code: 'ENOENT' });
+}
+assert.equal(
+  execFileSync(
+    'find',
+    ['/usr', '-xdev', '-type', 'f', '(', '-perm', '-4000', '-o', '-perm', '-2000', ')', '-print'],
+    { encoding: 'utf8' },
+  ).trim(),
+  '',
+  'Runtime must not contain setuid/setgid files',
+);
+const removedModule = spawnSync('perl', ['-MArchive::Tar', '-e', 'exit 0'], { encoding: 'utf8' });
+assert.notEqual(removedModule.status, 0, 'Archive::Tar must not be loadable');
+assert.match(removedModule.stderr, /Can't locate Archive\/Tar\.pm/);
+assert.equal(spawnSync('infocmp', ['-V']).error?.code, 'ENOENT');
 for (const name of ['container.cdx.json', 'npm-build.cdx.json'])
   assert.equal(JSON.parse(await readFile(path.join(root, name), 'utf8')).bomFormat, 'CycloneDX');
 const version = JSON.parse(await readFile('/opt/agile-project-ui/web/version.json', 'utf8'));

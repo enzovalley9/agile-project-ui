@@ -30,7 +30,8 @@
     "test:docker": "node tests/docker/compose-smoke.mjs && playwright test --config playwright.docker.config.ts",
     "test:docker:runtime": "node --test docker/*.test.mjs",
     "test:maintenance": "node --test tests/maintenance/*.test.mjs",
-    "test:beta": "playwright test --config playwright.beta.config.ts"
+    "test:beta": "playwright test --config playwright.beta.config.ts",
+    "test:security": "node --test tests/security/*.test.mjs"
   },
   "dependencies": {
     "@codemirror/commands": "^6.11.1",

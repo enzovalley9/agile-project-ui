@@ -42,6 +42,7 @@ export const requiredJobs = {
     'Run npm ci',
     'Run npm run test:release',
     'Run npm run test:maintenance',
+    'Run npm run test:security',
     'Run npm run test:docker:runtime',
     'Run npm run format:check',
     'Run npm run notices:check',

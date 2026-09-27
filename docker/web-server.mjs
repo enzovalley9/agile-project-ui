@@ -12,6 +12,7 @@ const types = new Map([
   ['.ico', 'image/x-icon'],
   ['.woff2', 'font/woff2'],
   ['.md', 'text/plain; charset=utf-8'],
+  ['.zip', 'application/zip'],
 ]);
 
 export async function publicHeaders(root) {
