@@ -3,6 +3,7 @@ import {execFile,spawn} from 'node:child_process';
 import {createServer} from 'node:net';
 import {createHash} from 'node:crypto';
 import {promisify} from 'node:util';
+import {pathToFileURL} from 'node:url';
 import {tmpdir,homedir} from 'node:os';
 import path from 'node:path';
 import assert from 'node:assert/strict';
@@ -66,7 +67,7 @@ try {
   await exec('tar', ['-xzf', archive, '-C', root], options);
   const fault = path.join(root, 'copy-fault.mjs');
   await fs.writeFile(fault, "import {promises as fs} from 'node:fs'; const original = fs.copyFile; let count = 0; fs.copyFile = async (...args) => { if (++count === 2) throw new Error('Simulated interrupted copy'); return original(...args); };\n");
-  await assert.rejects(exec(runtime, ['--import', fault, installer, '--destination', destination], options), /Simulated interrupted copy/);
+  await assert.rejects(exec(runtime, ['--import', pathToFileURL(fault).href, installer, '--destination', destination], options), /Simulated interrupted copy/);
   await assert.rejects(fs.lstat(destination), {code:'ENOENT'});
   assert.deepEqual(await fs.readdir(path.dirname(destination)), [], 'A failed install leaves no final directory, lock or staging copy.');
   const installWrapper = path.join(source, process.platform === 'win32' ? 'install.cmd' : process.platform === 'darwin' ? 'install.command' : 'install.sh');

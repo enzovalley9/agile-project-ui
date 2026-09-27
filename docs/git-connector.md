@@ -72,3 +72,5 @@ Private operation journals live under the user's `.bmad-project-ui/git-connector
 ## Validation boundaries
 
 The connector integration suite runs against real temporary native repositories and bare remotes. It covers authentication/binding, index preservation, stale reviews, literal paths, hooks/locks, branch/worktree rules, outgoing history, rejected/divergent destinations, ambiguous responses and persisted recovery. It does not establish desktop installer signing or provider credential availability on another computer. Browser directory access, platform installers and a real private GitHub roundtrip are separate acceptance checks.
+
+Three native Git cases run only on macOS/Linux: rejecting a file symlink, committing/deleting a filename that combines spaces, shell metacharacters and a newline, and treating `:(glob)*` as a literal filename. Creating the symlink may require extra Windows privileges; the latter two names contain characters Windows forbids. These cases are explicitly skipped on Windows, so its passing suite does not prove equivalent symlink behavior. All remaining native Git cases run on all three platforms.
