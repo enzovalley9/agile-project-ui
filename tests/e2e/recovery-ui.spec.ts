@@ -8,11 +8,11 @@ test('reviews and exports private copies before restoring an interrupted multi-f
   page,
   project,
 }) => {
-  const paths = ['docs/notas/reunion.md', 'docs/manual/riego.md'];
+  const paths = ['docs/notes/meeting.md', 'docs/manual/watering.md'];
   const copies = await Promise.all(
     paths.map(async (path) => {
       const before = await readFile(join(project, path), 'utf8');
-      return { path, before, after: before + '\nContenido de un guardado interrumpido.\n' };
+      return { path, before, after: before + '\nContent from an interrupted save.\n' };
     }),
   );
   const id = randomUUID();
@@ -78,7 +78,7 @@ test('shows the limits of hash-only recovery without claiming unavailable backup
   page,
   project,
 }) => {
-  const path = 'docs/notas/reunion.md',
+  const path = 'docs/notes/meeting.md',
     before = await readFile(join(project, path), 'utf8');
   await mkdir(join(project, '.bmad-project-ui/local'), { recursive: true });
   await writeFile(
@@ -104,10 +104,10 @@ test('preserves an external recovery version and requires exporting copies befor
   page,
   project,
 }) => {
-  const path = 'docs/notas/reunion.md',
+  const path = 'docs/notes/meeting.md',
     before = await readFile(join(project, path), 'utf8'),
-    after = before + '\nGuardado interrumpido.\n',
-    external = before + '\nCambio externo que debe conservarse.\n',
+    after = before + '\nInterrupted save.\n',
+    external = before + '\nExternal change that must be preserved.\n',
     id = randomUUID(),
     copies = [{ path, before, after }];
   await writeFile(join(project, path), external);

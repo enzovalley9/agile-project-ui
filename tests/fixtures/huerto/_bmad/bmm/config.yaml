@@ -1,5 +1,0 @@
-project_name: Huerto Compartido
-output_folder: _bmad-output
-planning_artifacts: "{output_folder}/planning-artifacts"
-implementation_artifacts: "{output_folder}/implementation-artifacts"
-project_knowledge: docs

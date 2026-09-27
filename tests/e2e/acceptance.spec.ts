@@ -12,18 +12,18 @@ test('retains tree selection and nested folding through expand, search and sourc
   page,
   project,
 }) => {
-  const notePath = join(project, 'docs/notas/reunion.md');
+  const notePath = join(project, 'docs/notes/meeting.md');
   const note =
-    (await readFile(notePath, 'utf8')) + '\n[Consultar el manual de riego](../manual/riego.md)\n';
+    (await readFile(notePath, 'utf8')) + '\n[Read the watering guide](../manual/watering.md)\n';
   await writeFile(notePath, note);
   await openProject(page);
   const tree = page.getByRole('navigation', { name: 'Project files' });
-  const selected = tree.getByRole('button', { name: 'reunion.md', exact: true });
+  const selected = tree.getByRole('button', { name: 'meeting.md', exact: true });
   await selected.click();
   await expect(selected).toHaveAttribute('aria-current', 'page');
   await page.getByRole('button', { name: 'Collapse all', exact: true }).click();
   await expect(selected).toBeHidden();
-  await expect(page.getByRole('heading', { name: 'Reunión de prueba', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Test meeting', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Expand all', exact: true }).click();
   await expect(selected).toBeVisible();
   await expect(selected).toHaveAttribute('aria-current', 'page');
@@ -35,23 +35,23 @@ test('retains tree selection and nested folding through expand, search and sourc
   await docs.click();
   await docs.click();
   await expect(manual.locator('..')).not.toHaveAttribute('open');
-  await expect(tree.getByRole('button', { name: 'riego.md', exact: true })).toBeHidden();
+  await expect(tree.getByRole('button', { name: 'watering.md', exact: true })).toBeHidden();
 
-  await page.getByRole('link', { name: 'Consultar el manual de riego', exact: true }).click();
-  const riego = tree.getByRole('button', { name: 'riego.md', exact: true });
-  await expect(page.getByRole('heading', { name: 'Riego', exact: true })).toBeVisible();
+  await page.getByRole('link', { name: 'Read the watering guide', exact: true }).click();
+  const watering = tree.getByRole('button', { name: 'watering.md', exact: true });
+  await expect(page.getByRole('heading', { name: 'Watering', exact: true })).toBeVisible();
   await expect(manual.locator('..')).toHaveAttribute('open');
-  await expect(riego).toHaveAttribute('aria-current', 'page');
+  await expect(watering).toHaveAttribute('aria-current', 'page');
   await expect(selected).not.toHaveAttribute('aria-current');
   const search = page.getByRole('textbox', { name: 'Find file', exact: true });
-  await search.fill('notas/');
+  await search.fill('notes/');
   await expect(selected).toBeVisible();
-  await expect(riego).toHaveCount(0);
-  await expect(page.getByRole('heading', { name: 'Riego', exact: true })).toBeVisible();
-  await search.fill('ningun-archivo-coincide');
+  await expect(watering).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Watering', exact: true })).toBeVisible();
+  await search.fill('no-matching-files');
   await expect(tree.getByText('No files match that name.')).toBeVisible();
   await search.fill('');
-  await expect(riego).toHaveAttribute('aria-current', 'page');
+  await expect(watering).toHaveAttribute('aria-current', 'page');
   expect(await readFile(notePath, 'utf8')).toBe(note);
 });
 
@@ -60,20 +60,20 @@ test('keeps both PRDs and ADRs addressable and long filenames readable without w
   project,
 }) => {
   const longName =
-    '002-' + 'decision-documentada-con-nombre-extenso-'.repeat(4) + 'sin-truncar-identidad.md';
+    '002-' + 'documented-decision-with-a-long-name-'.repeat(4) + 'without-truncating-identity.md';
   const longPath = 'docs/adrs/' + longName;
   const longText =
-    '# ADR 002: decisiones independientes\n\nUn segundo ADR conserva su ruta y contenido propios.\n';
+    '# ADR 002: independent decisions\n\nA second ADR preserves its own path and content.\n';
   await writeFile(join(project, longPath), longText);
   await page.setViewportSize({ width: 1440, height: 1000 });
   await openProject(page);
   const tree = page.getByRole('navigation', { name: 'Project files' });
   await expect(tree.getByRole('button', { name: 'prd.md', exact: true })).toHaveCount(2);
   const variants = [
-    ['_bmad-output/planning-artifacts/prds/prd-herramientas-2026-09-27/prd.md', 'Préstamos'],
-    ['_bmad-output/planning-artifacts/prds/prd-huerto-2026-09-27/prd.md', 'Huerto Compartido'],
-    ['docs/adrs/001-calendario.md', 'ADR 001: Europe/Madrid'],
-    [longPath, 'ADR 002: decisiones independientes'],
+    ['_bmad-output/planning-artifacts/prds/prd-tools-2026-09-27/prd.md', 'Loans'],
+    ['_bmad-output/planning-artifacts/prds/prd-garden-2026-09-27/prd.md', 'Community Garden'],
+    ['docs/adrs/001-calendar.md', 'ADR 001: Europe/Madrid'],
+    [longPath, 'ADR 002: independent decisions'],
   ];
   for (const [path, heading] of variants) {
     const file = tree.getByTitle(path, { exact: true });
@@ -111,7 +111,7 @@ test('shows empty filters and unknown status honestly and opens a backlog source
   await openProject(page);
   await page.getByRole('button', { name: 'Stories', exact: true }).click();
   const search = page.getByRole('textbox', { name: 'Search stories', exact: true });
-  await search.fill('no-existe-ninguna-historia');
+  await search.fill('no-matching-stories');
   await expect(
     page.getByRole('heading', { name: 'No stories available', exact: true }),
   ).toBeVisible();
@@ -120,25 +120,23 @@ test('shows empty filters and unknown status honestly and opens a backlog source
     await expect(column).toBeVisible();
     await expect(column.getByRole('button')).toHaveCount(0);
   }
-  await search.fill('Revisar inventario');
+  await search.fill('Check inventory');
   const unknown = page.getByRole('heading', { name: 'Unclassified', exact: true }).locator('..');
   await expect(unknown.getByText('paused', { exact: true })).toBeVisible();
-  await expect(unknown.getByRole('button', { name: /Revisar inventario/ })).toBeVisible();
+  await expect(unknown.getByRole('button', { name: /Check inventory/ })).toBeVisible();
   await expect(
     page.getByRole('region', { name: 'Backlog', exact: true }).getByRole('button'),
   ).toHaveCount(0);
 
-  await search.fill('Devolver herramienta');
+  await search.fill('Return tool');
   const card = page
     .getByRole('region', { name: 'Backlog', exact: true })
-    .getByRole('button', { name: /Devolver herramienta/ });
+    .getByRole('button', { name: /Return tool/ });
   await card.click();
   const dialog = page.getByRole('dialog', { name: '2.2', exact: true });
+  await expect(dialog.getByRole('heading', { name: 'Return tool', exact: true })).toBeVisible();
   await expect(
-    dialog.getByRole('heading', { name: 'Devolver herramienta', exact: true }),
-  ).toBeVisible();
-  await expect(
-    dialog.getByText('Cerrar un préstamo preservando su historial.', { exact: true }),
+    dialog.getByText('Close a loan while preserving its history.', { exact: true }),
   ).toBeVisible();
   await expect(
     dialog.getByText('The story document has not been created or its association is unverified.', {
@@ -172,8 +170,6 @@ test('shows empty filters and unknown status honestly and opens a backlog source
       .getByRole('button', { name: 'sprint-status.yaml', exact: true }),
   ).toHaveAttribute('aria-current', 'page');
   await page.getByRole('button', { name: 'Markdown', exact: true }).click();
-  await expect(page.getByLabel('Markdown source')).toContainText(
-    '2-2-devolver-herramienta: backlog',
-  );
+  await expect(page.getByLabel('Markdown source')).toContainText('2-2-return-tool: backlog');
   expect(await readFile(sprintPath, 'utf8')).toBe(sprintBefore);
 });

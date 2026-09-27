@@ -1,9 +1,0 @@
-# Lista de intención; el estado vive en cada spec de ejecución.
-- id: "1"
-  title: Programar recordatorio
-  description: Registrar la hora definida en SPEC.md.
-  spec_checkpoint: true
-- id: "2"
-  title: Mostrar recordatorio
-  description: Mostrar un aviso local sin envío externo.
-  done_checkpoint: true

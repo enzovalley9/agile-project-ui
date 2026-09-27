@@ -6,7 +6,7 @@ import { join } from 'node:path';
 async function openEditor(page: Page) {
   await page.goto('/');
   await page.getByRole('button', { name: 'Choose project folder' }).click();
-  await page.getByRole('button', { name: 'reunion.md', exact: true }).click();
+  await page.getByRole('button', { name: 'meeting.md', exact: true }).click();
   await page.getByRole('switch', { name: 'Edit mode', exact: true }).click();
 }
 async function reviewDraft(page: Page, text: string) {
@@ -27,11 +27,11 @@ test('two browser tabs preserve the winning document and the rejected stale draf
   const other = await context.newPage();
   await installDiskPicker(other, project);
   try {
-    const path = join(project, 'docs/notas/reunion.md'),
+    const path = join(project, 'docs/notes/meeting.md'),
       before = await readFile(path, 'utf8');
     const drafts = [
-      before + '\nPrimera pestaña: turno de Lucía.\n',
-      before + '\nSegunda pestaña: turno de Diego.\n',
+      before + '\nFirst tab: Zoë’s time slot.\n',
+      before + '\nSecond tab: Alex’s time slot.\n',
     ];
     await Promise.all([openEditor(page), openEditor(other)]);
     await Promise.all([reviewDraft(page, drafts[0]), reviewDraft(other, drafts[1])]);
@@ -74,22 +74,22 @@ test('concurrent replies from two tabs retain one revision and keep the other re
 }) => {
   await openEditor(page);
   await page.getByRole('button', { name: 'Comments', exact: true }).click();
-  await page.getByLabel('Your name', { exact: true }).fill('Equipo paralelo');
+  await page.getByLabel('Your name', { exact: true }).fill('Concurrent team');
   await page.getByRole('button', { name: 'Use this name' }).click();
   await page.getByText('Comment on a passage', { exact: true }).click();
   await page.getByLabel('Start line').fill('5');
   await page.getByLabel('End line').fill('5');
   await page.getByRole('button', { name: 'Select', exact: true }).click();
-  await page.getByLabel('New comment', { exact: true }).fill('Coordinar el turno.');
+  await page.getByLabel('New comment', { exact: true }).fill('Coordinate the time slot.');
   await page.getByRole('button', { name: 'Save comment', exact: true }).click();
-  await expect(page.getByText('Coordinar el turno.', { exact: true })).toBeVisible();
+  await expect(page.getByText('Coordinate the time slot.', { exact: true })).toBeVisible();
   const other = await context.newPage();
   await installDiskPicker(other, project);
   try {
     await openEditor(other);
     await other.getByRole('button', { name: 'Comments', exact: true }).click();
-    await expect(other.getByText('Coordinar el turno.', { exact: true })).toBeVisible();
-    const replies = ['Respuesta de la primera pestaña.', 'Respuesta de la segunda pestaña.'];
+    await expect(other.getByText('Coordinate the time slot.', { exact: true })).toBeVisible();
+    const replies = ['Reply from the first tab.', 'Reply from the second tab.'];
     await page.getByLabel('Reply', { exact: true }).fill(replies[0]);
     await other.getByLabel('Reply', { exact: true }).fill(replies[1]);
     await Promise.all(

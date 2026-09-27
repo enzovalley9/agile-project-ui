@@ -67,7 +67,7 @@ async function connect(page: import('@playwright/test').Page, port: number, toke
 }
 async function edit(page: import('@playwright/test').Page, text: string) {
   await page.getByRole('button', { name: 'Documents', exact: true }).click();
-  await page.getByRole('button', { name: 'reunion.md', exact: true }).click();
+  await page.getByRole('button', { name: 'meeting.md', exact: true }).click();
   await page.getByRole('button', { name: 'Markdown', exact: true }).click();
   const editor = page.getByLabel('Markdown source');
   await editor.click();
@@ -83,8 +83,8 @@ test('native Git roundtrip from browser: save, exact review, commit, push and ex
   try {
     await open(page);
     await connect(page, 43220, setupResult.tokenFile);
-    const before = await readFile(join(project, 'docs/notas/reunion.md'), 'utf8');
-    const after = before + '\nCambio Git E2E revisado.\n';
+    const before = await readFile(join(project, 'docs/notes/meeting.md'), 'utf8');
+    const after = before + '\nReviewed Git E2E change.\n';
     await edit(page, after);
     await page.getByRole('button', { name: 'Save', exact: true }).click();
     await expect(page.getByText('Saved locally and verified.')).toBeVisible();
@@ -92,24 +92,24 @@ test('native Git roundtrip from browser: save, exact review, commit, push and ex
     await page.getByRole('button', { name: 'Check', exact: true }).click();
     await page
       .locator('label')
-      .filter({ hasText: 'docs/notas/reunion.md' })
+      .filter({ hasText: 'docs/notes/meeting.md' })
       .getByRole('checkbox')
       .check();
     await page.getByLabel('Commit message').fill('Verify original fixture update');
     await page.getByRole('button', { name: 'Review commit' }).click();
-    await expect(page.getByRole('dialog')).toContainText('Cambio Git E2E revisado.');
+    await expect(page.getByRole('dialog')).toContainText('Reviewed Git E2E change.');
     await page.getByRole('button', { name: 'Confirm local commit' }).click();
     await expect(page.getByText('Verified result', { exact: true })).toBeVisible();
     const localHead = await command(project, 'rev-parse', 'HEAD');
-    expect(await command(project, 'show', 'HEAD:docs/notas/reunion.md')).toContain(
-      'Cambio Git E2E revisado.',
+    expect(await command(project, 'show', 'HEAD:docs/notes/meeting.md')).toContain(
+      'Reviewed Git E2E change.',
     );
     // This assertion can overlap the UI's post-commit repository refresh. Avoid
     // optional index writes so the observer does not introduce an external lock.
     expect(await command(project, '--no-optional-locks', 'status', '--porcelain')).toBe('');
     await page.getByRole('button', { name: 'Review push', exact: true }).click();
     await expect(page.getByRole('dialog')).toContainText('Verify original fixture update');
-    await expect(page.getByRole('dialog')).toContainText('Cambio Git E2E revisado.');
+    await expect(page.getByRole('dialog')).toContainText('Reviewed Git E2E change.');
     await page.getByRole('button', { name: 'Confirm push to remote' }).click();
     await expect(page.getByText('Remote revision ' + localHead, { exact: true })).toBeVisible();
     expect(await command(setupResult.remote, 'rev-parse', 'refs/heads/main')).toBe(localHead);
@@ -120,7 +120,7 @@ test('native Git roundtrip from browser: save, exact review, commit, push and ex
     await page.getByRole('button', { name: 'Confirm branch change' }).click();
     await expect(page.getByText(/Branch review-fixture ·/)).toBeVisible();
     expect(await command(project, 'branch', '--show-current')).toBe('review-fixture');
-    expect(await readFile(join(project, 'docs/notas/reunion.md'), 'utf8')).toBe(before);
+    expect(await readFile(join(project, 'docs/notes/meeting.md'), 'utf8')).toBe(before);
   } finally {
     await setupResult.close();
   }
@@ -134,14 +134,14 @@ test('external branch switch with identical document bytes cannot receive the ol
   try {
     await open(page);
     await connect(page, 43221, setupResult.tokenFile);
-    const path = join(project, 'docs/notas/reunion.md'),
+    const path = join(project, 'docs/notes/meeting.md'),
       before = await readFile(path, 'utf8');
-    await edit(page, before + '\nBorrador de main.\n');
+    await edit(page, before + '\nDraft from main.\n');
     await command(project, 'switch', 'review-fixture');
     await page.getByRole('button', { name: 'Save', exact: true }).click();
     await expect(page.getByText(/The branch or commit changed outside/)).toBeVisible();
     expect(await readFile(path, 'utf8')).toBe(before);
-    await expect(page.getByLabel('Markdown source')).toContainText('Borrador de main.');
+    await expect(page.getByLabel('Markdown source')).toContainText('Draft from main.');
   } finally {
     await setupResult.close();
   }
@@ -152,16 +152,16 @@ test('opens a preexisting merge safely and resumes editing only after external r
   project,
 }) => {
   const instance = await setup(project, 43222),
-    conflictPath = join(project, 'docs/manual/riego.md'),
-    notePath = join(project, 'docs/notas/reunion.md');
+    conflictPath = join(project, 'docs/manual/watering.md'),
+    notePath = join(project, 'docs/notes/meeting.md');
   try {
     await command(project, 'switch', 'review-fixture');
-    await writeFile(conflictPath, '# Riego\n\nVersión de la rama.\n');
-    await command(project, 'add', 'docs/manual/riego.md');
+    await writeFile(conflictPath, '# Watering\n\nBranch version.\n');
+    await command(project, 'add', 'docs/manual/watering.md');
     await command(project, 'commit', '-m', 'Review branch watering');
     await command(project, 'switch', 'main');
-    await writeFile(conflictPath, '# Riego\n\nVersión de main.\n');
-    await command(project, 'add', 'docs/manual/riego.md');
+    await writeFile(conflictPath, '# Watering\n\nMain version.\n');
+    await command(project, 'add', 'docs/manual/watering.md');
     await command(project, 'commit', '-m', 'Main watering');
     await expect(command(project, 'merge', 'review-fixture')).rejects.toMatchObject({ code: 1 });
     const conflict = await readFile(conflictPath, 'utf8'),
@@ -170,7 +170,7 @@ test('opens a preexisting merge safely and resumes editing only after external r
     expect(conflict).toContain('<<<<<<< HEAD');
     expect(unmerged).not.toBe('');
     await open(page);
-    await page.getByRole('button', { name: 'riego.md', exact: true }).click();
+    await page.getByRole('button', { name: 'watering.md', exact: true }).click();
     await expect(page.getByRole('alert').filter({ hasText: 'conflict markers' })).toBeVisible();
     await expect(page.getByLabel('Markdown source')).toContainText('<<<<<<< HEAD');
     await expect(page.locator('.cm-content')).toHaveAttribute('contenteditable', 'false');
@@ -179,7 +179,7 @@ test('opens a preexisting merge safely and resumes editing only after external r
     await expect(page.getByRole('alert').filter({ hasText: 'Conflicts found' })).toBeVisible();
     await expect(page.getByRole('alert').filter({ hasText: 'MERGE_HEAD' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Review push', exact: true })).toBeDisabled();
-    await edit(page, before + '\nBorrador conservado durante merge.\n');
+    await edit(page, before + '\nDraft preserved during the merge.\n');
     await page.getByRole('button', { name: 'Save', exact: true }).click();
     await expect(
       page.getByText('Resolve the Git operation or conflicts before saving.', { exact: true }),
@@ -188,13 +188,13 @@ test('opens a preexisting merge safely and resumes editing only after external r
     expect(await readFile(conflictPath, 'utf8')).toBe(conflict);
     expect(await command(project, 'ls-files', '-u')).toBe(unmerged);
     await expect(page.getByLabel('Markdown source')).toContainText(
-      'Borrador conservado durante merge.',
+      'Draft preserved during the merge.',
     );
     // The error is shown before the post-rejection disk refresh finishes. Wait
     // for the same enabled control a user observes before leaving this context.
     await expect(page.getByRole('switch', { name: 'Edit mode', exact: true })).toBeEnabled();
-    await writeFile(conflictPath, '# Riego\n\nResolución externa revisada.\n');
-    await command(project, 'add', 'docs/manual/riego.md');
+    await writeFile(conflictPath, '# Watering\n\nReviewed external resolution.\n');
+    await command(project, 'add', 'docs/manual/watering.md');
     await command(project, 'commit', '-m', 'Resolve watering externally');
     expect(await command(project, 'ls-files', '-u')).toBe('');
     await page.getByRole('button', { name: /Connect to Git/ }).click();
@@ -205,12 +205,12 @@ test('opens a preexisting merge safely and resumes editing only after external r
     await connect(page, 43222, instance.tokenFile);
     await page.getByRole('button', { name: 'Refresh files' }).click();
     await page.getByRole('button', { name: 'Documents', exact: true }).click();
-    await page.getByRole('button', { name: 'riego.md', exact: true }).click();
+    await page.getByRole('button', { name: 'watering.md', exact: true }).click();
     await expect(page.getByRole('alert').filter({ hasText: 'conflict markers' })).toHaveCount(0);
     await expect(page.getByRole('article', { name: 'Document content' })).toContainText(
-      'Resolución externa revisada.',
+      'Reviewed external resolution.',
     );
-    const after = before + '\nGuardado después de resolver y vincular.\n';
+    const after = before + '\nSaved after resolving and binding.\n';
     await edit(page, after);
     await page.getByRole('button', { name: 'Save', exact: true }).click();
     await expect(page.getByText('Saved locally and verified.')).toBeVisible();

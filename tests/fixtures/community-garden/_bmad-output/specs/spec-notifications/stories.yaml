@@ -1,0 +1,9 @@
+# Intent list; status lives in each execution spec.
+- id: "1"
+  title: Schedule reminder
+  description: Record the time defined in SPEC.md.
+  spec_checkpoint: true
+- id: "2"
+  title: Show reminder
+  description: Show a local reminder without external delivery.
+  done_checkpoint: true

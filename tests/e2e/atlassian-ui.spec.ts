@@ -17,20 +17,20 @@ async function mockAtlassian(provider: 'jira' | 'confluence' = 'confluence') {
     app: Hono;
   const isJira = provider === 'jira',
     body = isJira
-      ? 'Recordatorio importado desde Jira\n\nSin envío externo\n'
-      : 'Contenido remoto inicial.\n',
-    title = isJira ? 'Recordatorio remoto protegido' : 'Página remota de riego';
+      ? 'Reminder imported from Jira\n\nNo external delivery\n'
+      : 'Initial remote content.\n',
+    title = isJira ? 'Protected remote reminder' : 'Remote watering page';
   const remote: RemoteResource = {
     provider,
     deployment: 'cloud',
     instance: 'https://bmad-e2e.example.test',
     id: '101',
-    ...(isJira ? { key: 'HUERTO-17' } : {}),
+    ...(isJira ? { key: 'GARDEN-17' } : {}),
     url: isJira
-      ? 'https://bmad-e2e.example.test/browse/HUERTO-17'
+      ? 'https://bmad-e2e.example.test/browse/GARDEN-17'
       : 'https://bmad-e2e.example.test/wiki/pages/101',
     scopeId: '7',
-    scopeName: 'Huerto',
+    scopeName: 'Garden',
     title,
     version: '1',
     observedAt: new Date().toISOString(),
@@ -57,14 +57,14 @@ async function mockAtlassian(provider: 'jira' | 'confluence' = 'confluence') {
       concurrency: isJira ? 'none' : 'versioned-with-draft-risk',
       blockedReasons: [
         isJira
-          ? 'La cuenta simulada no garantiza una precondición atómica.'
-          : 'La cuenta simulada no garantiza preservar borradores remotos.',
+          ? 'The mock account does not guarantee an atomic precondition.'
+          : 'The mock account does not guarantee preservation of remote drafts.',
       ],
       liveVerified: false,
     },
-    identity: async () => ({ id: 'account-e2e', displayName: 'Cuenta simulada E2E' }),
+    identity: async () => ({ id: 'account-e2e', displayName: 'E2E mock account' }),
     scopes: async () => ({
-      items: [{ id: '7', name: 'Huerto', key: 'HUERTO' }],
+      items: [{ id: '7', name: 'Garden', key: 'GARDEN' }],
       complete: true,
       warnings: [],
     }),
@@ -88,7 +88,7 @@ async function mockAtlassian(provider: 'jira' | 'confluence' = 'confluence') {
         {
           id: '1',
           version: '1',
-          summary: isJira ? 'Incidencia creada en fixture' : 'Página creada en fixture',
+          summary: isJira ? 'Issue created in the fixture' : 'Page created in the fixture',
         },
       ],
       complete: true,
@@ -147,13 +147,13 @@ test('walks six verified steps, links, blocks unsafe publish and imports reviewe
 }, info) => {
   const service = await mockAtlassian();
   try {
-    const path = join(project, 'docs/notas/reunion.md');
+    const path = join(project, 'docs/notes/meeting.md');
     const original =
-      '---\ntitle: Título local protegido\nstatus: draft\ncustom: preserve-me\n---\n# Título local protegido\n\nCuerpo original.\n';
+      '---\ntitle: Protected local title\nstatus: draft\ncustom: preserve-me\n---\n# Protected local title\n\nOriginal body.\n';
     await writeFile(path, original);
     await page.goto('/');
     await page.getByRole('button', { name: 'Choose project folder' }).click();
-    await page.getByRole('button', { name: 'reunion.md', exact: true }).click();
+    await page.getByRole('button', { name: 'meeting.md', exact: true }).click();
     await page.getByRole('switch', { name: 'Edit mode', exact: true }).click();
     await page.getByRole('button', { name: /Connect to Confluence/ }).click();
     await page.getByRole('button', { name: 'Set up connection', exact: true }).click();
@@ -170,7 +170,7 @@ test('walks six verified steps, links, blocks unsafe publish and imports reviewe
     await page
       .getByRole('button', { name: 'Authorize connection to Confluence', exact: true })
       .click();
-    await expect(page.getByText('Cuenta simulada E2E', { exact: true })).toBeVisible();
+    await expect(page.getByText('E2E mock account', { exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Back', exact: true }).click();
     await page.getByRole('button', { name: 'Continue with authorized connection' }).click();
     await page.getByRole('button', { name: 'Next', exact: true }).click();
@@ -181,9 +181,9 @@ test('walks six verified steps, links, blocks unsafe publish and imports reviewe
     await expect(page.getByText('Connected for reading', { exact: true })).toBeVisible();
     await page
       .getByRole('combobox', { name: 'Local item', exact: true })
-      .selectOption('docs/notas/reunion.md');
+      .selectOption('docs/notes/meeting.md');
     await page.getByRole('button', { name: 'Find candidates' }).click();
-    await page.getByRole('button', { name: '101 · Página remota de riego' }).click();
+    await page.getByRole('button', { name: '101 · Remote watering page' }).click();
     await page.getByRole('button', { name: 'Confirm link' }).click();
     await expect(page.getByText('Link saved. No content was published or imported.')).toBeVisible();
     await page.getByRole('checkbox', { name: 'Title', exact: true }).uncheck();
@@ -194,7 +194,7 @@ test('walks six verified steps, links, blocks unsafe publish and imports reviewe
     await page.getByRole('button', { name: 'Review publication' }).click();
     let dialog = page.getByRole('dialog');
     await expect(dialog).toContainText(
-      'La cuenta simulada no garantiza preservar borradores remotos.',
+      'The mock account does not guarantee preservation of remote drafts.',
     );
     await expect(dialog.getByRole('button', { name: 'Confirm publication' })).toBeDisabled();
     await dialog.getByRole('button', { name: 'Compare again' }).click();
@@ -205,7 +205,7 @@ test('walks six verified steps, links, blocks unsafe publish and imports reviewe
     await expect(dialog).toContainText('Local files that will change');
     await expect(dialog).toContainText('custom: preserve-me');
     await expect(dialog.getByRole('button', { name: 'Confirm import' })).toBeEnabled();
-    service.update('Contenido remoto actualizado tras la revisión.\n');
+    service.update('Remote content updated after review.\n');
     await dialog.getByRole('button', { name: 'Confirm import' }).click();
     await expect(
       page.getByText('The remote resource changed after review. Compare again before importing.'),
@@ -238,26 +238,26 @@ test('walks six verified steps, links, blocks unsafe publish and imports reviewe
     const saved = await readFile(path, 'utf8');
     expect(saved).toContain('custom: preserve-me');
     expect(saved).toContain('status: draft');
-    expect(saved).toContain('# Título local protegido');
-    expect(saved).toContain('Contenido remoto actualizado tras la revisión');
-    expect(saved).not.toContain('Cuerpo original.');
+    expect(saved).toContain('# Protected local title');
+    expect(saved).toContain('Remote content updated after review');
+    expect(saved).not.toContain('Original body.');
     expect(service.writes).toBe(0);
     await page.getByRole('button', { name: 'Documents', exact: true }).click();
     await expect(
-      page.getByText('Contenido remoto actualizado tras la revisión.', { exact: true }),
+      page.getByText('Remote content updated after review.', { exact: true }),
     ).toBeVisible();
     const metadata = await readFile(
       join(project, '.bmad-project-ui/integrations/confluence.json'),
       'utf8',
     );
     expect(metadata).not.toContain(service.token);
-    expect(metadata).not.toContain('Contenido remoto');
+    expect(metadata).not.toContain('Remote content');
     expect(JSON.parse(metadata).bindings).toHaveLength(1);
     expect(await page.evaluate(() => JSON.stringify(localStorage))).not.toContain(service.token);
     await page.getByRole('button', { name: /Connect to Confluence/ }).click();
-    await page.getByRole('button', { name: /docs\/notas\/reunion.md/ }).click();
+    await page.getByRole('button', { name: /docs\/notes\/meeting.md/ }).click();
     await page.getByRole('checkbox', { name: 'Title', exact: true }).uncheck();
-    service.update('Cambio remoto posterior a la base verificada.\n');
+    service.update('Remote change after the verified baseline.\n');
     await page.getByRole('button', { name: 'Compare fields' }).click();
     await expect(page.getByRole('heading', { name: 'Remote changes', exact: true })).toBeVisible();
     await expect(page.getByText(/Private baseline saved in this browser/)).toBeVisible();
@@ -265,7 +265,7 @@ test('walks six verified steps, links, blocks unsafe publish and imports reviewe
     dialog = page.getByRole('dialog');
     await expect(dialog.getByRole('button', { name: 'Confirm import' })).toBeEnabled();
     const config = JSON.parse(metadata);
-    config.connection.localRoot = 'docs/notas';
+    config.connection.localRoot = 'docs/notes';
     await writeFile(
       join(project, '.bmad-project-ui/integrations/confluence.json'),
       JSON.stringify(config),
@@ -304,7 +304,7 @@ test('walks six verified steps, links, blocks unsafe publish and imports reviewe
     ).toBeVisible();
     await reopened.getByRole('button', { name: 'Next', exact: true }).click();
     await reopened.getByRole('button', { name: 'Save connection', exact: true }).click();
-    await reopened.getByRole('button', { name: /docs\/notas\/reunion.md/ }).click();
+    await reopened.getByRole('button', { name: /docs\/notes\/meeting.md/ }).click();
     await reopened.getByRole('checkbox', { name: 'Title', exact: true }).uncheck();
     await reopened.getByRole('button', { name: 'Compare fields' }).click();
     await expect(
@@ -323,12 +323,12 @@ test('links a Jira story and imports only its reviewed YAML description without 
 }) => {
   const service = await mockAtlassian('jira');
   try {
-    const container = '_bmad-output/specs/spec-notificaciones/stories.yaml',
+    const container = '_bmad-output/specs/spec-notifications/stories.yaml',
       path = join(project, container),
       original = await readFile(path, 'utf8'),
       execution = join(
         project,
-        '_bmad-output/specs/spec-notificaciones/stories/1-programar-recordatorio.md',
+        '_bmad-output/specs/spec-notifications/stories/1-schedule-reminder.md',
       ),
       executionBefore = await readFile(execution, 'utf8'),
       sprint = join(project, '_bmad-output/implementation-artifacts/sprint-status.yaml'),
@@ -350,7 +350,7 @@ test('links a Jira story and imports only its reviewed YAML description without 
       buffer: Buffer.from(service.token),
     });
     await page.getByRole('button', { name: 'Authorize connection to Jira', exact: true }).click();
-    await expect(page.getByText('Cuenta simulada E2E', { exact: true })).toBeVisible();
+    await expect(page.getByText('E2E mock account', { exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Next', exact: true }).click();
     await page.getByRole('button', { name: 'Check access and resource' }).click();
     await expect(page.getByText('Complete for the queried scope', { exact: true })).toBeVisible();
@@ -359,9 +359,9 @@ test('links a Jira story and imports only its reviewed YAML description without 
     await expect(page.getByText('Connected for reading', { exact: true })).toBeVisible();
     await page
       .getByRole('combobox', { name: 'Local item', exact: true })
-      .selectOption({ label: '2 · Mostrar recordatorio' });
+      .selectOption({ label: '2 · Show reminder' });
     await page.getByRole('button', { name: 'Find candidates' }).click();
-    await page.getByRole('button', { name: 'HUERTO-17 · Recordatorio remoto protegido' }).click();
+    await page.getByRole('button', { name: 'GARDEN-17 · Protected remote reminder' }).click();
     await page.getByRole('button', { name: 'Confirm link' }).click();
     await expect(page.getByText('Link saved. No content was published or imported.')).toBeVisible();
     await page.getByRole('checkbox', { name: 'Title', exact: true }).uncheck();
@@ -375,7 +375,7 @@ test('links a Jira story and imports only its reviewed YAML description without 
     const dialog = page.getByRole('dialog');
     await expect(dialog).toContainText('Local files that will change');
     await expect(dialog).toContainText(container);
-    await expect(dialog).toContainText('Programar recordatorio');
+    await expect(dialog).toContainText('Schedule reminder');
     await expect(dialog).toContainText('done_checkpoint: true');
     await expect(dialog.getByRole('button', { name: 'Confirm import' })).toBeEnabled();
     expect(await readFile(path, 'utf8')).toBe(original);
@@ -384,7 +384,7 @@ test('links a Jira story and imports only its reviewed YAML description without 
       page.getByText('Import saved locally and verified. Git was not modified.'),
     ).toBeVisible();
     const expected = original.replace(
-      'Mostrar un aviso local sin envío externo.',
+      'Show a local reminder without external delivery.',
       JSON.stringify(service.remote.content.markdown),
     );
     expect(await readFile(path, 'utf8')).toBe(expected);
@@ -401,7 +401,7 @@ test('links a Jira story and imports only its reviewed YAML description without 
     expect(metadata.bindings[0].local.path).toBe(container);
     expect(metadata.bindings[0].local.entityId).toContain('#stories:2:');
     expect(rawMetadata).not.toContain(service.token);
-    expect(rawMetadata).not.toContain('Recordatorio importado desde Jira');
+    expect(rawMetadata).not.toContain('Reminder imported from Jira');
   } finally {
     await service.close();
   }

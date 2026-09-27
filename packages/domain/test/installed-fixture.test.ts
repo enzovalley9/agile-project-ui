@@ -5,8 +5,8 @@ import { createHash } from 'node:crypto';
 import { expect, it } from 'vitest';
 import { indexProject, visibleWorkItems } from '../src/index';
 
-it('indexes the original Huerto corpus copied from the installed dummy, retaining distinct artifact families', () => {
-  const root = fileURLToPath(new URL('../../../tests/fixtures/huerto/', import.meta.url));
+it('indexes the English community garden corpus adapted from the installed dummy, retaining distinct artifact families', () => {
+  const root = fileURLToPath(new URL('../../../tests/fixtures/community-garden/', import.meta.url));
   const files: Record<string, string> = {};
   function walk(prefix = '') {
     for (const entry of readdirSync(join(root, prefix), { withFileTypes: true })) {
@@ -25,7 +25,7 @@ it('indexes the original Huerto corpus copied from the installed dummy, retainin
   );
   const index = indexProject(files, revisions),
     visible = visibleWorkItems(index);
-  expect(index.name).toBe('Huerto Compartido');
+  expect(index.name).toBe('Community Garden');
   expect(index.compatibility).toBe('6.12.0');
   expect(index.documents.length).toBeGreaterThanOrEqual(26);
   expect(index.documents.filter((doc) => doc.kind === 'prd')).toHaveLength(2);

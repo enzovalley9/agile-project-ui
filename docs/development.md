@@ -37,11 +37,11 @@ Preview listens on `http://127.0.0.1:4173`. A connector started for development 
 
 ## Formatting and dependency notices
 
-`npm run format` formats maintained source and documentation; `npm run format:check` checks without changing files. Original test fixtures and third-party legal text are deliberately excluded. Keep code, developer comments, maintained UI text and public documentation in English; project files, multilingual fixtures, protocol keys and original license text retain their original language.
+`npm run format` formats maintained source and documentation; `npm run format:check` checks without changing files. Byte-sensitive test fixtures and third-party legal text are deliberately excluded. Keep code, developer comments, maintained UI text, public documentation and synthetic examples in English. Preserve user-supplied document language, deliberate Unicode regression inputs, protocol keys and original legal text.
 
 After installing a dependency update with the lockfile, run `npm run notices`, review the generated inventory and complete license text, then run `npm run notices:check` and `npm run audit:dependencies`. An unknown license or missing notice fails generation and requires a documented review. The inventory is deliberately inclusive, not a claim that every package appears in every bundle.
 
-Web builds copy the notices into `dist/web`; connector packaging includes them in the verified install manifest alongside the runtime license. The project LICENSE is copied when present. Until the project license is selected, build warnings make that unresolved distribution condition explicit. Do not redistribute a build as open source on the strength of dependency notices alone.
+Web builds copy the notices into `dist/web`; connector packaging includes them in the verified install manifest alongside the runtime license. Include the project [MIT LICENSE](../LICENSE) in every distribution alongside these third-party notices. The MIT notice covers first-party material; it does not replace dependency or runtime licenses.
 
 ## Connector packages
 
@@ -65,10 +65,12 @@ Keep `package-lock.json` synchronized with dependency changes. Review direct and
 
 Before a public release:
 
-1. Resolve the project license and distribution terms; source visibility alone does not grant open-source redistribution rights.
+1. Preserve the MIT license, all required third-party notices and verified asset provenance. Check names and branding separately from software licenses.
 2. Review the exact tracked files and history for secrets, private research, personal data and unapproved assets. Rotating a leaked credential is separate from removing it from history.
 3. Run the documented checks at the release commit, inspect all three package targets and both browser jobs, and retain artifact checksums/notices.
 4. Establish a working confidential vulnerability-reporting route and verify its availability. A `SECURITY.md` file alone does not enable a reporting service.
-5. Make an explicit visibility/release decision. Signing/notarization, hosted deployment and package-registry publication are separate operations.
+5. Confirm the authorized release visibility and hosted asset scope. A private GitHub release remains inaccessible to anonymous visitors even if the frontend is public. Signing/notarization, repository visibility and package-registry publication are separate operations.
 
 README/community files, automated dependency updates, branch protection and release automation help maintain a project. They are not a substitute for a license or evidence that repository settings have actually been enabled.
+
+See [releases and distribution](releases.md) for download access, checksum verification, updates and package removal.

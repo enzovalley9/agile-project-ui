@@ -95,7 +95,7 @@ export async function installDiskPicker(page: Page, root: string) {
     };
     const make = (path: string, kind: 'directory' | 'file'): any => ({
       kind,
-      name: path.split('/').at(-1) || 'Huerto Compartido',
+      name: path.split('/').at(-1) || 'Community Garden',
       queryPermission: async () => w.__testPermission,
       requestPermission: async () => w.__testPermission,
       isSameEntry: async (other: any) => other.__path === path,
@@ -141,7 +141,7 @@ export const test = base.extend<{ project: string }>({
   project: async ({ page }, use) => {
     const temp = await mkdtemp(join(tmpdir(), 'bmad-ui-e2e-'));
     const root = await realpath(temp);
-    await cp(resolve('tests/fixtures/huerto'), root, { recursive: true });
+    await cp(resolve('tests/fixtures/community-garden'), root, { recursive: true });
     await mkdir(join(root, '.git'));
     await installDiskPicker(page, root);
     await use(root);

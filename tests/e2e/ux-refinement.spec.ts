@@ -15,24 +15,19 @@ test('story drag is disabled in read mode and reviews both coupled source files 
   page,
   project,
 }) => {
-  const storyPath = join(
-    project,
-    '_bmad-output/implementation-artifacts/1-1-consultar-parcelas.md',
-  );
+  const storyPath = join(project, '_bmad-output/implementation-artifacts/1-1-view-plots.md');
   const sprintPath = join(project, '_bmad-output/implementation-artifacts/sprint-status.yaml');
   const beforeStory = await readFile(storyPath, 'utf8'),
     beforeSprint = await readFile(sprintPath, 'utf8');
   await open(page);
-  const card = column(page, 'Done').locator('article').filter({ hasText: 'Consultar parcelas' });
+  const card = column(page, 'Done').locator('article').filter({ hasText: 'View plots' });
   await expect(card).toHaveAttribute('draggable', 'false');
-  await expect(
-    page.getByRole('button', { name: 'Move Consultar parcelas', exact: true }),
-  ).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Move View plots', exact: true })).toHaveCount(0);
   await page.getByRole('switch', { name: 'Edit mode' }).click();
   await expect(card).toHaveAttribute('draggable', 'true');
   await card.dragTo(column(page, 'In progress'));
   const dialog = page.getByRole('dialog', { name: 'Move story' });
-  await expect(dialog).toContainText('1-1-consultar-parcelas.md');
+  await expect(dialog).toContainText('1-1-view-plots.md');
   await expect(dialog).toContainText('sprint-status.yaml');
   expect(await readFile(storyPath, 'utf8')).toBe(beforeStory);
   expect(await readFile(sprintPath, 'utf8')).toBe(beforeSprint);
@@ -42,17 +37,17 @@ test('story drag is disabled in read mode and reviews both coupled source files 
   await dialog.getByRole('button', { name: 'Confirm move' }).click();
   await expect(dialog).toHaveCount(0);
   await expect(
-    column(page, 'In progress').locator('article').filter({ hasText: 'Consultar parcelas' }),
+    column(page, 'In progress').locator('article').filter({ hasText: 'View plots' }),
   ).toBeVisible();
   expect(await readFile(storyPath, 'utf8')).toBe(
     beforeStory.replace('Status: done', 'Status: in-progress'),
   );
   expect(await readFile(sprintPath, 'utf8')).toBe(
-    beforeSprint.replace('1-1-consultar-parcelas: done', '1-1-consultar-parcelas: in-progress'),
+    beforeSprint.replace('1-1-view-plots: done', '1-1-view-plots: in-progress'),
   );
   await page.getByRole('button', { name: 'Refresh files' }).click();
   await expect(
-    column(page, 'In progress').locator('article').filter({ hasText: 'Consultar parcelas' }),
+    column(page, 'In progress').locator('article').filter({ hasText: 'View plots' }),
   ).toBeVisible();
 });
 
@@ -61,32 +56,29 @@ test('sprint drag changes tracking without rewriting execution and shows every r
   project,
 }) => {
   const sprintPath = join(project, '_bmad-output/implementation-artifacts/sprint-status.yaml');
-  const buildPath = join(
-    project,
-    '_bmad-output/implementation-artifacts/spec-1-3-cancelar-turno.md',
-  );
+  const buildPath = join(project, '_bmad-output/implementation-artifacts/spec-1-3-cancel-slot.md');
   const beforeSprint = await readFile(sprintPath, 'utf8'),
     beforeBuild = await readFile(buildPath, 'utf8');
   await open(page, 'Sprint');
   const list = page.getByRole('region', { name: 'Sprint stories and tasks' });
-  await expect(list.getByText('Crear listado', { exact: true })).toBeVisible();
-  await expect(list.getByText('Mostrar zona', { exact: true })).toBeVisible();
-  await expect(list.getByText('Validar navegación por teclado', { exact: true })).toBeVisible();
+  await expect(list.getByText('Create the list', { exact: true })).toBeVisible();
+  await expect(list.getByText('Show the area', { exact: true })).toBeVisible();
+  await expect(list.getByText('Check keyboard navigation', { exact: true })).toBeVisible();
   await page.getByRole('switch', { name: 'Edit mode' }).click();
   await column(page, 'Ready')
     .locator('article')
-    .filter({ hasText: 'Cancelar turno' })
+    .filter({ hasText: 'Cancel slot' })
     .dragTo(column(page, 'In progress'));
   const dialog = page.getByRole('dialog', { name: 'Move story' });
-  await expect(dialog).not.toContainText('spec-1-3-cancelar-turno.md');
+  await expect(dialog).not.toContainText('spec-1-3-cancel-slot.md');
   await dialog.getByRole('button', { name: 'Confirm move' }).click();
   await expect(dialog).toHaveCount(0);
   expect(await readFile(sprintPath, 'utf8')).toBe(
-    beforeSprint.replace('1-3-cancelar-turno: ready-for-dev', '1-3-cancelar-turno: in-progress'),
+    beforeSprint.replace('1-3-cancel-slot: ready-for-dev', '1-3-cancel-slot: in-progress'),
   );
   expect(await readFile(buildPath, 'utf8')).toBe(beforeBuild);
   await expect(
-    column(page, 'In progress').locator('article').filter({ hasText: 'Cancelar turno' }),
+    column(page, 'In progress').locator('article').filter({ hasText: 'Cancel slot' }),
   ).toBeVisible();
 });
 
@@ -99,15 +91,15 @@ test('epic details expand related stories and completion markers, and open a chi
   await page.getByRole('button', { name: 'Open epic', exact: true }).first().click();
   const list = page.getByRole('region', { name: 'Stories and tasks' });
   await expect(list.locator('details')).toHaveCount(3);
-  const story = list.locator('details').filter({ hasText: 'Consultar parcelas' });
+  const story = list.locator('details').filter({ hasText: 'View plots' });
   await expect(story.getByLabel('Complete', { exact: true })).toHaveCount(2);
   await expect(story.getByLabel('Incomplete', { exact: true })).toHaveCount(1);
   await story.locator('summary').click();
-  await expect(story.getByText('Crear listado', { exact: true })).toBeHidden();
+  await expect(story.getByText('Create the list', { exact: true })).toBeHidden();
   await story.locator('summary').click();
   await story.getByRole('button', { name: 'Open story', exact: true }).click();
   await expect(
-    page.getByRole('dialog').getByRole('heading', { name: 'Consultar parcelas', exact: true }),
+    page.getByRole('dialog').getByRole('heading', { name: 'View plots', exact: true }),
   ).toBeVisible();
   await expect(page.getByRole('dialog').getByRole('checkbox')).toHaveCount(3);
 });
@@ -119,7 +111,7 @@ test('keyboard move retains review and rejects an external change without overwr
   const path = join(project, '_bmad-output/implementation-artifacts/sprint-status.yaml');
   await open(page);
   await page.getByRole('switch', { name: 'Edit mode' }).click();
-  const move = page.getByRole('button', { name: 'Move Cancelar turno', exact: true });
+  const move = page.getByRole('button', { name: 'Move Cancel slot', exact: true });
   await move.focus();
   await page.keyboard.press('Enter');
   const dialog = page.getByRole('dialog', { name: 'Move story' });
@@ -228,8 +220,8 @@ test('backlog tasks declared in the epic remain visible and edit their original 
   const sprintPath = join(project, '_bmad-output/implementation-artifacts/sprint-status.yaml');
   const beforeSprint = await readFile(sprintPath, 'utf8');
   const epic = (await readFile(epicPath, 'utf8')).replace(
-    'Cerrar un préstamo preservando su historial.',
-    'Cerrar un préstamo preservando su historial.\n\n- [x] Identify the borrowed tool\n- [ ] Record its return',
+    'Close a loan while preserving its history.',
+    'Close a loan while preserving its history.\n\n- [x] Identify the borrowed tool\n- [ ] Record its return',
   );
   await writeFile(epicPath, epic);
   await open(page, 'Sprint');
@@ -241,7 +233,7 @@ test('backlog tasks declared in the epic remain visible and edit their original 
   const tasks = page
     .getByRole('region', { name: 'Stories and tasks' })
     .locator('details')
-    .filter({ hasText: 'Devolver herramienta' });
+    .filter({ hasText: 'Return tool' });
   await expect(tasks.getByLabel('Complete', { exact: true })).toHaveCount(1);
   await expect(tasks.getByLabel('Incomplete', { exact: true })).toHaveCount(1);
   await tasks.getByRole('button', { name: 'Open story', exact: true }).click();
@@ -254,7 +246,7 @@ test('backlog tasks declared in the epic remain visible and edit their original 
   await page
     .getByRole('region', { name: 'Sprint stories and tasks' })
     .locator('details')
-    .filter({ hasText: 'Devolver herramienta' })
+    .filter({ hasText: 'Return tool' })
     .getByRole('button', { name: 'Open story', exact: true })
     .click();
   await page.getByRole('dialog').getByRole('checkbox', { name: 'Record its return' }).click();
@@ -287,7 +279,7 @@ test('dark mode keeps epic tasks, sprint lists and the Markdown editor readable'
       await expect(page.getByRole('region', { name: 'Sprint stories and tasks' })).toBeVisible();
     } else if (screen === 'editor-dark') {
       await page.getByRole('button', { name: 'Documents', exact: true }).click();
-      await page.getByRole('button', { name: '1-1-consultar-parcelas.md', exact: true }).click();
+      await page.getByRole('button', { name: '1-1-view-plots.md', exact: true }).click();
       await page.getByRole('button', { name: 'Markdown', exact: true }).click();
       await expect(page.getByRole('textbox', { name: 'Markdown source' })).toBeVisible();
     }

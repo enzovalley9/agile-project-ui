@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import type { Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
-async function open(page: Page, file = 'reunion.md') {
+async function open(page: Page, file = 'meeting.md') {
   await page.goto('/');
   await page.getByRole('button', { name: 'Choose project folder' }).click();
   await page.getByRole('button', { name: file, exact: true }).click();
@@ -18,34 +18,34 @@ test('preserves BOM and CRLF through a browser edit, then honors an external LF 
   page,
   project,
 }) => {
-  const path = join(project, 'docs/notas/reunion.md');
-  const initial = '\uFEFF# Documento con CRLF\r\n\r\nTexto original.\r\n';
+  const path = join(project, 'docs/notes/meeting.md');
+  const initial = '\uFEFF# Document with CRLF\r\n\r\nOriginal text.\r\n';
   await writeFile(path, initial);
   await open(page);
   await page.getByRole('switch', { name: 'Edit mode', exact: true }).click();
   const editor = await source(page);
   await editor.click();
   await editor.press('ControlOrMeta+End');
-  await page.keyboard.insertText('Añadido.');
+  await page.keyboard.insertText('Added.');
   await page.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(page.getByText('Saved locally and verified.')).toBeVisible();
-  expect(await readFile(path, 'utf8')).toBe(initial + 'Añadido.');
-  const external = '# Documento LF\n\nTexto desde otro editor.\n';
+  expect(await readFile(path, 'utf8')).toBe(initial + 'Added.');
+  const external = '# LF document\n\nText from another editor.\n';
   await writeFile(path, external);
   await page.getByRole('button', { name: 'Refresh files' }).click();
-  await expect(editor).toContainText('Texto desde otro editor.');
+  await expect(editor).toContainText('Text from another editor.');
   await editor.click();
   await editor.press('ControlOrMeta+End');
-  await page.keyboard.insertText('Segunda edición.');
+  await page.keyboard.insertText('Second edit.');
   await page.getByRole('button', { name: 'Save', exact: true }).click();
-  await expect.poll(() => readFile(path, 'utf8')).toBe(external + 'Segunda edición.');
+  await expect.poll(() => readFile(path, 'utf8')).toBe(external + 'Second edit.');
 });
 
 test('guards drafts on file, mode and view changes with an explicit discard choice', async ({
   page,
   project,
 }) => {
-  const path = join(project, 'docs/notas/reunion.md'),
+  const path = join(project, 'docs/notes/meeting.md'),
     before = await readFile(path, 'utf8');
   await open(page);
   await page.getByRole('switch', { name: 'Edit mode', exact: true }).click();
@@ -53,13 +53,13 @@ test('guards drafts on file, mode and view changes with an explicit discard choi
   await editor.click();
   await editor.press('ControlOrMeta+End');
   await editor.press('Enter');
-  await page.keyboard.insertText('Borrador protegido.');
+  await page.keyboard.insertText('Protected draft.');
   const exported = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Export draft' }).click();
   const download = await exported;
-  expect(await readFile((await download.path())!, 'utf8')).toBe(before + '\nBorrador protegido.');
+  expect(await readFile((await download.path())!, 'utf8')).toBe(before + '\nProtected draft.');
   for (const destination of [
-    page.getByRole('button', { name: 'riego.md', exact: true }),
+    page.getByRole('button', { name: 'watering.md', exact: true }),
     page.getByRole('switch', { name: 'Edit mode', exact: true }),
     page.getByRole('button', { name: 'Stories', exact: true }),
   ]) {
@@ -67,14 +67,14 @@ test('guards drafts on file, mode and view changes with an explicit discard choi
     const guard = page.getByRole('dialog', { name: 'Unsaved changes' });
     await expect(guard).toBeVisible();
     await guard.getByRole('button', { name: 'Stay here' }).click();
-    await expect(editor).toContainText('Borrador protegido.');
+    await expect(editor).toContainText('Protected draft.');
   }
-  await page.getByRole('button', { name: 'riego.md', exact: true }).click();
+  await page.getByRole('button', { name: 'watering.md', exact: true }).click();
   await page
     .getByRole('dialog')
     .getByRole('button', { name: 'Discard drafts and continue' })
     .click();
-  await expect(page.getByRole('heading', { name: 'Riego', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Watering', exact: true })).toBeVisible();
   expect(await readFile(path, 'utf8')).toBe(before);
 });
 
@@ -84,18 +84,20 @@ test('follows relative document links and headings and reports a broken target',
 }) => {
   await writeFile(
     join(project, 'docs/manual/index.md'),
-    '# Manual\n\n[Riego con sección](riego.md#turnos)\n\n[Ausente](no-existe.md)\n\n[Sección ausente](#no-existe)\n',
+    '# Manual\n\n[Watering with a section](watering.md#time-slots)\n\n[Missing](does-not-exist.md)\n\n[Missing section](#does-not-exist)\n',
   );
   await open(page, 'index.md');
-  await page.getByRole('link', { name: 'Riego con sección' }).click();
-  await expect(page.getByRole('heading', { name: 'Turnos', exact: true })).toBeVisible();
+  await page.getByRole('link', { name: 'Watering with a section' }).click();
+  await expect(page.getByRole('heading', { name: 'Time slots', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'index.md', exact: true }).click();
-  await page.getByRole('link', { name: 'Sección ausente' }).click();
-  await expect(page.getByText('Section “no-existe” was not found in this document.')).toBeVisible();
-  await page.getByRole('link', { name: 'Ausente', exact: true }).click();
+  await page.getByRole('link', { name: 'Missing section' }).click();
+  await expect(
+    page.getByText('Section “does-not-exist” was not found in this document.'),
+  ).toBeVisible();
+  await page.getByRole('link', { name: 'Missing', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'File not found' })).toBeVisible();
-  await page.getByRole('button', { name: 'reunion.md', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Reunión de prueba' })).toBeVisible();
+  await page.getByRole('button', { name: 'meeting.md', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Test meeting' })).toBeVisible();
 });
 
 test('reviews a story state and checklist change against their actual source files', async ({
@@ -105,8 +107,8 @@ test('reviews a story state and checklist change against their actual source fil
   await open(page);
   await page.getByRole('switch', { name: 'Edit mode', exact: true }).click();
   await page.getByRole('button', { name: 'Stories', exact: true }).click();
-  await page.getByLabel('Search stories').fill('Reservar turno');
-  await page.getByRole('button', { name: /^Reservar turno/ }).click();
+  await page.getByLabel('Search stories').fill('Book slot');
+  await page.getByRole('button', { name: /^Book slot/ }).click();
   let dialog = page.getByRole('dialog');
   await dialog.getByRole('button', { name: 'Edit fields' }).click();
   await dialog.getByRole('combobox', { name: 'Field', exact: true }).selectOption('status');
@@ -119,28 +121,25 @@ test('reviews a story state and checklist change against their actual source fil
   await expect(
     page
       .getByRole('region', { name: 'In progress', exact: true })
-      .getByRole('button', { name: /^Reservar turno/ }),
+      .getByRole('button', { name: /^Book slot/ }),
   ).toBeVisible();
   const sprint = await readFile(
     join(project, '_bmad-output/implementation-artifacts/sprint-status.yaml'),
     'utf8',
   );
-  expect(sprint).toContain('1-2-reservar-turno: in-progress');
+  expect(sprint).toContain('1-2-book-slot: in-progress');
   expect(sprint).toContain('custom_fixture_field: preserve-me');
-  await page.getByLabel('Search stories').fill('Consultar parcelas');
-  await page.getByRole('button', { name: /^Consultar parcelas/ }).click();
+  await page.getByLabel('Search stories').fill('View plots');
+  await page.getByRole('button', { name: /^View plots/ }).click();
   dialog = page.getByRole('dialog');
-  await dialog.getByRole('checkbox', { name: 'Validar navegación por teclado' }).click();
-  await expect(dialog).toContainText('1-1-consultar-parcelas.md');
+  await dialog.getByRole('checkbox', { name: 'Check keyboard navigation' }).click();
+  await expect(dialog).toContainText('1-1-view-plots.md');
   await dialog.getByRole('button', { name: 'Confirm and save' }).click();
   await expect
     .poll(() =>
-      readFile(
-        join(project, '_bmad-output/implementation-artifacts/1-1-consultar-parcelas.md'),
-        'utf8',
-      ),
+      readFile(join(project, '_bmad-output/implementation-artifacts/1-1-view-plots.md'), 'utf8'),
     )
-    .toContain('- [x] Validar navegación por teclado');
+    .toContain('- [x] Check keyboard navigation');
 });
 
 test('isolates malformed comments and integration sidecars without crashing the reader', async ({
@@ -169,7 +168,7 @@ test('isolates malformed comments and integration sidecars without crashing the 
           resourceId: '1',
           resourceUrl: 'https://tenant.example.test/browse/TEST-1',
           scopeId: '1',
-          local: { path: 'docs/notas/reunion.md' },
+          local: { path: 'docs/notes/meeting.md' },
           fields: null,
           policy: 'review-both-directions',
         },
@@ -188,7 +187,7 @@ test('isolates malformed comments and integration sidecars without crashing the 
     page.getByText(/The configuration for this integration cannot be parsed/),
   ).toBeVisible();
   await page.getByRole('button', { name: 'Documents', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Reunión de prueba' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Test meeting' })).toBeVisible();
   expect(errors).toEqual([]);
   expect(
     await readFile(join(project, '.bmad-project-ui/comments/threads/broken.json'), 'utf8'),
@@ -206,8 +205,8 @@ test('renders the selected C1 desktop layout, centered T2, and a usable narrow b
   await page.screenshot({ path: info.outputPath('c1-reader-comments.png'), fullPage: true });
   await page.getByRole('button', { name: 'Stories', exact: true }).click();
   await page.screenshot({ path: info.outputPath('c1-board.png'), fullPage: true });
-  await page.getByLabel('Search stories').fill('Reservar turno');
-  await page.getByRole('button', { name: /^Reservar turno/ }).click();
+  await page.getByLabel('Search stories').fill('Book slot');
+  await page.getByRole('button', { name: /^Book slot/ }).click();
   const dialog = page.getByRole('dialog');
   const box = await dialog.boundingBox();
   expect(box?.width).toBeLessThanOrEqual(640);
@@ -231,10 +230,10 @@ test('maps a rendered Unicode selection to exact source, then explicitly reancho
 }) => {
   await open(page);
   await page.getByRole('switch', { name: 'Edit mode', exact: true }).click();
-  const quote = 'Lucía recibe agua 💧';
+  const quote = 'Zoë receives water 💧';
   await page
     .locator('article [data-source-start]')
-    .filter({ hasText: 'La parcela de Lucía' })
+    .filter({ hasText: 'The plot tended by Zoë' })
     .evaluate((element, selected) => {
       const text = element.firstChild!;
       const from = text.textContent!.indexOf(selected);
@@ -247,25 +246,25 @@ test('maps a rendered Unicode selection to exact source, then explicitly reancho
       element.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
     }, quote);
   await page.getByRole('button', { name: 'Comment on selection', exact: true }).click();
-  await page.getByLabel('Your name', { exact: true }).fill('Revisora Unicode');
+  await page.getByLabel('Your name', { exact: true }).fill('Unicode reviewer');
   await page.getByRole('button', { name: 'Use this name' }).click();
   await page
     .getByLabel('New comment', { exact: true })
-    .fill('Selección exacta con acento y emoji.');
+    .fill('Exact selection with an accent and emoji.');
   await page.getByRole('button', { name: 'Save comment', exact: true }).click();
   await expect(
     page
-      .getByRole('region', { name: 'Message from Revisora Unicode' })
-      .getByText('Selección exacta con acento y emoji.', { exact: true }),
+      .getByRole('region', { name: 'Message from Unicode reviewer' })
+      .getByText('Exact selection with an accent and emoji.', { exact: true }),
   ).toBeVisible();
   const folder = join(project, '.bmad-project-ui/comments/threads');
   const [filename] = await readdir(folder);
   const first = JSON.parse(await readFile(join(folder, filename), 'utf8'));
   expect(first.anchor.quote).toBe(quote);
-  const file = join(project, 'docs/notas/reunion.md'),
+  const file = join(project, 'docs/notes/meeting.md'),
     before = await readFile(file, 'utf8');
   expect(before.slice(first.anchor.startOffset, first.anchor.endOffset)).toBe(quote);
-  await writeFile(file, 'Una nota añadida antes.\n\n' + before);
+  await writeFile(file, 'A note added before.\n\n' + before);
   await page.getByRole('button', { name: 'Refresh files' }).click();
   await expect(page.getByText(/Passage relocated in this view/)).toBeVisible();
   expect(JSON.parse(await readFile(join(folder, filename), 'utf8')).anchor).toEqual(first.anchor);
@@ -276,20 +275,20 @@ test('maps a rendered Unicode selection to exact source, then explicitly reancho
   await page.getByRole('button', { name: 'Confirm new passage' }).click();
   await expect(page.getByText(/Passage found/)).toBeVisible();
   const moved = JSON.parse(await readFile(join(folder, filename), 'utf8'));
-  expect(moved.anchor.quote).toBe('Nota original para editar y comentar desde el navegador.');
+  expect(moved.anchor.quote).toBe('Original note for editing and commenting in the browser.');
   expect(moved.events.at(-1).previousAnchor).toEqual(first.anchor);
 });
 
 test('keeps local files intact when write permission is denied', async ({ page, project }) => {
   await open(page);
-  const before = await readFile(join(project, 'docs/notas/reunion.md'), 'utf8');
+  const before = await readFile(join(project, 'docs/notes/meeting.md'), 'utf8');
   await page.evaluate(() => {
     (window as unknown as { __testPermission: string }).__testPermission = 'denied';
   });
   await page.getByRole('switch', { name: 'Edit mode', exact: true }).click();
   await expect(page.getByRole('alert')).toBeVisible();
   await expect(page.getByRole('switch', { name: 'Edit mode', exact: true })).toBeVisible();
-  expect(await readFile(join(project, 'docs/notas/reunion.md'), 'utf8')).toBe(before);
+  expect(await readFile(join(project, 'docs/notes/meeting.md'), 'utf8')).toBe(before);
   await expect(page.getByRole('button', { name: 'Save', exact: true })).toHaveCount(0);
 });
 
@@ -314,7 +313,7 @@ test('keeps layouts within the viewport at documented breakpoints and traps moda
   }
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.getByRole('button', { name: 'Stories', exact: true }).click();
-  const card = page.getByRole('button', { name: /^Reservar turno/ });
+  const card = page.getByRole('button', { name: /^Book slot/ });
   await card.click();
   const dialog = page.getByRole('dialog');
   for (let i = 0; i < 12; i++) {
@@ -334,21 +333,23 @@ test('edits a visual text leaf while preserving Markdown structure and metadata'
   page,
   project,
 }) => {
-  const path = join(project, 'docs/notas/reunion.md');
+  const path = join(project, 'docs/notes/meeting.md');
   const before =
-    '---\ntitle: Nota original\nstatus: draft\n---\n# Nota original\n\nTexto **importante** y final.\n';
+    '---\ntitle: Original note\nstatus: draft\n---\n# Original note\n\nSome **important** text and an ending.\n';
   await writeFile(path, before);
   await open(page);
   await page.getByRole('switch', { name: 'Edit mode', exact: true }).click();
   const leaf = page
     .getByRole('textbox', { name: 'Edit text on line 7' })
-    .filter({ hasText: 'importante' });
-  await leaf.fill('clave');
+    .filter({ hasText: 'important' });
+  await leaf.fill('key');
   await page.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(page.getByText('Saved locally and verified.')).toBeVisible();
-  expect(await readFile(path, 'utf8')).toBe(before.replace('**importante**', '**clave**'));
+  expect(await readFile(path, 'utf8')).toBe(before.replace('**important**', '**key**'));
   await page.getByRole('button', { name: 'Markdown', exact: true }).click();
-  await expect(page.getByLabel('Markdown source')).toContainText('Texto **clave** y final.');
+  await expect(page.getByLabel('Markdown source')).toContainText(
+    'Some **key** text and an ending.',
+  );
 });
 
 test('loads authorized local raster images and blocks remote, active and escaping references', async ({
@@ -366,14 +367,14 @@ test('loads authorized local raster images and blocks remote, active and escapin
     '<svg xmlns="http://www.w3.org/2000/svg" onload="window.__unsafeImage=true"><image href="https://example.com/tracker"/></svg>',
   );
   const markdown =
-    '# Imágenes\n\n![Pixel local](../assets/pixel.png)\n\n![Remota](https://example.com/tracker.png)\n\n![SVG activo](../assets/active.svg)\n\n![Fuera](../../../../private.png)\n';
-  await writeFile(join(project, 'docs/notas/reunion.md'), markdown);
+    '# Images\n\n![Local pixel](../assets/pixel.png)\n\n![Remote](https://example.com/tracker.png)\n\n![Active SVG](../assets/active.svg)\n\n![Outside](../../../../private.png)\n';
+  await writeFile(join(project, 'docs/notes/meeting.md'), markdown);
   const remote: string[] = [];
   page.on('request', (request) => {
     if (request.url().startsWith('https://example.com')) remote.push(request.url());
   });
   await open(page);
-  const image = page.getByRole('img', { name: 'Pixel local' });
+  const image = page.getByRole('img', { name: 'Local pixel' });
   await expect(image).toBeVisible();
   await expect
     .poll(() =>
@@ -410,5 +411,5 @@ test('loads authorized local raster images and blocks remote, active and escapin
       }
     }, originalUrl),
   ).toBe(false);
-  expect(await readFile(join(project, 'docs/notas/reunion.md'), 'utf8')).toBe(markdown);
+  expect(await readFile(join(project, 'docs/notes/meeting.md'), 'utf8')).toBe(markdown);
 });

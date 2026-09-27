@@ -1,0 +1,18 @@
+# Original fixture with synthetic states for coverage. It does not prove delivery.
+generated: 2026-09-27
+project: Community Garden
+project_key: GARDEN
+tracking_system: file-system
+story_location: "{project-root}/_bmad-output/implementation-artifacts"
+development_status:
+  epic-1: in-progress
+  1-1-view-plots: done
+  1-2-book-slot: review
+  1-3-cancel-slot: ready-for-dev
+  epic-1-retrospective: optional
+  epic-2: backlog
+  2-1-borrow-tool: in-progress
+  2-2-return-tool: backlog
+  2-3-check-inventory: paused
+  epic-2-retrospective: done
+custom_fixture_field: preserve-me

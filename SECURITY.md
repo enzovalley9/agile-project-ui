@@ -4,13 +4,15 @@
 
 Do not post exploit details, capabilities, provider credentials or private project content in a public issue or pull request.
 
-This repository is currently private. Collaborators should contact the repository owner through the existing private channel used for their access. A dedicated public confidential reporting route has not yet been established.
+Repository collaborators should contact the maintainer through the private channel used to arrange their access. Do not use a general issue for sensitive details, even when the repository itself is private.
 
-If the repository later provides GitHub's **Report a vulnerability** action under Security → Advisories, use that private form. Its availability must be checked; this document does not enable it. If no confidential route is available, request one in an issue containing only the request for private contact, with no vulnerability details. Public release preparation must resolve this reporting route before inviting security reports.
+A public confidential reporting address has not yet been established. If you do not already have a private contact route, share only a request for one through an available maintainer contact; do not disclose the vulnerability there. GitHub issue and advisory URLs for this repository are not anonymous reporting channels while repository access is restricted.
+
+Once a verified public contact is available, it will be listed here. This policy does not enable a reporting service or promise that GitHub's **Report a vulnerability** form is available.
 
 Include the affected commit/version, component, OS/browser, a minimal synthetic reproduction, observed impact and any proposed mitigation. Remove tokens, personal data and real project documents. Report only systems you are authorized to test.
 
-There is no published vulnerability-response SLA, bug bounty or maintenance schedule for older versions. Include the exact affected revision so maintainers can reproduce it; a version number alone is not proof that a fix exists.
+The latest released 0.x version is the maintenance target. There is no long-term support branch, published vulnerability-response SLA or bug bounty. Include the exact affected revision so maintainers can reproduce it; a version number alone is not proof that a fix exists.
 
 ## Security model
 

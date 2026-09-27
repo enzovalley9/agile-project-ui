@@ -9,35 +9,35 @@ import {
   serializeThread,
   formatMessageDate,
 } from '../src/index';
-const me = { id: 'local-a', name: 'Ana' },
-  other = { id: 'local-b', name: 'Ana' };
-const source = '---\ntitle: Huerto\n---\n# Riego\n\nLucía 💧 conserva su turno.\n';
+const me = { id: 'local-a', name: 'Anna' },
+  other = { id: 'local-b', name: 'Anna' };
+const source = '---\ntitle: Garden\n---\n# Watering\n\nZoë 💧 keeps her time slot.\n';
 describe('persistent comments', () => {
   it('anchors physical source lines including frontmatter and Unicode', () => {
     const anchor = makeAnchor('docs/a.md', source, 'r1', 6);
-    expect(anchor.quote).toBe('Lucía 💧 conserva su turno.');
+    expect(anchor.quote).toBe('Zoë 💧 keeps her time slot.');
     expect(resolveAnchor(anchor, source, 'r1')).toEqual({
       state: 'exact',
       startLine: 6,
       endLine: 6,
     });
-    expect(resolveAnchor(anchor, 'Nueva línea\n' + source, 'r2')).toEqual({
+    expect(resolveAnchor(anchor, 'New line\n' + source, 'r2')).toEqual({
       state: 'moved',
       startLine: 7,
       endLine: 7,
     });
   });
   it('keeps ambiguous and removed anchors detached', () => {
-    const a = makeAnchor('a.md', 'duplicado', 'r1', 1);
-    expect(resolveAnchor(a, 'duplicado\notro\nduplicado', 'r2').state).toBe('ambiguous');
-    expect(resolveAnchor(a, 'texto cambiado', 'r2').state).toBe('outdated');
+    const a = makeAnchor('a.md', 'duplicate', 'r1', 1);
+    expect(resolveAnchor(a, 'duplicate\nother\nduplicate', 'r2').state).toBe('ambiguous');
+    expect(resolveAnchor(a, 'changed text', 'r2').state).toBe('outdated');
     expect(resolveAnchor(a, undefined).state).toBe('missing');
   });
   it('maps exact fragments using source offsets without splitting Unicode', () => {
-    const start = source.indexOf('Lucía'),
-      end = source.indexOf(' conserva');
+    const start = source.indexOf('Zoë'),
+      end = source.indexOf(' keeps');
     const a = makeFragmentAnchor('a.md', source, 'r1', start, end);
-    expect(a.quote).toBe('Lucía 💧');
+    expect(a.quote).toBe('Zoë 💧');
     expect(resolveAnchor(a, source, 'r1').state).toBe('exact');
     expect(resolveAnchor(a, 'Header\n' + source, 'r2').startLine).toBe(7);
   });
@@ -45,28 +45,28 @@ describe('persistent comments', () => {
     const thread = createThread(
       makeAnchor('a.md', source, 'r1', 6),
       me,
-      'Una respuesta',
+      'A reply',
       '2026-09-27T10:00:00Z',
     );
     const edited = updateThread(
       thread,
       me,
-      { type: 'edit', messageId: thread.messages[0].id, text: 'Corregida' },
+      { type: 'edit', messageId: thread.messages[0].id, text: 'Corrected' },
       '2026-09-27T10:01:00Z',
     );
-    expect(edited.messages[0].revisions?.[0].text).toBe('Una respuesta');
+    expect(edited.messages[0].revisions?.[0].text).toBe('A reply');
     expect(edited.messages[0].createdAt).toBe(thread.messages[0].createdAt);
     expect(parseThread(serializeThread(edited))).toEqual(edited);
     expect(() =>
       updateThread(thread, other, {
         type: 'edit',
         messageId: thread.messages[0].id,
-        text: 'Suplantada',
+        text: 'Impersonated',
       }),
     ).toThrow('your own');
   });
   it('toggles per-message reactions preserving other actors and separate approvals', () => {
-    let thread = createThread(makeAnchor('a.md', source, 'r1', 6), me, 'Revisar');
+    let thread = createThread(makeAnchor('a.md', source, 'r1', 6), me, 'Review');
     const id = thread.messages[0].id;
     thread = updateThread(thread, me, { type: 'react', messageId: id, kind: 'like' });
     thread = updateThread(thread, other, { type: 'react', messageId: id, kind: 'like' });
@@ -82,8 +82,8 @@ describe('persistent comments', () => {
   });
   it('resolves/reopens without losing messages and records reanchor history', () => {
     const a = makeAnchor('a.md', source, 'r1', 6);
-    let t = createThread(a, me, 'Revisar');
-    t = updateThread(t, me, { type: 'reply', text: 'Revisado' });
+    let t = createThread(a, me, 'Review');
+    t = updateThread(t, me, { type: 'reply', text: 'Reviewed' });
     t = updateThread(t, me, { type: 'resolve' });
     t = updateThread(t, me, { type: 'reopen' });
     t = updateThread(t, me, { type: 'reanchor', anchor: { ...a, path: 'b.md' } });

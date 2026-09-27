@@ -7,7 +7,7 @@ test('edits and comments a derived SPEC with a regeneration notice while preserv
   page,
   project,
 }) => {
-  const folder = '_bmad-output/specs/spec-notificaciones';
+  const folder = '_bmad-output/specs/spec-notifications';
   const specPath = folder + '/SPEC.md';
   const original = await readFile(join(project, specPath), 'utf8');
   const originalEntries = (await readdir(join(project, folder))).sort();
@@ -16,13 +16,13 @@ test('edits and comments a derived SPEC with a regeneration notice while preserv
     folder + '/rules.md',
     folder + '/stories.yaml',
     folder + '/RETROSPECTIVE.md',
-    folder + '/stories/1-programar-recordatorio.md',
+    folder + '/stories/1-schedule-reminder.md',
     '_bmad-output/implementation-artifacts/sprint-status.yaml',
   ];
   const protectedFiles = await Promise.all(
     protectedPaths.map(async (path) => ({ path, bytes: await readFile(join(project, path)) })),
   );
-  const addition = 'Nota manual revisada: el recordatorio sigue siendo exclusivamente local.';
+  const addition = 'Reviewed manual note: the reminder remains entirely local.';
   const edited = original + '\n' + addition + '\n';
 
   await page.goto('/');
@@ -31,7 +31,7 @@ test('edits and comments a derived SPEC with a regeneration notice while preserv
     .getByRole('navigation', { name: 'Project files' })
     .getByTitle(specPath, { exact: true })
     .click();
-  await expect(page.getByRole('heading', { name: 'Recordatorios', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Reminders', exact: true })).toBeVisible();
   await page.getByRole('switch', { name: 'Edit mode', exact: true }).click();
   const warning = page.getByText(
     'This document is derived. BMAD may regenerate it and overwrite manual changes.',
@@ -53,20 +53,20 @@ test('edits and comments a derived SPEC with a regeneration notice while preserv
   await expect(page.getByText(addition, { exact: true })).toBeVisible();
 
   await page.getByRole('button', { name: 'Comments', exact: true }).click();
-  await page.getByRole('textbox', { name: 'Your name', exact: true }).fill('Revisora SPEC');
+  await page.getByRole('textbox', { name: 'Your name', exact: true }).fill('SPEC reviewer');
   await page.getByRole('button', { name: 'Use this name', exact: true }).click();
   await page.getByText('Comment on a passage', { exact: true }).click();
   const line = edited.split('\n').indexOf(addition) + 1;
   await page.getByRole('spinbutton', { name: 'Start line', exact: true }).fill(String(line));
   await page.getByRole('spinbutton', { name: 'End line', exact: true }).fill(String(line));
   await page.getByRole('button', { name: 'Select', exact: true }).click();
-  const message = 'Ajuste manual revisado antes de una posible regeneración.';
+  const message = 'Manual change reviewed before possible regeneration.';
   await page.getByRole('textbox', { name: 'New comment', exact: true }).fill(message);
   await expect(warning).toBeVisible();
   await page.getByRole('button', { name: 'Save comment', exact: true }).click();
   await expect(
     page
-      .getByRole('region', { name: 'Message from Revisora SPEC' })
+      .getByRole('region', { name: 'Message from SPEC reviewer' })
       .getByText(message, { exact: true }),
   ).toBeVisible();
 
@@ -78,7 +78,7 @@ test('edits and comments a derived SPEC with a regeneration notice while preserv
   expect(thread.anchor.quote).toBe(addition);
   expect(thread.anchor.revision).toBe(createHash('sha256').update(edited).digest('hex'));
   expect(thread.messages[0].text).toBe(message);
-  expect(thread.messages[0].author.name).toBe('Revisora SPEC');
+  expect(thread.messages[0].author.name).toBe('SPEC reviewer');
   expect(await readFile(join(project, specPath), 'utf8')).toBe(edited);
   expect((await readdir(join(project, folder))).sort()).toEqual(originalEntries);
   for (const file of protectedFiles)

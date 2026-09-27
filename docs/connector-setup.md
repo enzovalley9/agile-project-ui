@@ -12,7 +12,9 @@ Jira and Confluence processes do not read project files or run Git. They read th
 
 ## 1. Download and install
 
-[Download connectors from Releases](https://github.com/enzovalley9/bmad-project-ui/releases). Select an available `bmad-project-ui-connectors-SYSTEM-ARCH.tar.gz` asset for your computer:
+[Download connectors from Releases](https://github.com/enzovalley9/bmad-project-ui/releases). The GitHub repository and releases currently require repository access; sign in to an authorized account. A public web app URL does not grant that access. See [release access and verification](releases.md).
+
+Select an available `bmad-project-ui-connectors-SYSTEM-ARCH.tar.gz` asset for your computer:
 
 | System  | Package system | Processor suffix                           |
 | ------- | -------------- | ------------------------------------------ |

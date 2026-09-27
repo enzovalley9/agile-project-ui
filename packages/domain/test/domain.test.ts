@@ -12,28 +12,28 @@ import {
 
 const P = '_bmad-output/planning-artifacts',
   I = '_bmad-output/implementation-artifacts',
-  S = '_bmad-output/specs/spec-reservas';
+  S = '_bmad-output/specs/spec-bookings';
 const manifest = 'installation:\n  version: 6.12.0\nmodules:\n  - name: bmm\n    version: 6.12.0\n';
 const toml =
-  '[core]\nproject_name = "Reservas del barrio"\noutput_folder = "{project-root}/_bmad-output"\n[modules.bmm]\nplanning_artifacts = "{output_folder}/planning-artifacts"\nimplementation_artifacts = "{output_folder}/implementation-artifacts"\nproject_knowledge = "{project-root}/docs"\n';
+  '[core]\nproject_name = "Neighborhood bookings"\noutput_folder = "{project-root}/_bmad-output"\n[modules.bmm]\nplanning_artifacts = "{output_folder}/planning-artifacts"\nimplementation_artifacts = "{output_folder}/implementation-artifacts"\nproject_knowledge = "{project-root}/docs"\n';
 const epics =
-  '# Plan de reservas\n\n## Epic 1: Reservar pista\n\nPermitir reservar una pista vecinal.\n\n### Story 1.1: Elegir horario\n\nAs a vecino,\nI want elegir un horario,\nSo that pueda reservar.\n\n#### Acceptance Criteria\n\nGiven una pista libre\nWhen selecciono una hora\nThen aparece la reserva.\n';
+  '# Booking plan\n\n## Epic 1: Book a court\n\nAllow booking a neighborhood court.\n\n### Story 1.1: Choose a time\n\nAs a neighbor,\nI want to choose a time,\nSo that I can make a booking.\n\n#### Acceptance Criteria\n\nGiven an available court\nWhen I select a time\nThen the booking appears.\n';
 const legacy =
-  '# Story 1.1: Elegir horario\n\nStatus: ready-for-dev\n\n## Story\n\nAs a vecino, quiero elegir hora.\n\n## Acceptance Criteria\n\nLa franja está disponible.\n\n## Tasks / Subtasks\n\n- [ ] Mostrar franjas\n  - [x] Leer calendario\n\n## Dev Notes\n\nConservar este texto.\n';
+  '# Story 1.1: Choose a time\n\nStatus: ready-for-dev\n\n## Story\n\nAs a neighbor, I want to choose a time.\n\n## Acceptance Criteria\n\nThe time slot is available.\n\n## Tasks / Subtasks\n\n- [ ] Show time slots\n  - [x] Read the calendar\n\n## Dev Notes\n\nPreserve this text.\n';
 const sprint =
-  'generated: 09-27-2026 09:00\nlast_updated: 09-27-2026 09:00\nproject: Reservas\nproject_key: R\ntracking_system: file-system\nstory_location: "{project-root}/_bmad-output/implementation-artifacts"\n# keep this comment\ndevelopment_status:\n  epic-1: in-progress\n  1-1-elegir-horario: ready-for-dev # keep this too\n  1-2-pagar-reserva: backlog\n  epic-1-retrospective: optional\ncustom_extension: untouched\n';
+  'generated: 09-27-2026 09:00\nlast_updated: 09-27-2026 09:00\nproject: Bookings\nproject_key: R\ntracking_system: file-system\nstory_location: "{project-root}/_bmad-output/implementation-artifacts"\n# keep this comment\ndevelopment_status:\n  epic-1: in-progress\n  1-1-choose-time: ready-for-dev # keep this too\n  1-2-pay-booking: backlog\n  epic-1-retrospective: optional\ncustom_extension: untouched\n';
 const build =
-  '---\ntitle: "Notificaciones locales"\ntype: feature\ncreated: 2026-09-27\nstatus: in-review\nroute: standard\nunknown: { keep: true }\n---\n# Notificaciones locales\n\n## Intent\n\nAvisar al vecino al confirmar.\n\n## Tasks & Acceptance\n\n- [ ] Preparar notificación\n\n## Implementation Notes\n\nTexto ajeno.\n';
+  '---\ntitle: "Local notifications"\ntype: feature\ncreated: 2026-09-27\nstatus: in-review\nroute: standard\nunknown: { keep: true }\n---\n# Local notifications\n\n## Intent\n\nNotify the neighbor upon confirmation.\n\n## Tasks & Acceptance\n\n- [ ] Prepare the notification\n\n## Implementation Notes\n\nUnrelated text.\n';
 function base(extra: Record<string, string> = {}): Record<string, string> {
   return {
     '_bmad/_config/manifest.yaml': manifest,
     '_bmad/config.toml': toml,
     '_bmad/bmm/config.yaml':
-      'project_name: Reservas del barrio\noutput_folder: "{project-root}/_bmad-output"\nplanning_artifacts: "{output_folder}/planning-artifacts"\nimplementation_artifacts: "{output_folder}/implementation-artifacts"\nproject_knowledge: "{project-root}/docs"\n',
+      'project_name: Neighborhood bookings\noutput_folder: "{project-root}/_bmad-output"\nplanning_artifacts: "{output_folder}/planning-artifacts"\nimplementation_artifacts: "{output_folder}/implementation-artifacts"\nproject_knowledge: "{project-root}/docs"\n',
     [`${P}/epics.md`]: epics,
     [`${I}/sprint-status.yaml`]: sprint,
-    [`${I}/1-1-elegir-horario.md`]: legacy,
-    'docs/README.md': '# Conocimiento\n\nProyecto original sintético.\n',
+    [`${I}/1-1-choose-time.md`]: legacy,
+    'docs/README.md': '# Knowledge\n\nOriginal synthetic project.\n',
     ...extra,
   };
 }
@@ -55,7 +55,7 @@ describe('BMAD 6.12 artifact fixture contract BC-01–20', () => {
     const files = Object.freeze(base()),
       before = JSON.stringify(files),
       result = inspect(files);
-    expect(result.name).toBe('Reservas del barrio');
+    expect(result.name).toBe('Neighborhood bookings');
     expect(result.declaredVersion).toBe('6.12.0');
     expect(result.compatibility).toBe('6.12.0');
     expect(result.roots.find((root) => root.role === 'planning')?.path).toBe(P);
@@ -63,7 +63,7 @@ describe('BMAD 6.12 artifact fixture contract BC-01–20', () => {
     const item = result.workItems.find(
       (item) => item.family === 'sprint' && item.nativeId === '1.1',
     )!;
-    expect(item.title).toBe('Elegir horario');
+    expect(item.title).toBe('Choose a time');
     expect(item.status?.raw).toBe('ready-for-dev');
     expect(item.source.path).toBe(`${I}/sprint-status.yaml`);
     expect(item.source.revision).toHaveLength(64);
@@ -124,7 +124,7 @@ describe('BMAD 6.12 artifact fixture contract BC-01–20', () => {
   });
   it('BC-04 degrades unknown/incomplete installation and absent sprint honestly', () => {
     const result = inspect({
-      'docs/prd.md': '# Proyecto',
+      'docs/prd.md': '# Project',
       '_bmad/_config/manifest.yaml': 'installation: [',
     });
     expect(result.documents).toHaveLength(1);
@@ -135,22 +135,22 @@ describe('BMAD 6.12 artifact fixture contract BC-01–20', () => {
   });
   it('BC-05 preserves multiple PRD workspaces, addenda and memlog separately', () => {
     const files = base({
-      [`${P}/prds/a/prd.md`]: '---\ntitle: Primera\nstatus: draft\n---\n# PRD A',
-      [`${P}/prds/a/addendum.md`]: '# Detalle',
+      [`${P}/prds/a/prd.md`]: '---\ntitle: First\nstatus: draft\n---\n# PRD A',
+      [`${P}/prds/a/addendum.md`]: '# Detail',
       [`${P}/prds/a/.memlog.md`]: '# Memlog',
       [`${P}/prds/b/prd.md`]: '# PRD B',
     });
     const result = inspect(files);
     expect(result.documents.filter((d) => d.kind === 'prd')).toHaveLength(2);
-    expect(result.documents.find((d) => d.title === 'Primera')?.derived).toBe(true);
+    expect(result.documents.find((d) => d.title === 'First')?.derived).toBe(true);
     expect(result.documents.some((d) => d.path.endsWith('addendum.md'))).toBe(true);
   });
   it('BC-06 exposes inherited architecture and manual ADR without inventing standalone decisions', () => {
     const result = inspect(
       base({
         [`${P}/architecture/run/ARCHITECTURE-SPINE.md`]:
-          '---\ntype: architecture-spine\nbinds: [AD-1]\n---\n# Architecture\n\n## AD-1: Datos locales\n\nInherited decision.',
-        'docs/adrs/ADR-001.md': '# Decisión manual',
+          '---\ntype: architecture-spine\nbinds: [AD-1]\n---\n# Architecture\n\n## AD-1: Local data\n\nInherited decision.',
+        'docs/adrs/ADR-001.md': '# Manual decision',
       }),
     );
     expect(
@@ -159,9 +159,9 @@ describe('BMAD 6.12 artifact fixture contract BC-01–20', () => {
     expect(result.workItems.some((item) => item.nativeId === 'AD-1')).toBe(false);
   });
   it('BC-07 differentiates complete and partial UX contracts', () => {
-    const files = base({ [`${P}/ux/run/DESIGN.md`]: '# Diseño' });
+    const files = base({ [`${P}/ux/run/DESIGN.md`]: '# Design' });
     expect(codes(files)).toContain('ux-partial');
-    files[`${P}/ux/run/EXPERIENCE.md`] = '# Interacción';
+    files[`${P}/ux/run/EXPERIENCE.md`] = '# Interaction';
     expect(codes(files)).not.toContain('ux-partial');
   });
   it('BC-08 keeps whole and sharded documents without alphabetical reassembly', () => {
@@ -180,12 +180,13 @@ describe('BMAD 6.12 artifact fixture contract BC-01–20', () => {
     ).toEqual(['docs/prd/b.md', 'docs/prd/a.md']);
   });
   it('BC-09 recognizes split IDs and Unicode but not fenced or translated examples', () => {
+    // The escaped Spanish heading must stay unrecognized by the English BMAD grammar.
     const result = inspect({
       'docs/epics.md':
-        '# Trabajo\n\n## Epic 2: Preparación ñ\n\n### Story 2.6a: Añadir emoji 🧩\n\n## Historia 2.7: No estructura\n\n```md\n### Story 2.8: Ejemplo\n```',
+        '# Work\n\n## Epic 2: Prepare a résumé\n\n### Story 2.6a: Add an emoji 🧩\n\n## \u0048\u0069\u0073\u0074\u006f\u0072\u0069\u0061 2.7: Not structural\n\n```md\n### Story 2.8: Example\n```',
     });
     expect(result.workItems.map((i) => i.nativeId)).toEqual(['2', '2.6a']);
-    expect(result.workItems[1].title).toBe('Añadir emoji 🧩');
+    expect(result.workItems[1].title).toBe('Add an emoji 🧩');
     expect(
       inspect({ 'docs/examples.md': '```md\n# Story 1.1: Example\n```' }).workItems,
     ).toHaveLength(0);
@@ -193,7 +194,7 @@ describe('BMAD 6.12 artifact fixture contract BC-01–20', () => {
   it('BC-10 preserves all sprint vocabularies plus legacy and unknown statuses', () => {
     const result = inspect({
       'sprint-status.yaml':
-        'development_status:\n  epic-1: backlog\n  1-1-a: drafted\n  1-2-b: contexted\n  1-3-c: alien\n  epic-1-retrospective: optional\naction_items:\n  - description: Revisar accesibilidad\n    status: open\n',
+        'development_status:\n  epic-1: backlog\n  1-1-a: drafted\n  1-2-b: contexted\n  1-3-c: alien\n  epic-1-retrospective: optional\naction_items:\n  - description: Review accessibility\n    status: open\n',
     });
     expect(result.workItems.find((i) => i.nativeId === '1.1')?.status).toMatchObject({
       raw: 'drafted',
@@ -227,7 +228,7 @@ describe('BMAD 6.12 artifact fixture contract BC-01–20', () => {
       value: 'ready-for-dev',
     });
     expect(plan.changes[0].after).toBe(
-      sprint.replace('1-2-pagar-reserva: backlog', '1-2-pagar-reserva: ready-for-dev'),
+      sprint.replace('1-2-pay-booking: backlog', '1-2-pay-booking: ready-for-dev'),
     );
     expect(plan.changes[0].after).toContain('# keep this comment');
     expect(plan.changes[0].after).toContain('custom_extension: untouched');
@@ -238,7 +239,7 @@ describe('BMAD 6.12 artifact fixture contract BC-01–20', () => {
       item = result.workItems.find((i) => i.family === 'legacy-story')!;
     expect(item.editable.title).toBe(false);
     expect(() =>
-      planWorkItemEdit(result, files, { id: item.id, field: 'title', value: 'Otro título' }),
+      planWorkItemEdit(result, files, { id: item.id, field: 'title', value: 'Another title' }),
     ).toThrow(/sprint key/);
     expect(files[`${I}/sprint-status.yaml`]).toBe(sprint);
   });
@@ -256,28 +257,28 @@ describe('BMAD 6.12 artifact fixture contract BC-01–20', () => {
       value: true,
     });
     expect(plan.changes).toHaveLength(1);
-    expect(plan.changes[0].after).toBe(legacy.replace('- [ ] Mostrar', '- [x] Mostrar'));
+    expect(plan.changes[0].after).toBe(legacy.replace('- [ ] Show', '- [x] Show'));
     expect(plan.changes[0].after).toContain('Status: ready-for-dev');
   });
   it('BC-14 accepts Build and oneshot without fabricating missing tasks', () => {
     const result = inspect({
-      [`${I}/spec-avisos.md`]: build,
-      [`${I}/spec-rapido.md`]:
-        '---\ntitle: Rápido\ntype: chore\nstatus: done\nroute: oneshot\n---\n# Rápido\n\n## Intent\n\nCambiar una etiqueta.\n',
+      [`${I}/spec-notices.md`]: build,
+      [`${I}/spec-quick.md`]:
+        '---\ntitle: Quick\ntype: chore\nstatus: done\nroute: oneshot\n---\n# Quick\n\n## Intent\n\nChange a label.\n',
     });
     expect(result.workItems.filter((i) => i.kind === 'build')).toHaveLength(2);
-    expect(result.workItems.find((i) => i.title === 'Rápido')?.checklist).toHaveLength(0);
+    expect(result.workItems.find((i) => i.title === 'Quick')?.checklist).toHaveLength(0);
   });
   it('BC-15 keeps Build done versus sprint review and Build Auto blocked', () => {
     const files = base({
       [`${I}/sprint-status.yaml`]: sprint.replace(
-        '1-1-elegir-horario: ready-for-dev',
-        '1-1-elegir-horario: review',
+        '1-1-choose-time: ready-for-dev',
+        '1-1-choose-time: review',
       ),
-      [`${I}/spec-1-1-elegir-horario.md`]: build.replace('status: in-review', 'status: done'),
+      [`${I}/spec-1-1-choose-time.md`]: build.replace('status: in-review', 'status: done'),
       [`${I}/spec-auto.md`]: build.replace('status: in-review', 'status: blocked'),
     });
-    delete files[`${I}/1-1-elegir-horario.md`];
+    delete files[`${I}/1-1-choose-time.md`];
     const result = inspect(files),
       item = result.workItems.find((i) => i.family === 'build' && i.nativeId === '1.1')!;
     expect(item.status?.raw).toBe('done');
@@ -288,7 +289,7 @@ describe('BMAD 6.12 artifact fixture contract BC-01–20', () => {
   it('BC-16 generated SPEC stays text editable/commentable with warning and unchanged memlog', () => {
     const files = base({
         [`${S}/SPEC.md`]:
-          '---\nid: reservas\ncompanions: [COMPANION.md]\nsources: [../../planning-artifacts/epics.md]\n---\n# SPEC\n',
+          '---\nid: bookings\ncompanions: [COMPANION.md]\nsources: [../../planning-artifacts/epics.md]\n---\n# SPEC\n',
         [`${S}/.memlog.md`]: '# Source decisions',
       }),
       copy = JSON.stringify(files),
@@ -302,7 +303,7 @@ describe('BMAD 6.12 artifact fixture contract BC-01–20', () => {
   });
   it('BC-17 ordered SPEC stories have no status and association ambiguity stays visible', () => {
     const stories =
-      '- id: "3"\n  title: Tres\n  description: Alcance tres\n- id: "3-2"\n  title: Segunda\n  description: Alcance dos\n';
+      '- id: "3"\n  title: Third\n  description: Third scope\n- id: "3-2"\n  title: Second\n  description: Second scope\n';
     const result = inspect({
       [`${S}/stories.yaml`]: stories,
       [`${S}/stories/3-one.md`]: build,
@@ -367,7 +368,7 @@ describe('BMAD 6.12 artifact fixture contract BC-01–20', () => {
 
 describe('preserving structured editing', () => {
   it('preserves BOM, CRLF, quotes, unknown frontmatter and untouched code during Build title edit', () => {
-    const path = `${I}/spec-avisos.md`,
+    const path = `${I}/spec-notices.md`,
       text = '\uFEFF' + build.replaceAll('\n', '\r\n'),
       files = { [path]: text },
       result = inspect(files),
@@ -375,15 +376,15 @@ describe('preserving structured editing', () => {
     const plan = planWorkItemEdit(result, files, {
       id: item.id,
       field: 'title',
-      value: 'Avisos del barrio',
+      value: 'Neighborhood notices',
     });
     expect(plan.changes[0].after).toBe(
-      text.replace('title: "Notificaciones locales"', 'title: "Avisos del barrio"'),
+      text.replace('title: "Local notifications"', 'title: "Neighborhood notices"'),
     );
     expect(plan.changes[0].expectedRevision).toBe(revisions(files)[path]);
   });
   it('edits exact description section and status without changing unrelated content', () => {
-    const path = `${I}/spec-avisos.md`,
+    const path = `${I}/spec-notices.md`,
       files = { [path]: build },
       result = inspect(files),
       item = result.workItems[0];
@@ -391,9 +392,14 @@ describe('preserving structured editing', () => {
       planWorkItemEdit(result, files, {
         id: item.id,
         field: 'description',
-        value: 'Avisar sin enviar correo.',
+        value: 'Show reminders without sending emails.',
       }).changes[0].after,
-    ).toBe(build.replace('Avisar al vecino al confirmar.', 'Avisar sin enviar correo.'));
+    ).toBe(
+      build.replace(
+        'Notify the neighbor upon confirmation.',
+        'Show reminders without sending emails.',
+      ),
+    );
     expect(
       planWorkItemEdit(result, files, { id: item.id, field: 'status', value: 'done' }).changes[0]
         .after,
@@ -413,13 +419,13 @@ describe('preserving structured editing', () => {
     });
     expect(plan.changes).toHaveLength(2);
     expect(plan.changes.find((c) => c.path.endsWith('.yaml'))?.after).toBe(
-      sprint.replace('1-1-elegir-horario: ready-for-dev', '1-1-elegir-horario: in-progress'),
+      sprint.replace('1-1-choose-time: ready-for-dev', '1-1-choose-time: in-progress'),
     );
     expect(plan.changes.find((c) => c.path.endsWith('.md'))?.after).toBe(
       legacy.replace('Status: ready-for-dev', 'Status: in-progress'),
     );
     const divergent = base({
-        [`${I}/1-1-elegir-horario.md`]: legacy.replace('ready-for-dev', 'done'),
+        [`${I}/1-1-choose-time.md`]: legacy.replace('ready-for-dev', 'done'),
       }),
       index = inspect(divergent);
     expect(index.diagnostics.some((d) => d.code === 'status-discrepancy')).toBe(true);
@@ -435,38 +441,38 @@ describe('preserving structured editing', () => {
     const plan = planWorkItemEdit(result, files, {
       id: item.id,
       field: 'description',
-      value: 'As a vecino, quiero reservar sin esperas.',
+      value: 'As a neighbor, I want to book without waiting.',
     });
     expect(plan.changes).toHaveLength(1);
     expect(plan.changes[0].path).toBe(`${P}/epics.md`);
     expect(plan.changes[0].after).toBe(
       epics.replace(
-        'As a vecino,\nI want elegir un horario,\nSo that pueda reservar.',
-        'As a vecino, quiero reservar sin esperas.',
+        'As a neighbor,\nI want to choose a time,\nSo that I can make a booking.',
+        'As a neighbor, I want to book without waiting.',
       ),
     );
-    expect(plan.changes[0].after).toContain('### Story 1.1: Elegir horario');
+    expect(plan.changes[0].after).toContain('### Story 1.1: Choose a time');
   });
   it('edits SPEC-story title and literal-block description without inventing status or altering IDs', () => {
     const path = `${S}/stories.yaml`,
       text =
-        '- id: "first"\n  title: Primera\n  description: |\n    Texto original.\n    Segunda línea.\n  spec_checkpoint: true\n',
+        '- id: "first"\n  title: First\n  description: |\n    Original text.\n    Second line.\n  spec_checkpoint: true\n',
       files = { [path]: text },
       index = inspect(files),
       item = index.workItems[0];
     expect(
-      planWorkItemEdit(index, files, { id: item.id, field: 'title', value: 'Nueva' }).changes[0]
+      planWorkItemEdit(index, files, { id: item.id, field: 'title', value: 'Updated' }).changes[0]
         .after,
-    ).toBe(text.replace('title: Primera', 'title: Nueva'));
+    ).toBe(text.replace('title: First', 'title: Updated'));
     const plan = planWorkItemEdit(index, files, {
       id: item.id,
       field: 'description',
-      value: 'Nuevo texto\nOtra línea',
+      value: 'New text\nAnother line',
     });
     expect(plan.changes[0].after).toContain('id: "first"');
     expect(plan.changes[0].after).toContain('spec_checkpoint: true');
     expect(inspect({ [path]: plan.changes[0].after }).workItems[0].description).toBe(
-      'Nuevo texto\nOtra línea',
+      'New text\nAnother line',
     );
     expect(plan.changes[0].after).not.toContain('status:');
   });
@@ -483,14 +489,14 @@ describe('preserving structured editing', () => {
     ).toBe(text.replace('Status: ready-for-dev', 'Status: review'));
   });
   it('guards changed field, invalid title, duplicate Status and YAML aliases', () => {
-    const path = `${I}/spec-avisos.md`,
+    const path = `${I}/spec-notices.md`,
       files = { [path]: build },
       index = inspect(files),
       item = index.workItems[0];
     expect(() =>
       planWorkItemEdit(
         index,
-        { [path]: build.replace('Notificaciones locales', 'New') },
+        { [path]: build.replace('Local notifications', 'New') },
         { id: item.id, field: 'title', value: 'Overwrite' },
       ),
     ).toThrow(/changed/);
@@ -507,7 +513,7 @@ describe('preserving structured editing', () => {
   });
   it('maps hidden frontmatter and Unicode to actual source lines and keeps fenced tasks inert', () => {
     const source =
-      '---\ntitle: Ejemplo\n---\n\n# Árbol 🧩\n\n- [ ] Acción 😀\n\n```md\n- [ ] Fake\n```\n';
+      '---\ntitle: Example\n---\n\n# Tree 🧩\n\n- [ ] Action 😀\n\n```md\n- [ ] Fake\n```\n';
     const index = inspect({ 'docs/unicode.md': source });
     expect(index.documents[0].headings[0].lineStart).toBe(5);
     expect(index.workItems).toHaveLength(1);
@@ -520,7 +526,7 @@ describe('checklist provenance across planning and execution', () => {
   const planning = epics + '\n- [x] Agree acceptance\n- [ ] Review overlap\n';
   function withoutExecution(extra: FileSnapshot = {}) {
     const files = base({ [`${P}/epics.md`]: planning, ...extra });
-    delete files[`${I}/1-1-elegir-horario.md`];
+    delete files[`${I}/1-1-choose-time.md`];
     return files;
   }
   function visibleStory(index: ReturnType<typeof inspect>) {
@@ -592,7 +598,7 @@ describe('checklist provenance across planning and execution', () => {
     const index = inspect(
       base({
         [`${P}/epics.md`]: planning,
-        [`${I}/1-1-alternative.md`]: legacy.replace('Mostrar franjas', 'Alternative execution'),
+        [`${I}/1-1-alternative.md`]: legacy.replace('Show time slots', 'Alternative execution'),
       }),
     );
     expect(index.diagnostics.some((diagnostic) => diagnostic.code === 'execution-ambiguous')).toBe(
@@ -606,8 +612,8 @@ describe('checklist provenance across planning and execution', () => {
     (tracked) => {
       const files = base({
         [`${P}/epics.md`]: planning,
-        [`${I}/1-1-elegir-horario.md`]: legacy.replace(
-          '- [ ] Mostrar franjas\n  - [x] Leer calendario\n',
+        [`${I}/1-1-choose-time.md`]: legacy.replace(
+          '- [ ] Show time slots\n  - [x] Read the calendar\n',
           '',
         ),
       });
@@ -615,7 +621,7 @@ describe('checklist provenance across planning and execution', () => {
       const item = visibleStory(inspect(files));
       expect(item.family).toBe(tracked ? 'sprint' : 'legacy-story');
       expect(item.checklist).toEqual([]);
-      expect(item.documentPath).toBe(`${I}/1-1-elegir-horario.md`);
+      expect(item.documentPath).toBe(`${I}/1-1-choose-time.md`);
     },
   );
 });

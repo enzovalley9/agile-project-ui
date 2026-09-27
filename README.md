@@ -1,82 +1,84 @@
 # BMAD Project UI
 
-A browser workspace for reading and editing BMAD Method project files, exploring stories and epics, and discussing specific passages. Project documents remain the source of truth. There is no authoritative application database.
+Read, edit and discuss your BMAD Method project in a browser. Browse documents, move stories, inspect epic and sprint tasks, and keep every change in the project's files.
 
-The structured adapter targets **BMAD Method 6.12.0**. Unknown versions and formats retain generic reading with visible compatibility limits. The application does not run BMAD agents or workflows.
+[MIT license](LICENSE) · [Releases](https://github.com/enzovalley9/bmad-project-ui/releases) · [CI](https://github.com/enzovalley9/bmad-project-ui/actions/workflows/ci.yml) · [Contributing](CONTRIBUTING.md)
 
-**A project license has not yet been selected.** Documentation and contribution templates do not themselves grant reuse or redistribution rights. Third-party components retain their own licenses.
+The application is independent of BMad Code, LLC. It does not run BMAD agents or workflows. Its structured adapter targets **BMAD Method 6.12.0**; other versions retain generic reading with visible compatibility limits.
 
-## Run locally
+## Features
 
-Use Node.js 24 LTS and npm. The tested packaging runtime is pinned in [`.node-version`](.node-version); the supported source-development range is declared in [`package.json`](package.json). Use desktop Chrome or Edge.
+- **Documents:** searchable file tree, Markdown rendering, source editing, headings, relative links and local images.
+- **Work:** story boards, epic details and sprint views with expandable task lists. Move stories by drag and drop or keyboard, then review the source changes before saving.
+- **Discussion:** comments on text fragments, replies, reactions and resolved threads, saved in versionable sidecar files.
+- **Appearance:** light, dark and system themes, with a separate switch for read and edit modes.
+- **Native Git:** optional local connector for reviewed commits, existing-branch changes and pushes. Save, commit and push remain separate actions.
+- **Jira and Confluence:** independent optional connectors for linking, reading, comparing and reviewed local imports, with explicit provider limits.
+
+## Quick start
+
+Use desktop **Chrome or Microsoft Edge**. The application needs the browser's directory-access API and a secure origin: HTTPS or localhost. Firefox, Safari and mobile browsers are not supported for the complete local-folder workflow.
+
+For local development, install **Node.js 24 LTS**, npm and Git. [`.node-version`](.node-version) pins the tested runtime.
 
 ```sh
+git clone https://github.com/enzovalley9/bmad-project-ui.git
+cd bmad-project-ui
 npm ci
 npm run dev
 ```
 
-Open `http://127.0.0.1:5173` and select your **project root**. The workspace starts in read mode. The edit-mode switch requests browser write permission. Use the theme control to choose a light or dark appearance; document content keeps its original language. No connector is needed to read, edit or comment on local documents.
+Open **http://127.0.0.1:5173**, select your project root and start reading. Turn on edit mode when you want to save changes; the browser will request write permission. No connector is needed to read, edit or comment on local documents.
 
-For a disposable example, select [`tests/fixtures/huerto`](tests/fixtures/huerto) from this checkout. Copy it elsewhere before editing if you want to preserve the test fixture. Its documents are original synthetic test data; opening them does not require installing or running BMAD.
+For a disposable example, copy [`tests/fixtures/community-garden`](tests/fixtures/community-garden) outside the checkout and open the copy. It contains original synthetic planning documents, stories, epics, a sprint and comments. Installing or running BMAD is unnecessary to open it.
 
-The production build writes static assets to `dist/web` and Node connectors to `dist/connectors`. Browser directory access requires HTTPS or localhost. The development and preview servers listen only on loopback.
+The GitHub repository and release downloads currently require repository access. MIT grants rights to copies you receive; it does not grant access to a private repository. See [release access and verification](docs/releases.md).
 
-## Workspace
+## Your files stay in your project
 
-- **Documents:** searchable file tree, rendered Markdown, source text, headings, relative links and local raster images. Remote images do not load automatically.
-- **Work:** drag stories between supported states in Stories or Sprint when edit mode is enabled. Review the affected source files before confirming; the Move button provides the same action by keyboard. Epic details and the sprint show expandable story/task lists with completion markers. Sprint state, execution state and checklist completion keep their separate meanings.
-- **Editing:** one draft shared by visual and source views. Structured changes show affected files before saving. Save, commit and push are separate actions.
-- **Comments:** fragment threads, replies, reactions, edits to your own messages and resolution, stored in `.bmad-project-ui/comments/threads` outside `_bmad-output`.
-- **Catalog and diagnostics:** read-only installation-defined agents, skills and workflows, plus unknown formats, ambiguous data, missing files and partial scan coverage.
+The frontend runs in your browser. The hosting service delivers the application's static files; it does not receive the project you select. There is no account requirement, hosted project database or background synchronization.
 
-Derived documents can be edited and commented on with a regeneration warning. Edits do not implicitly rewrite memlogs or invent states missing from the originals. Files containing unresolved merge markers are displayed as read-only source until you resolve them externally and reread the project.
+- Documents and task states remain authoritative in their original files.
+- Comments live in `.bmad-project-ui/comments/threads`, outside `_bmad-output`.
+- Browser-private storage holds auxiliary recovery copies and verified comparison bases. Theme preferences are local to the browser.
+- Optional connectors run on your computer. Git uses your installed Git; Jira and Confluence contact their configured providers with credentials kept outside the browser and project.
 
-| Content                                    | Support                                                                                                     |
-| ------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
-| Markdown                                   | Rendered reading, source and editing. Active HTML is blocked.                                               |
-| YAML, TOML, JSON, CSV, TXT, MDX, HTML, XML | UTF-8 source; structured projections only where an adapter exists. Templates and components do not execute. |
-| PNG, JPEG, GIF, WebP                       | Markdown-referenced images inside authorized roots, up to 8 MiB. No image editing.                          |
-| SVG, PDF and other attachments             | Excluded from the text inventory with diagnostics; not executed or edited.                                  |
+Rendered documents block active HTML and do not automatically load remote images. The browser checks source revisions before writing and verifies the result. External changes retain your draft for review. A partial write blocks further mutations until recovery is resolved.
 
-Text scans are bounded to 2 MiB per file, 32 MiB per inventory, 5,000 files and 20 directory levels. A limit or read failure means partial coverage, not an empty project. Secret/tool/dependency paths and nested repositories are excluded.
+Unsaved drafts live in the current tab. Export them before closing if needed. Clearing browser storage can remove recovery copies. Browser locks coordinate app tabs, not arbitrary external editors. Comment identity is locally declared; it is not team authentication.
+
+See [architecture and data boundaries](docs/architecture.md) and the [security policy](SECURITY.md).
 
 ## Optional connectors
 
-Start with the [step-by-step connector setup guide](docs/connector-setup.md) for downloads, installation, commands for macOS/Windows/Linux, credential files and browser connection steps for Git, Jira and Confluence. The same instructions are available from each connection panel.
+[Download connector packages](https://github.com/enzovalley9/bmad-project-ui/releases) and follow the [step-by-step setup guide](docs/connector-setup.md). The same instructions are available from each connection panel. Packages bundle Node.js for supported macOS, Windows and Linux targets; Git must be installed separately.
 
-### Native Git
+| Connector  | What it accesses                                                         | Current behavior                                                                                                                           |
+| ---------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| Git        | One explicitly bound local repository and your native Git configuration. | Review and verify commits, changes to existing local branches and outgoing pushes. No force push, automatic pull or visual merge resolver. |
+| Jira       | Your configured Jira instance and selected project.                      | Read, link, compare, prepare exports and review local imports. Production remote writes are blocked.                                       |
+| Confluence | Your configured Confluence instance and selected space.                  | Read, link, compare, prepare exports and review local imports. Production remote writes are blocked.                                       |
 
-The Git connector requires Git installed on your computer and uses its identity, signing, hooks and credential helpers. Its trust prompt matters: native repository configuration can run local programs.
+Jira and Confluence do not read project files or run Git. Production writes remain blocked where an adapter cannot establish the required atomic update or draft-preservation guarantees. Mock providers exercise publication and recovery; they do not establish live tenant compatibility. No live Atlassian account was used for acceptance.
 
-Create a private directory outside the project, then start the connector:
+Git repository trust permits native hooks, filters, signing tools and credential helpers. Only trust repositories and native programs you intend to run. Packages are **unsigned and not notarized**; checksums verify integrity, not publisher identity.
 
-```sh
-mkdir -p "$HOME/.bmad-project-ui"
-npm run connector:git -- \
-  --repo /absolute/path/to/project \
-  --origin http://127.0.0.1:5173 \
-  --token-file "$HOME/.bmad-project-ui/git-session"
-```
+Details: [Git](docs/git-connector.md) · [Jira and Confluence](docs/atlassian-connectors.md).
 
-Load the generated local session file in the Git connection panel. It is not a GitHub token. The application verifies that browser and connector refer to the same folder, then offers explicit commit review, existing local branch switching and outgoing-history review before push. There is no force push, automatic pull or visual merge resolver. See the [Git guide](docs/git-connector.md).
+## Compatibility and limits
 
-### Jira and Confluence
+| Content                                    | Support                                                                                                      |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| Markdown                                   | Rendered reading, source editing and comments. Active HTML is blocked.                                       |
+| YAML, TOML, JSON, CSV, TXT, MDX, HTML, XML | UTF-8 source. Structured views appear only where an adapter exists; templates and components do not execute. |
+| PNG, JPEG, GIF, WebP                       | Markdown-referenced local images within authorized roots, up to 8 MiB.                                       |
+| SVG, PDF and other attachments             | Excluded from the text inventory with diagnostics; not executed or edited.                                   |
 
-Each provider uses an independent connector process, local session, credentials and selected scope. The browser verifies account/service identity before explicit resource linking. The implemented profiles support reading, bounded search, available history, field comparison, export proposals and reviewed local imports.
+Text scans are bounded to 2 MiB per file, 32 MiB per inventory, 5,000 files and 20 directory levels. Limits, read failures, unknown formats and ambiguous work items are reported as diagnostics. Secret, tool and dependency paths and nested repositories are excluded. These exclusions are not a complete secret scanner.
 
-**Production remote writes are blocked** where the API cannot prove the required atomic update or draft-preservation guarantees. Mock atomic adapters test publication and recovery without claiming real-provider guarantees. No live Atlassian account was used in acceptance. See [profiles, setup and limitations](docs/atlassian-connectors.md).
+Derived documents can be edited with a regeneration warning. Changes do not silently rewrite memlogs or invent states. Files with unresolved merge markers remain read-only source until resolved externally.
 
-Provider credentials belong in private connector files or environment variables, never in the browser or repository. Verified comparison bases use browser-private storage and are separate from versioned links; the UI identifies when only an in-memory base is available.
-
-## Integrity and recovery
-
-The browser checks file revisions before writing, before closing the stream and after saving. External changes retain your draft for review. Web Locks coordinate writes and Git operations between application tabs sharing an origin.
-
-An incomplete write leaves a hash journal in `.bmad-project-ui/local/write-recovery.json` and blocks further mutations. Original/planned copies use browser-private storage when available. Recovery checks current bytes and preserves later external changes. Local journals are excluded from connector commits.
-
-Unsaved drafts live in the current tab. Export them before closing if needed. Clearing browser/profile/origin storage can remove private recovery copies. External editors do not participate in Web Locks; these checks are not a universal filesystem transaction. Comment identity is locally declared, not team authentication.
-
-## Develop and test
+## Build and test
 
 ```sh
 npm run check
@@ -87,20 +89,26 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-[`CONTRIBUTING.md`](CONTRIBUTING.md), the [development guide](docs/development.md), [architecture](docs/architecture.md) and [testing guide](docs/testing.md) explain the module boundaries and expected evidence. CI checks macOS, Linux and Windows and runs browser journeys in Chromium and Edge. See [support](SUPPORT.md) for troubleshooting and [security reporting](SECURITY.md) for sensitive issues.
+The build writes the static application to `dist/web` and Node connectors to `dist/connectors`. CI checks macOS, Linux and Windows, including installed connector packages, and runs browser journeys in Chromium and Edge. The [testing guide](docs/testing.md) separates automated fixtures, native browser acceptance and live-provider evidence.
 
-## Bundled connector runtime
+For a local production preview after building:
 
 ```sh
-npm run build:connectors
-node scripts/package-connectors.mjs
-node scripts/smoke-package.mjs
+npx vite preview --config apps/web/vite.config.ts
 ```
 
-Packaging downloads the pinned official Node runtime and checks its SHA-256. It builds for the selected platform/architecture. CI installs and starts the packages on macOS, Windows and Linux. Installation verifies files in a staging directory and does not start services automatically.
+Open **http://127.0.0.1:4173**. Restart any connector with this exact origin; browser permissions and private storage are origin-specific.
 
-Connector packages are **unsigned and not notarized**. Checksums detect corruption; they do not establish publisher identity. Use [Releases](https://github.com/enzovalley9/bmad-project-ui/releases) to download available packages. The [setup guide](docs/connector-setup.md) covers installation and connection; the [development guide](docs/development.md#connector-packages) covers package verification and removal.
+## Contributing and support
 
-## Third-party notices
+Start with [CONTRIBUTING.md](CONTRIBUTING.md), the [development guide](docs/development.md) and the [code of conduct](CODE_OF_CONDUCT.md). Maintained code, comments, documentation and examples use English. The application preserves the original language of users' files and includes deliberate Unicode regression coverage.
 
-[`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) retains the locked production dependency and build-helper notices, including mixed Lucide/Feather attribution. `npm run notices` regenerates it after dependency changes; CI rejects stale or unreviewed notices. Web builds and connector archives include this file. Connector archives also retain Node's complete upstream license at `runtime/LICENSE`. These notices do not grant a first-party project license.
+Use [SUPPORT.md](SUPPORT.md) for troubleshooting and sanitized bug reports. Report vulnerabilities through the route described in [SECURITY.md](SECURITY.md), not a public issue. Release changes are recorded in [CHANGELOG.md](CHANGELOG.md).
+
+## License and attribution
+
+First-party code, documentation and synthetic examples are available under the **[MIT License](LICENSE)**, copyright 2026 Victor del Valle. Preserve the copyright and permission notice when redistributing copies or substantial portions.
+
+Dependencies retain their own licenses. [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) contains the locked dependency notices, including Lucide/Feather attribution. Web builds and connector archives include the project license and these notices; connector packages also retain Node's license at `runtime/LICENSE`.
+
+BMad and BMad Method are trademarks of BMad Code, LLC. This project's MIT license does not grant rights to third-party names, logos or branding. See the upstream [trademark guidelines](https://github.com/bmad-code-org/BMAD-METHOD/blob/main/TRADEMARK.md).

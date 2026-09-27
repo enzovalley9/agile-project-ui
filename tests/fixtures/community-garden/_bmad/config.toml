@@ -1,0 +1,14 @@
+[core]
+project_name = "Community Garden"
+output_folder = "_bmad-output"
+
+[modules.bmm]
+planning_artifacts = "{output_folder}/planning-artifacts"
+implementation_artifacts = "{output_folder}/implementation-artifacts"
+project_knowledge = "docs"
+
+[agents.gardener]
+name = "Garden guide"
+title = "Fictional agent"
+module = "bmm"
+description = "Test declaration; this agent is not executed."
