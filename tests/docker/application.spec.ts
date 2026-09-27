@@ -95,9 +95,15 @@ test('newcomers can download the complete example and explore the read-only demo
     await readFile('examples/community-garden.json', 'utf8'),
   );
   const listing = (await exec('unzip', ['-Z1', file!])).stdout.trim().split('\n');
-  expect(listing.sort()).toEqual(Object.keys(entries).sort());
+  expect(listing.sort()).toEqual(
+    Object.keys(entries)
+      .map((name) => `community-garden/${name}`)
+      .sort(),
+  );
   for (const [name, content] of Object.entries(entries)) {
-    expect((await exec('unzip', ['-p', file!, name])).stdout, name).toBe(content);
+    expect((await exec('unzip', ['-p', file!, `community-garden/${name}`])).stdout, name).toBe(
+      content,
+    );
   }
   await page.getByRole('button', { name: 'Try the demo', exact: true }).click();
   await expect(page.getByRole('switch', { name: 'Edit mode', exact: true })).toBeDisabled();

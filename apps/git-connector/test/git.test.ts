@@ -208,7 +208,7 @@ describe('native Git transport boundaries', () => {
       );
       expect(requests).toBe(1);
       expect(result.exitCode).not.toBe(0);
-      expect(result.stderr).toMatch(/Protocol ["']ftp["'] (?:disabled|not supported)/i);
+      expect(result.stderr).toMatch(/Protocol ["']ftp["'] (?:is )?(?:disabled|not supported)/i);
     } finally {
       await new Promise<void>((resolve, reject) =>
         server.close((error) => (error ? reject(error) : resolve())),
