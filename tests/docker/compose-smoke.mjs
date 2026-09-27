@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { chmod, mkdir, mkdtemp, realpath, writeFile } from 'node:fs/promises';
+import { access, chmod, mkdir, mkdtemp, realpath, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
@@ -49,7 +49,8 @@ for (const service of Object.values(config.services)) {
   assert(service.security_opt.includes('no-new-privileges:true'));
   assert(service.ports.every((port) => port.host_ip === '127.0.0.1'));
   assert.equal(service.user, `${env.AGILE_UID}:${env.AGILE_GID}`);
-  for (const volume of service.volumes ?? []) assert.equal(volume.bind.create_host_path, false);
+  // Compose versions differ in whether their normalized JSON retains false values.
+  for (const volume of service.volumes ?? []) assert.notEqual(volume.bind?.create_host_path, true);
 }
 assert.equal(config.services.web.volumes, undefined);
 for (const provider of ['jira', 'confluence']) {
@@ -58,6 +59,16 @@ for (const provider of ['jira', 'confluence']) {
   assert(mounts.find((volume) => volume.target === '/run/secrets/credentials.json').read_only);
 }
 try {
+  const missingState = join(root, 'must-not-be-created');
+  await assert.rejects(
+    exec('docker', [...prefix, '--profile', 'git', 'run', '--rm', '--no-deps', 'git'], {
+      env: { ...env, AGILE_GIT_STATE_DIR: missingState },
+      timeout: 20_000,
+      maxBuffer: 2 ** 20,
+    }),
+    /bind source path does not exist|invalid mount config for type "bind"/,
+  );
+  await assert.rejects(access(missingState), { code: 'ENOENT' });
   await compose('up', '--detach', '--wait', '--wait-timeout', '90');
   let running = (await compose('ps', '--services', '--status', 'running')).stdout
     .trim()
