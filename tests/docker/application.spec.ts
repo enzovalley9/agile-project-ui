@@ -258,104 +258,138 @@ test('container frontend saves disk files, binds the mounted repository and comm
   }
 });
 
-test('interrupted Git operation preserves evidence and recovers after an explicit offline lock backup', async ({
-  project,
-}) => {
-  await git(project, 'init', '-b', 'main');
-  await git(project, 'config', 'user.name', 'Docker recovery fixture');
-  await git(project, 'config', 'user.email', 'recovery@example.invalid');
-  await writeFile(join(project, '.gitignore'), '.bmad-project-ui/local/\n');
-  await git(project, 'add', '.');
-  await git(project, 'commit', '-m', 'Recovery fixture baseline');
-  const state = await realpath(await mkdtemp(join(tmpdir(), 'docker-recovery-')));
-  await chmod(state, 0o700);
-  const container = await startContainer('git', [
-    '--publish',
-    '127.0.0.1:43120:43120',
-    '--mount',
-    `type=bind,src=${project},dst=/workspace`,
-    '--mount',
-    `type=bind,src=${state},dst=/state`,
-  ]);
-  const context = { drafts: 0, saving: false, recoveryPending: false };
-  let token = '',
-    binding = '';
-  const request = async (route: string, body?: unknown) => {
-    const result = await fetch(`http://127.0.0.1:43120/v1/${route}`, {
-      method: body === undefined ? 'GET' : 'POST',
-      signal: AbortSignal.timeout(15_000),
-      headers: {
-        Origin: origin,
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-        'X-BMAD-Binding': binding,
-      },
-      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-    });
-    expect(result.status, `${route}: ${result.ok ? '' : await result.clone().text()}`).toBe(200);
-    return result.json();
-  };
-  const establish = async () => {
-    await ready('http://127.0.0.1:43120/v1/health');
-    token = (await readFile(join(state, 'git-token'), 'utf8')).trim();
-    await request('session', { trustRepository: true });
-    const challenge = await request('bindings/challenge', {});
-    const marker = join(project, challenge.path);
-    await mkdir(resolve(marker, '..'), { recursive: true });
-    await writeFile(marker, challenge.content);
-    binding = (await request('bindings/verify', { id: challenge.id })).bindingId;
-    await unlink(marker);
-  };
-  try {
-    await establish();
-    const document = 'docs/notes/meeting.md';
-    const content =
-      (await readFile(join(project, document), 'utf8')) + '\nInterrupted operation fixture.\n';
-    await writeFile(join(project, document), content);
-    const hook = join(project, '.git/hooks/post-commit');
-    await writeFile(hook, '#!/bin/sh\nsleep 30\n', { mode: 0o755 });
-    const plan = await request('plans/commit', {
-      ...context,
-      paths: [document],
-      message: 'Commit before interrupted response',
-    });
-    const interrupted = request('operations', { ...context, planId: plan.id }).catch(
-      () => undefined,
-    );
-    await expect
-      .poll(() => git(project, 'log', '-1', '--format=%s'))
-      .toBe('Commit before interrupted response');
-    await exec('docker', ['kill', '--signal', 'KILL', container]);
-    await interrupted;
-    const lockPath = join(state, 'journal/git/operation.lock');
-    const lock = JSON.parse(await readFile(lockPath, 'utf8'));
-    const journalPath = join(state, 'journal/git', `${lock.operationId}.json`);
-    const journalBefore = await readFile(journalPath, 'utf8');
-    expect(JSON.parse(journalBefore).operation.status).toBe('running');
-    expect(await git(project, 'show', `HEAD:${document}`)).toBe(content.trimEnd());
-    // Explicit offline operator recovery: this test owns the sole stopped connector.
-    // Retain the app lock as evidence and never touch Git index/ref locks.
-    await rename(lockPath, lockPath + '.offline-backup');
-    expect(await readFile(journalPath, 'utf8')).toBe(journalBefore);
-    await unlink(hook);
-    await exec('docker', ['start', container]);
-    await establish();
-    expect((await request(`operations/${lock.operationId}/reconcile`, {})).status).toBe('verified');
-    await writeFile(join(project, document), content + '\nNext reviewed change.\n');
-    const next = await request('plans/commit', {
-      ...context,
-      paths: [document],
-      message: 'Commit after explicit recovery',
-    });
-    expect((await request('operations', { ...context, planId: next.id })).status).toBe('verified');
-    expect(await git(project, 'rev-list', '--count', 'HEAD')).toBe('3');
-    expect(JSON.parse(await readFile(lockPath + '.offline-backup', 'utf8')).operationId).toBe(
-      lock.operationId,
-    );
-  } finally {
-    await stopContainer(container);
-  }
-});
+for (const kind of ['branch', 'commit'] as const) {
+  test(`interrupted ${kind} preserves journals and requires the appropriate offline recovery`, async ({
+    project,
+  }) => {
+    await git(project, 'init', '-b', 'main');
+    await git(project, 'config', 'user.name', 'Docker recovery fixture');
+    await git(project, 'config', 'user.email', 'recovery@example.invalid');
+    await writeFile(join(project, '.gitignore'), '.bmad-project-ui/local/\n');
+    await git(project, 'add', '.');
+    await git(project, 'commit', '-m', 'Recovery fixture baseline');
+    const state = await realpath(await mkdtemp(join(tmpdir(), 'docker-recovery-')));
+    await chmod(state, 0o700);
+    const container = await startContainer('git', [
+      '--publish',
+      '127.0.0.1:43120:43120',
+      '--mount',
+      `type=bind,src=${project},dst=/workspace`,
+      '--mount',
+      `type=bind,src=${state},dst=/state`,
+    ]);
+    const context = { drafts: 0, saving: false, recoveryPending: false };
+    let token = '',
+      binding = '';
+    const request = async (route: string, body?: unknown, expectedStatus = 200) => {
+      const result = await fetch(`http://127.0.0.1:43120/v1/${route}`, {
+        method: body === undefined ? 'GET' : 'POST',
+        signal: AbortSignal.timeout(15_000),
+        headers: {
+          Origin: origin,
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'X-BMAD-Binding': binding,
+        },
+        ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+      });
+      expect(
+        result.status,
+        `${route}: ${result.status === expectedStatus ? '' : await result.clone().text()}`,
+      ).toBe(expectedStatus);
+      return result.json();
+    };
+    const establish = async () => {
+      await ready('http://127.0.0.1:43120/v1/health');
+      token = (await readFile(join(state, 'git-token'), 'utf8')).trim();
+      await request('session', { trustRepository: true });
+      const challenge = await request('bindings/challenge', {});
+      const marker = join(project, challenge.path);
+      await mkdir(resolve(marker, '..'), { recursive: true });
+      await writeFile(marker, challenge.content);
+      binding = (await request('bindings/verify', { id: challenge.id })).bindingId;
+      await unlink(marker);
+    };
+    try {
+      await establish();
+      const document = 'docs/notes/meeting.md';
+      const content =
+        (await readFile(join(project, document), 'utf8')) + '\nInterrupted operation fixture.\n';
+      const hook = join(project, '.git/hooks', kind === 'commit' ? 'post-commit' : 'post-checkout');
+      await writeFile(hook, '#!/bin/sh\nsleep 30\n', { mode: 0o755 });
+      let plan;
+      if (kind === 'commit') {
+        await writeFile(join(project, document), content);
+        plan = await request('plans/commit', {
+          ...context,
+          paths: [document],
+          message: 'Commit before interrupted response',
+        });
+      } else {
+        await git(project, 'branch', 'recovery-target');
+        plan = await request('plans/branch', { ...context, branch: 'recovery-target' });
+      }
+      const interrupted = request('operations', { ...context, planId: plan.id }).catch(
+        () => undefined,
+      );
+      if (kind === 'commit')
+        await expect
+          .poll(() => git(project, 'log', '-1', '--format=%s'))
+          .toBe('Commit before interrupted response');
+      else
+        await expect.poll(() => git(project, 'branch', '--show-current')).toBe('recovery-target');
+      await exec('docker', ['kill', '--signal', 'KILL', container]);
+      await interrupted;
+      const lockPath = join(state, 'journal/git/operation.lock');
+      const lock = JSON.parse(await readFile(lockPath, 'utf8'));
+      const journalPath = join(state, 'journal/git', `${lock.operationId}.json`);
+      const journalBefore = await readFile(journalPath, 'utf8');
+      expect(JSON.parse(journalBefore).operation.status).toBe('running');
+      if (kind === 'commit')
+        expect(await git(project, 'show', `HEAD:${document}`)).toBe(content.trimEnd());
+      // Explicit offline operator recovery: this test owns the sole stopped connector.
+      // Retain the app lock as evidence and never touch Git index/ref locks.
+      await rename(lockPath, lockPath + '.offline-backup');
+      expect(await readFile(journalPath, 'utf8')).toBe(journalBefore);
+      await unlink(hook);
+      await exec('docker', ['start', container]);
+      await establish();
+      expect((await request(`operations/${lock.operationId}/reconcile`, {})).status).toBe(
+        'verified',
+      );
+      if (kind === 'branch') {
+        const next = await request('plans/branch', { ...context, branch: 'main' });
+        expect((await request('operations', { ...context, planId: next.id })).status).toBe(
+          'verified',
+        );
+        expect(await git(project, 'branch', '--show-current')).toBe('main');
+      } else {
+        // The commit was created using a private index. A kill before index
+        // publication requires separate native Git recovery, never silent replay.
+        const indexLock = await readFile(join(project, '.git/index.lock'));
+        const privateIndex = await readFile(
+          join(state, 'journal/git', `${lock.operationId}.index`),
+        );
+        const blocked = await request(
+          'plans/commit',
+          { ...context, paths: [document], message: 'Must remain blocked' },
+          409,
+        );
+        expect(blocked.error.code).toBe('GIT_CONFLICT');
+        expect(await readFile(join(project, '.git/index.lock'))).toEqual(indexLock);
+        expect(await readFile(join(state, 'journal/git', `${lock.operationId}.index`))).toEqual(
+          privateIndex,
+        );
+        expect(await git(project, 'rev-list', '--count', 'HEAD')).toBe('2');
+      }
+      expect(JSON.parse(await readFile(lockPath + '.offline-backup', 'utf8')).operationId).toBe(
+        lock.operationId,
+      );
+    } finally {
+      await stopContainer(container);
+    }
+  });
+}
 
 for (const [provider, port] of [
   ['jira', 43121],

@@ -6,9 +6,9 @@ Use Docker Engine with Compose v2 on Linux, or Docker Desktop in Linux-container
 
 ## Image availability
 
-The distribution target is `ghcr.io/enzovalley9/agile-project-ui:latest`. **Publication is pending verification.** Public image availability is independent of the source repository, which currently requires access. Until the first public image is available, use an authorized source checkout to build `agile-project-ui:local` and set `AGILE_IMAGE` to that local reference. No Docker Hub publication is claimed.
+The image reference is `ghcr.io/enzovalley9/agile-project-ui:latest`; use a published `sha-<full-commit>` tag or digest to pin a specific build. Image visibility is separate from the source repository, which currently requires access. A public GHCR image can be pulled without a GitHub account. If the registry denies a pull, check the package visibility/tag or build from an authorized source checkout. The public website alone does not prove registry availability. No Docker Hub image is implied.
 
-Once a GHCR release is public, use its published tag or immutable digest as `AGILE_IMAGE`. Pulling and running that image and extracting its Compose files require no source checkout or GitHub account. A denied pull means the image/tag is unavailable or private; do not treat the public website as proof of registry access.
+Pulling and running the image and extracting its Compose files require no source checkout. The image includes both AMD64 and ARM64 variants when published through the container workflow.
 
 ## Start the web app
 
@@ -240,6 +240,8 @@ mv -n "$AGILE_GIT_STATE_DIR/journal/git/operation.lock" "$agile_lock_backup"
 ```
 
 Confirm the move succeeded and the backup exists, then restart the service with `docker compose --profile git up -d git` (include your override `-f` arguments if configured). Reconnect, explicitly trust and bind the same folder, then reconcile any pending operation through the UI **before attempting a new mutation**. An uncertain remote outcome needs investigation; do not blindly retry a push. Never automate lock removal. This procedure preserves recovery evidence but does not promise automatic recovery from every interrupted operation.
+
+An interrupted commit can leave a native `.git/index.lock` and an isolated `<operation-id>.index` in the private Git journal directory. The commit itself may already exist while the normal index has not been updated. Reconciliation can verify that commit, but further changes remain blocked until you inspect and repair the native Git state externally. Keep both indexes and the journal as evidence; the private connector-lock procedure above does not repair native Git locks or staged/index differences. Do not replay the commit or delete those files blindly.
 
 ### Troubleshooting
 

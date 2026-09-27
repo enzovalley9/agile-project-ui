@@ -42,16 +42,16 @@ The GitHub repository and release downloads currently require repository access.
 
 The Docker image packages the web app, Git, Node.js and all three optional connectors. Run one service per container: the web app starts by default; Compose profiles add Git, Jira and Confluence independently. You still open the project folder in desktop Chrome or Edge on the same computer.
 
-The registry target is `ghcr.io/enzovalley9/agile-project-ui`; verify that a public tag is available before pulling. Until publication, build the local image from an authorized source checkout:
+Run the GHCR image without a source checkout or local Node.js installation:
 
 ```sh
-docker build --build-arg AGILE_PROJECT_UI_BUILD_REVISION="$(git rev-parse HEAD)" \
-  --tag agile-project-ui:local .
-cp .env.docker.example .env
-AGILE_IMAGE=agile-project-ui:local docker compose up -d
+docker run -d --name agile-project-ui --init \
+  --read-only --cap-drop ALL --security-opt no-new-privileges \
+  --tmpfs /tmp:rw,noexec,nosuid,size=64m \
+  -p 127.0.0.1:8080:8080 ghcr.io/enzovalley9/agile-project-ui:latest
 ```
 
-Open **http://127.0.0.1:8080**. Set `AGILE_IMAGE=agile-project-ui:local` in `.env` to keep using your source build. The web app needs no project mount or secrets. Optional connectors use private state folders; Git mounts the same host repository you open in the browser, and Jira/Confluence mount separate credential files read-only. Configure paths, exact app origin, provider URLs and deployments in `.env`; credentials belong in private files, never build arguments or the image.
+Open **http://127.0.0.1:8080**. Public image access is independent of the private source repository. If a pull is denied, check the package visibility/tag or follow the guide to build from an authorized source checkout. The web app needs no project mount or secrets. Optional connectors use private state folders; Git mounts the same host repository you open in the browser, and Jira/Confluence mount separate credential files read-only. Configure paths, exact app origin, provider URLs and deployments in `.env`; credentials belong in private files, never build arguments or the image.
 
 The [Docker guide](docs/docker.md) covers running a published image without source access, extracting its included Compose files, variables, Linux/Docker Desktop ownership, connector setup, Git authentication, updates and registry mirrors. Docker packaging preserves the [current provider limits](docs/atlassian-connectors.md).
 
