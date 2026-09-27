@@ -19,6 +19,7 @@
     "tests",
     "vitest.config.ts",
     "playwright.config.ts",
-    "playwright.hosted.config.ts"
+    "playwright.hosted.config.ts",
+    "playwright.docker.config.ts"
   ]
 }

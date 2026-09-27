@@ -38,6 +38,23 @@ For a disposable example, copy [`tests/fixtures/community-garden`](tests/fixture
 
 The GitHub repository and release downloads currently require repository access. MIT grants rights to copies you receive; it does not grant access to a private repository. See [release access and verification](docs/releases.md).
 
+## Install with Docker
+
+The Docker image packages the web app, Git, Node.js and all three optional connectors. Run one service per container: the web app starts by default; Compose profiles add Git, Jira and Confluence independently. You still open the project folder in desktop Chrome or Edge on the same computer.
+
+The registry target is `ghcr.io/enzovalley9/agile-project-ui`; verify that a public tag is available before pulling. Until publication, build the local image from an authorized source checkout:
+
+```sh
+docker build --build-arg AGILE_PROJECT_UI_BUILD_REVISION="$(git rev-parse HEAD)" \
+  --tag agile-project-ui:local .
+cp .env.docker.example .env
+AGILE_IMAGE=agile-project-ui:local docker compose up -d
+```
+
+Open **http://127.0.0.1:8080**. Set `AGILE_IMAGE=agile-project-ui:local` in `.env` to keep using your source build. The web app needs no project mount or secrets. Optional connectors use private state folders; Git mounts the same host repository you open in the browser, and Jira/Confluence mount separate credential files read-only. Configure paths, exact app origin, provider URLs and deployments in `.env`; credentials belong in private files, never build arguments or the image.
+
+The [Docker guide](docs/docker.md) covers running a published image without source access, extracting its included Compose files, variables, Linux/Docker Desktop ownership, connector setup, Git authentication, updates and registry mirrors. Docker packaging preserves the [current provider limits](docs/atlassian-connectors.md).
+
 ## Your files stay in your project
 
 The frontend runs in your browser. The hosting service delivers the application's static files; it does not receive the project you select. There is no account requirement, hosted project database or background synchronization.
@@ -45,7 +62,7 @@ The frontend runs in your browser. The hosting service delivers the application'
 - Documents and task states remain authoritative in their original files.
 - Comments live in `.bmad-project-ui/comments/threads`, outside `_bmad-output`.
 - Browser-private storage holds auxiliary recovery copies and verified comparison bases. Theme preferences are local to the browser.
-- Optional connectors run on your computer. Git uses your installed Git; Jira and Confluence contact their configured providers with credentials kept outside the browser and project.
+- Optional connectors run on your computer. Native Git packages use your installed Git; the Docker image includes its own Linux Git. Jira and Confluence contact their configured providers with credentials kept outside the browser and project.
 
 Rendered documents block active HTML and do not automatically load remote images. The browser checks source revisions before writing and verifies the result. External changes retain your draft for review. A partial write blocks further mutations until recovery is resolved.
 

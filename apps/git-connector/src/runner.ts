@@ -2,12 +2,19 @@ import { spawn } from 'node:child_process';
 import { GitError } from './errors';
 import type { GitRunner } from './types';
 
+const identityVariables = new Set([
+  'GIT_AUTHOR_NAME',
+  'GIT_AUTHOR_EMAIL',
+  'GIT_COMMITTER_NAME',
+  'GIT_COMMITTER_EMAIL',
+]);
 const MAX_OUTPUT = 8 * 1024 * 1024;
 export const nativeGitRunner: GitRunner = (args, options) =>
   new Promise((resolve, reject) => {
     // Credentials and signing remain native. Disable inherited Git routing/index overrides.
     const env: NodeJS.ProcessEnv = { ...process.env };
-    for (const key of Object.keys(env)) if (key.startsWith('GIT_')) delete env[key];
+    for (const key of Object.keys(env))
+      if (key.startsWith('GIT_') && !identityVariables.has(key)) delete env[key];
     Object.assign(env, {
       GIT_TERMINAL_PROMPT: '0',
       GIT_OPTIONAL_LOCKS: '0',

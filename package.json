@@ -26,7 +26,9 @@
     "deploy:check": "npm run build:web && wrangler deploy --dry-run --name static-preview",
     "deploy:web": "npm run build:web && wrangler deploy",
     "test:hosted": "playwright test --config playwright.hosted.config.ts",
-    "test:release": "node --test tests/release/create-release.test.mjs"
+    "test:release": "node --test tests/release/create-release.test.mjs",
+    "test:docker": "node tests/docker/compose-smoke.mjs && playwright test --config playwright.docker.config.ts",
+    "test:docker:runtime": "node --test docker/*.test.mjs"
   },
   "dependencies": {
     "@codemirror/commands": "^6.11.1",

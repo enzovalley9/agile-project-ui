@@ -1,0 +1,98 @@
+name: agile-project-ui
+
+x-runtime: &runtime
+  image: ${AGILE_IMAGE:-ghcr.io/enzovalley9/agile-project-ui:latest}
+  user: '${AGILE_UID:-1000}:${AGILE_GID:-1000}'
+  init: true
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  tmpfs:
+    - /tmp:rw,noexec,nosuid,size=64m
+  restart: unless-stopped
+
+services:
+  web:
+    <<: *runtime
+    command: [web]
+    environment:
+      AGILE_WEB_ORIGIN: ${AGILE_WEB_ORIGIN:-http://127.0.0.1:8080}
+    ports:
+      - '127.0.0.1:8080:8080'
+
+  git:
+    <<: *runtime
+    profiles: [git]
+    command: [git]
+    ports:
+      - '127.0.0.1:43120:43120'
+    environment:
+      AGILE_WEB_ORIGIN: ${AGILE_WEB_ORIGIN:-http://127.0.0.1:8080}
+      AGILE_REPO_PATH: /workspace
+      AGILE_STATE_DIR: /state
+      AGILE_GIT_ALLOW_MAPPED_OWNERSHIP: ${AGILE_GIT_ALLOW_MAPPED_OWNERSHIP:-0}
+      GIT_AUTHOR_NAME:
+      GIT_AUTHOR_EMAIL:
+      GIT_COMMITTER_NAME:
+      GIT_COMMITTER_EMAIL:
+    volumes:
+      - type: bind
+        source: ${AGILE_PROJECT_DIR:-./PROJECT_PATH_NOT_CONFIGURED}
+        target: /workspace
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${AGILE_GIT_STATE_DIR:-./docker-state/git}
+        target: /state
+        bind:
+          create_host_path: false
+
+  jira:
+    <<: *runtime
+    profiles: [jira]
+    command: [jira]
+    ports:
+      - '127.0.0.1:43121:43121'
+    environment:
+      AGILE_WEB_ORIGIN: ${AGILE_WEB_ORIGIN:-http://127.0.0.1:8080}
+      AGILE_STATE_DIR: /state
+      AGILE_CREDENTIALS_FILE: /run/secrets/credentials.json
+      AGILE_ATLASSIAN_INSTANCE: ${AGILE_JIRA_INSTANCE:-}
+      AGILE_ATLASSIAN_DEPLOYMENT: ${AGILE_JIRA_DEPLOYMENT:-cloud}
+    volumes:
+      - type: bind
+        source: ${AGILE_JIRA_STATE_DIR:-./docker-state/jira}
+        target: /state
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${AGILE_JIRA_CREDENTIALS_FILE:-./docker-secrets/jira-credentials.json}
+        target: /run/secrets/credentials.json
+        read_only: true
+        bind:
+          create_host_path: false
+
+  confluence:
+    <<: *runtime
+    profiles: [confluence]
+    command: [confluence]
+    ports:
+      - '127.0.0.1:43122:43122'
+    environment:
+      AGILE_WEB_ORIGIN: ${AGILE_WEB_ORIGIN:-http://127.0.0.1:8080}
+      AGILE_STATE_DIR: /state
+      AGILE_CREDENTIALS_FILE: /run/secrets/credentials.json
+      AGILE_ATLASSIAN_INSTANCE: ${AGILE_CONFLUENCE_INSTANCE:-}
+      AGILE_ATLASSIAN_DEPLOYMENT: ${AGILE_CONFLUENCE_DEPLOYMENT:-cloud}
+    volumes:
+      - type: bind
+        source: ${AGILE_CONFLUENCE_STATE_DIR:-./docker-state/confluence}
+        target: /state
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${AGILE_CONFLUENCE_CREDENTIALS_FILE:-./docker-secrets/confluence-credentials.json}
+        target: /run/secrets/credentials.json
+        read_only: true
+        bind:
+          create_host_path: false

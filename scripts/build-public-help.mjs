@@ -1,4 +1,4 @@
-import { execFileSync } from 'node:child_process';
+import { buildRevision } from './build-revision.mjs';
 import { lstat, mkdir, readFile, realpath, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -20,6 +20,7 @@ export const PUBLIC_HELP_PAGES = Object.freeze(
     ['docs/development.md', 'development/index.html', 'Development'],
     ['docs/testing.md', 'testing/index.html', 'Testing'],
     ['docs/hosting.md', 'hosting/index.html', 'Hosting'],
+    ['docs/docker.md', 'docker/index.html', 'Docker'],
     ['docs/releases.md', 'releases/index.html', 'Releases'],
     ['CHANGELOG.md', 'changelog/index.html', 'Changelog'],
     ['CONTRIBUTING.md', 'contributing/index.html', 'Contributing'],
@@ -173,10 +174,7 @@ export async function buildPublicHelp() {
       throw new Error(`Expected build directory: ${relative}`);
   }
   const packageJson = JSON.parse(await requireRegularSource('package.json'));
-  const commit = execFileSync('git', ['rev-parse', 'HEAD'], {
-    cwd: projectRoot,
-    encoding: 'utf8',
-  }).trim();
+  const commit = buildRevision(projectRoot);
   if (!/^[a-f\d]{40}$/.test(commit))
     throw new Error('Expected a full Git revision for public build metadata.');
   if (!/^\d+\.\d+\.\d+(?:-[\w.-]+)?(?:\+[\w.-]+)?$/.test(packageJson.version))

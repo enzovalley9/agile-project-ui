@@ -112,6 +112,11 @@ export class GitService {
 
   private async initialize() {
     this.repo = await fs.realpath(this.options.repo);
+    requireCondition(
+      !this.options.allowMappedOwnership || !this.repo.endsWith('/*'),
+      'ROOT_REQUIRED',
+      'Mapped ownership requires an exact repository path without a wildcard suffix.',
+    );
     const top = (await this.git(['rev-parse', '--show-toplevel'])).trim();
     requireCondition(
       (await fs.realpath(top)) === this.repo,
@@ -147,12 +152,14 @@ export class GitService {
     );
     const stateStat = await fs.stat(this.stateDir);
     requireCondition(
-      process.platform === 'win32' ||
-        ((stateStat.mode & 0o077) === 0 && stateStat.uid === process.getuid?.()),
+      process.platform === 'win32' || (stateStat.mode & 0o077) === 0,
       'PRIVATE_STATE_REQUIRED',
-      'Connector journals require a private directory owned by the current user.',
+      'Connector journals require a private directory accessible to the current user.',
       500,
     );
+    // Desktop bind mounts can report synthetic ownership; effective permissions
+    // and a private mode determine whether this process can use the directory.
+    await fs.access(this.stateDir, fs.constants.R_OK | fs.constants.W_OK | fs.constants.X_OK);
     await this.loadJournals();
   }
   private async loadJournals() {
@@ -165,8 +172,7 @@ export class GitService {
           stat.isFile() &&
             !stat.isSymbolicLink() &&
             stat.size <= 2 * 1024 * 1024 &&
-            (process.platform === 'win32' ||
-              ((stat.mode & 0o077) === 0 && stat.uid === process.getuid?.())),
+            (process.platform === 'win32' || (stat.mode & 0o077) === 0),
           'CORRUPT_JOURNAL',
           'A private Git journal cannot be read safely.',
         );
@@ -241,8 +247,16 @@ export class GitService {
     }
   }
 
+  private gitArguments(args: string[]) {
+    // Docker Desktop may map a bind mount to another numeric owner. This explicit
+    // opt-in trusts only the canonical configured root, for this command alone.
+    const ownership = this.options.allowMappedOwnership
+      ? ['-c', `safe.directory=${this.repo}`]
+      : [];
+    return [...baseArgs, ...ownership, ...args];
+  }
   private async git(args: string[], allowFailure = false, env?: Record<string, string>) {
-    const result = await (this.options.runner ?? nativeGitRunner)([...baseArgs, ...args], {
+    const result = await (this.options.runner ?? nativeGitRunner)(this.gitArguments(args), {
       cwd: this.repo || path.resolve(this.options.repo),
       timeoutMs: this.options.commandTimeoutMs ?? 30_000,
       env: { ...env, ...historyEnv },
@@ -980,7 +994,7 @@ export class GitService {
     const targetUrl = await this.remoteTarget(input.remote);
     const remoteSha = await this.remoteSha(targetUrl, input.branch);
     const ancestry = await (this.options.runner ?? nativeGitRunner)(
-      [...baseArgs, 'merge-base', '--is-ancestor', remoteSha, repository.head],
+      this.gitArguments(['merge-base', '--is-ancestor', remoteSha, repository.head]),
       { cwd: this.repo, timeoutMs: this.options.commandTimeoutMs ?? 30_000, env: historyEnv },
     );
     requireCondition(
@@ -1332,7 +1346,7 @@ export class GitService {
       if (actual === plan.head) operation.status = 'verified';
       else {
         const result = await (this.options.runner ?? nativeGitRunner)(
-          [...baseArgs, 'merge-base', '--is-ancestor', plan.head!, actual],
+          this.gitArguments(['merge-base', '--is-ancestor', plan.head!, actual]),
           { cwd: this.repo, timeoutMs: 30_000, env: historyEnv },
         );
         operation.status = result.exitCode === 0 ? 'verified' : 'uncertain';

@@ -2,6 +2,8 @@
 
 The web app reads and saves your project through the browser's folder permission. Optional connectors run on **the same computer as the browser**. Install the package once and start each connector you need in a separate terminal.
 
+Prefer containers? The [Docker guide](docker.md) runs the web app and each optional connector from one image, with separate Compose profiles, private state and credential mounts. It includes container-specific Git authentication and ownership instructions; the native installation steps below use your host's Git and configuration instead.
+
 | Connector  | What it accesses                                                                                         | Default address          |
 | ---------- | -------------------------------------------------------------------------------------------------------- | ------------------------ |
 | Git        | The exact local repository supplied with `--repo`, through your installed Git.                           | `http://127.0.0.1:43120` |

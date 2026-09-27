@@ -20,7 +20,7 @@ async function privateFile(path: string): Promise<string> {
     throw new Error('Credential and capability files must be private regular files (mode 0600)');
   return readFile(path, 'utf8');
 }
-export async function main(args = process.argv.slice(2)) {
+export function parseArguments(args: string[]) {
   const { values } = parseArgs({
     args,
     options: {
@@ -29,15 +29,23 @@ export async function main(args = process.argv.slice(2)) {
       instance: { type: 'string' },
       origin: { type: 'string' },
       port: { type: 'string' },
+      'listen-host': { type: 'string', default: '127.0.0.1' },
       'token-file': { type: 'string' },
       'credentials-file': { type: 'string' },
       'journal-directory': { type: 'string' },
       help: { type: 'boolean' },
     },
   });
+  const listenHost = values['listen-host'];
+  if (listenHost !== '127.0.0.1' && listenHost !== '0.0.0.0')
+    throw new Error('Listen host must be 127.0.0.1 or 0.0.0.0 (container publishing only)');
+  return values;
+}
+export async function main(args = process.argv.slice(2)) {
+  const values = parseArguments(args);
   if (values.help) {
     console.log(
-      'Agile Project UI independent Atlassian connector\n--provider jira|confluence --deployment cloud|data-center --instance https://example.atlassian.net --origin http://localhost:5173 --token-file /private/path/capability --credentials-file /private/path/credentials.json [--port 43121|43122]',
+      'Agile Project UI independent Atlassian connector\n--provider jira|confluence --deployment cloud|data-center --instance https://example.atlassian.net --origin http://localhost:5173 --token-file /private/path/capability --credentials-file /private/path/credentials.json [--port 43121|43122] [--listen-host 127.0.0.1|0.0.0.0]',
     );
     return;
   }
@@ -117,12 +125,18 @@ export async function main(args = process.argv.slice(2)) {
       ? resolve(values['journal-directory'])
       : join(homedir(), '.bmad-project-ui', 'atlassian', provider, instanceKey),
   });
-  const server = serve({ fetch: app.fetch, hostname: '127.0.0.1', port });
+  const server = serve({ fetch: app.fetch, hostname: values['listen-host'], port });
   console.log(
-    `${provider} connector listening on 127.0.0.1:${port}; capability file: ${tokenFile}`,
+    `${provider} connector listening on ${values['listen-host']}:${port}; capability file: ${tokenFile}`,
   );
-  process.once('SIGINT', () => server.close());
-  process.once('SIGTERM', () => server.close());
+  const shutdown = () => {
+    server.close();
+    setTimeout(() => {
+      if ('closeAllConnections' in server) server.closeAllConnections();
+    }, 10_000).unref();
+  };
+  process.once('SIGINT', shutdown);
+  process.once('SIGTERM', shutdown);
   return server;
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href)

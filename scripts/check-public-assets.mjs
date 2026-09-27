@@ -1,4 +1,4 @@
-import { execFileSync } from 'node:child_process';
+import { buildRevision } from './build-revision.mjs';
 import { lstat, readFile, readdir, realpath } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -83,10 +83,7 @@ export async function checkPublicAssets() {
     throw new Error('The application JavaScript bundle is missing.');
   const version = JSON.parse(await readFile(path.join(outputRoot, 'version.json'), 'utf8'));
   const packageJson = JSON.parse(await readFile(path.join(projectRoot, 'package.json'), 'utf8'));
-  const commit = execFileSync('git', ['rev-parse', 'HEAD'], {
-    cwd: projectRoot,
-    encoding: 'utf8',
-  }).trim();
+  const commit = buildRevision(projectRoot);
   if (
     Object.keys(version).sort().join(',') !== 'revision,version' ||
     version.version !== packageJson.version ||

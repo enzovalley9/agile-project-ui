@@ -51,6 +51,7 @@ export type GitOptions = {
   port?: number;
   stateDir?: string;
   allowLocalRemotes?: boolean;
+  allowMappedOwnership?: boolean;
   runner?: GitRunner;
   now?: () => number;
   planTtlMs?: number;
