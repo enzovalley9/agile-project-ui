@@ -323,7 +323,7 @@ export async function buildPublicHelp() {
               'footer',
               null,
               `Version ${packageJson.version} · Source ${commit.slice(0, 12)}. `,
-              'This help is available without a GitHub account. Repository links and release downloads may require access.',
+              'Help, source code and release downloads are public and require no GitHub account.',
             ),
           ),
         ),
