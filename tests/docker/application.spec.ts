@@ -72,6 +72,42 @@ test.afterAll(async () => {
   for (const name of containers) await stopContainer(name);
 });
 
+test('newcomers can download the complete example and explore the read-only demo in Docker', async ({
+  page,
+  request,
+}) => {
+  await page.goto('/');
+  const downloaded = page.waitForEvent('download');
+  await page.getByRole('link', { name: 'Download the example ZIP', exact: true }).click();
+  const archive = await downloaded;
+  expect(await archive.failure()).toBeNull();
+  const file = await archive.path();
+  expect(file).toBeTruthy();
+  const head = await request.head('/example/community-garden.zip');
+  expect(head.status()).toBe(200);
+  expect(head.headers()['content-type']).toBe('application/zip');
+  expect(head.headers()['x-content-type-options']).toBe('nosniff');
+  const bytes = await readFile(file!);
+  expect(bytes.subarray(0, 4).toString('hex')).toBe('504b0304');
+  expect(Number(head.headers()['content-length'])).toBe(bytes.length);
+  await exec('unzip', ['-t', file!]);
+  const entries: Record<string, string> = JSON.parse(
+    await readFile('examples/community-garden.json', 'utf8'),
+  );
+  const listing = (await exec('unzip', ['-Z1', file!])).stdout.trim().split('\n');
+  expect(listing.sort()).toEqual(Object.keys(entries).sort());
+  for (const [name, content] of Object.entries(entries)) {
+    expect((await exec('unzip', ['-p', file!, name])).stdout, name).toBe(content);
+  }
+  await page.getByRole('button', { name: 'Try the demo', exact: true }).click();
+  await expect(page.getByRole('switch', { name: 'Edit mode', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: /Connect to Git/ })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Stories', exact: true }).click();
+  await expect(page.getByText('View plots', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Sprint', exact: true }).click();
+  await expect(page.getByText('Book slot', { exact: true }).first()).toBeVisible();
+});
+
 test('container serves the exact revision and public help without exposing runtime or private files', async ({
   page,
   request,

@@ -255,11 +255,20 @@ export class GitService {
       : [];
     return [...baseArgs, ...ownership, ...args];
   }
+  private gitEnvironment(env?: Record<string, string>) {
+    return {
+      ...env,
+      ...historyEnv,
+      // Enforce the supported transports after URL rewrites and during redirects.
+      // The local transport is available only to explicitly configured test fixtures.
+      GIT_ALLOW_PROTOCOL: this.options.allowLocalRemotes ? 'https:ssh:file' : 'https:ssh',
+    };
+  }
   private async git(args: string[], allowFailure = false, env?: Record<string, string>) {
     const result = await (this.options.runner ?? nativeGitRunner)(this.gitArguments(args), {
       cwd: this.repo || path.resolve(this.options.repo),
       timeoutMs: this.options.commandTimeoutMs ?? 30_000,
-      env: { ...env, ...historyEnv },
+      env: this.gitEnvironment(env),
     });
     if (result.exitCode !== 0 && !allowFailure) {
       const code =
@@ -995,7 +1004,11 @@ export class GitService {
     const remoteSha = await this.remoteSha(targetUrl, input.branch);
     const ancestry = await (this.options.runner ?? nativeGitRunner)(
       this.gitArguments(['merge-base', '--is-ancestor', remoteSha, repository.head]),
-      { cwd: this.repo, timeoutMs: this.options.commandTimeoutMs ?? 30_000, env: historyEnv },
+      {
+        cwd: this.repo,
+        timeoutMs: this.options.commandTimeoutMs ?? 30_000,
+        env: this.gitEnvironment(),
+      },
     );
     requireCondition(
       ancestry.exitCode === 0,
@@ -1347,7 +1360,7 @@ export class GitService {
       else {
         const result = await (this.options.runner ?? nativeGitRunner)(
           this.gitArguments(['merge-base', '--is-ancestor', plan.head!, actual]),
-          { cwd: this.repo, timeoutMs: 30_000, env: historyEnv },
+          { cwd: this.repo, timeoutMs: 30_000, env: this.gitEnvironment() },
         );
         operation.status = result.exitCode === 0 ? 'verified' : 'uncertain';
       }

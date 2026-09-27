@@ -17,12 +17,20 @@ import path from 'node:path';
 import { runtimeConfiguration, requirePrivateState } from './runtime.mjs';
 import { startWebServer } from './web-server.mjs';
 import { buildRevision } from '../scripts/build-revision.mjs';
+import { exampleZip } from '../scripts/build-example.mjs';
+
+const exampleArchive = exampleZip({
+  'README.md': '# Offline example\n\nA garden for Zoë 💧.\n',
+  LICENSE: 'MIT test fixture\n',
+});
 
 let directory, server, port;
 before(async () => {
   directory = await realpath(await mkdtemp(path.join(tmpdir(), 'agile-docker-runtime-')));
   await mkdir(path.join(directory, 'web/assets'), { recursive: true });
   await mkdir(path.join(directory, 'web/help'));
+  await mkdir(path.join(directory, 'web/example'));
+  await writeFile(path.join(directory, 'web/example/community-garden.zip'), exampleArchive);
   await copyFile(
     new URL('../apps/web/public/_headers', import.meta.url),
     path.join(directory, 'web/_headers'),
@@ -205,4 +213,18 @@ test('web server denies DNS rebinding, mutations, traversal, secrets and symlink
     assert.equal(response.status, 404, route);
     assert.doesNotMatch(response.body, /outside-secret|private-source/);
   }
+});
+
+test('web server delivers the downloadable example with exact ZIP bytes and HEAD metadata', async () => {
+  const url = `http://127.0.0.1:${port}/example/community-garden.zip`;
+  const response = await fetch(url);
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('content-type'), 'application/zip');
+  assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
+  assert.deepEqual(Buffer.from(await response.arrayBuffer()), exampleArchive);
+  const head = await fetch(url, { method: 'HEAD' });
+  assert.equal(head.status, 200);
+  assert.equal(head.headers.get('content-type'), 'application/zip');
+  assert.equal(Number(head.headers.get('content-length')), exampleArchive.length);
+  assert.equal((await head.arrayBuffer()).byteLength, 0);
 });

@@ -5,6 +5,7 @@ import path from 'node:path';
 import os from 'node:os';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import { createServer } from 'node:http';
 import { createGitApp } from '../src/app';
 import { GitError } from '../src/errors';
 import { nativeGitRunner } from '../src/runner';
@@ -119,6 +120,101 @@ async function fixture(options: Partial<GitOptions> = {}, initialCommit = true) 
 }
 afterEach(async () => {
   for (const root of roots.splice(0)) await fs.rm(root, { recursive: true, force: true });
+});
+
+describe('native Git transport boundaries', () => {
+  it('enforces HTTPS and SSH for every service invocation, with file limited to fixture opt-in', async () => {
+    for (const allowLocalRemotes of [false, true]) {
+      const policies: Array<string | undefined> = [];
+      const f = await fixture({
+        allowLocalRemotes,
+        runner: (args, options) => {
+          policies.push(options.env?.GIT_ALLOW_PROTOCOL);
+          return nativeGitRunner(args, options);
+        },
+      });
+      await fs.writeFile(path.join(f.repo, 'prd.md'), '# Transport policy\n');
+      expect((await f.execute(await f.planCommit())).status).toBe('verified');
+      expect(policies.length).toBeGreaterThan(10);
+      expect(new Set(policies)).toEqual(
+        new Set([allowLocalRemotes ? 'https:ssh:file' : 'https:ssh']),
+      );
+    }
+  });
+
+  it('denies native file, FTP and external-helper transports even when repository settings allow them', async () => {
+    const f = await fixture();
+    for (const [protocol, destination] of [
+      ['file', f.repo],
+      ['ftp', 'ftp://127.0.0.1:1/unreachable.git'],
+      ['ext', 'ext::git upload-pack .'],
+    ]) {
+      const result = await nativeGitRunner(
+        ['-c', `protocol.${protocol}.allow=always`, 'ls-remote', destination],
+        {
+          cwd: f.repo,
+          timeoutMs: 5000,
+          env: { GIT_CONFIG_GLOBAL: emptyGlobalConfig, GIT_CONFIG_NOSYSTEM: '1' },
+        },
+      );
+      expect(result.exitCode).not.toBe(0);
+      expect(result.stderr).toContain(`transport '${protocol}' not allowed`);
+    }
+  });
+
+  it('rejects a native HTTPS URL rewritten to FTP before making a connection', async () => {
+    const f = await fixture();
+    await git(f.repo, ['config', 'url.ftp://127.0.0.1:1/.insteadOf', 'https://fixture.invalid/']);
+    const result = await nativeGitRunner(['ls-remote', 'https://fixture.invalid/project.git'], {
+      cwd: f.repo,
+      timeoutMs: 5000,
+      env: { GIT_CONFIG_GLOBAL: emptyGlobalConfig, GIT_CONFIG_NOSYSTEM: '1' },
+    });
+    expect(result.exitCode).not.toBe(0);
+    expect(result.stderr).toContain("transport 'ftp' not allowed");
+  });
+
+  it('applies the allowlist to libcurl redirects, including after native configuration changes', async () => {
+    const f = await fixture();
+    let requests = 0;
+    const server = createServer((_request, response) => {
+      requests += 1;
+      response.writeHead(302, { Location: 'ftp://127.0.0.1:1/unreachable.git/info/refs' });
+      response.end();
+    });
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    try {
+      const address = server.address();
+      if (!address || typeof address === 'string') throw new Error('Missing fixture port');
+      const result = await nativeGitRunner(
+        [
+          '-c',
+          'http.followRedirects=true',
+          '-c',
+          'protocol.ftp.allow=always',
+          'ls-remote',
+          `http://127.0.0.1:${address.port}/project.git`,
+        ],
+        {
+          cwd: f.repo,
+          timeoutMs: 5000,
+          // HTTP is permitted only by this loopback test. Production uses HTTPS/SSH.
+          env: {
+            GIT_ALLOW_PROTOCOL: 'https:ssh:http',
+            GIT_CONFIG_GLOBAL: emptyGlobalConfig,
+            GIT_CONFIG_NOSYSTEM: '1',
+          },
+        },
+      );
+      expect(requests).toBe(1);
+      expect(result.exitCode).not.toBe(0);
+      expect(result.stderr).toMatch(/Protocol ["']ftp["'] (?:disabled|not supported)/i);
+    } finally {
+      await new Promise<void>((resolve, reject) =>
+        server.close((error) => (error ? reject(error) : resolve())),
+      );
+    }
+  });
 });
 
 describe('Git connector capability and repository binding', () => {

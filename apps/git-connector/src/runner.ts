@@ -19,6 +19,7 @@ export const nativeGitRunner: GitRunner = (args, options) =>
       GIT_TERMINAL_PROMPT: '0',
       GIT_OPTIONAL_LOCKS: '0',
       GIT_PAGER: 'cat',
+      GIT_ALLOW_PROTOCOL: 'https:ssh',
       LC_ALL: 'C',
       ...options.env,
       // Reviews and transport must see the same real objects. An explicitly empty
