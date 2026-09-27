@@ -10,6 +10,19 @@ const initial = {
   'node_modules/a.md': 'not-read',
 };
 describe('browser project boundary', () => {
+  it('distinguishes an unreadable or empty installation directory from an absent one', async () => {
+    const fs = memoryDirectory({ 'docs/a.md': '# Document' });
+    fs.directories.add('_bmad');
+    const snapshot = await new ProjectStore(fs.handle).refresh();
+    expect(snapshot.index.documents.map((document) => document.path)).toEqual(['docs/a.md']);
+    expect(
+      snapshot.index.diagnostics.some((diagnostic) => diagnostic.code === 'version-unknown'),
+    ).toBe(true);
+    expect(
+      snapshot.index.diagnostics.some((diagnostic) => diagnostic.code === 'installation-absent'),
+    ).toBe(false);
+    expect(fs.state.writes).toBe(0);
+  });
   it('opens and refreshes in read mode with zero writes, excluding secrets and tool internals', async () => {
     const fs = memoryDirectory(initial),
       store = new ProjectStore(fs.handle);

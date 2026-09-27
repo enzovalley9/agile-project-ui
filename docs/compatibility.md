@@ -17,6 +17,12 @@ A snapshot never writes, tracks external changes, connects to providers, or impo
 
 Automated acceptance covers Chromium and Microsoft Edge for the full workflow. Firefox/WebKit fallback checks approximate their engines, not a claim of physical-device acceptance on every Safari/mobile version. Browser policy, secure contexts and local-network permissions can prevent access even in a supported browser.
 
+## Project and installation folders
+
+An original project folder may contain `_bmad-output` without `_bmad`. Supported documents and work items remain available for reading and editing; Diagnostics reports the absent installation. Without a manifest from a selected installation, the BMAD version is unknown. Comments require a valid project root, such as a repository with `.git`, and stay in that root's `.bmad-project-ui` folder. Git binds to that exact repository root.
+
+For a shared installation, select its parent folder and then explicitly select a child project, or open the child first and connect the parent from Diagnostics. The browser must grant access to both folders. The parent contributes BMAD configuration only; configured paths are hints, and files outside the selected project are not added to its inventory. Nested Git repositories are never scanned just because their parent was selected. Text formats and size limits still apply; this is not a promise to import every file type.
+
 ## Feature maturity
 
 | Area                       | Beta behavior and boundary                                                                                                                                             |

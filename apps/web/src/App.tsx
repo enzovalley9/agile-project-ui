@@ -19,7 +19,12 @@ import {
   Eye,
 } from 'lucide-react';
 import { visibleWorkItems, type WorkItem } from '../../../packages/domain/src/index';
-import { ProjectStore, type ProjectSnapshot, type RecoveryStatus } from './services/project-store';
+import {
+  ProjectStore,
+  type ProjectSnapshot,
+  type RecoveryStatus,
+  type SharedInstallationPreview,
+} from './services/project-store';
 import { importReadOnlyFiles, readOnlyDirectory } from './services/read-only-project';
 import exampleProject from '../../../examples/community-garden.json';
 import { FileTree } from './components/FileTree';
@@ -61,6 +66,10 @@ export default function App() {
   const importInput = useRef<HTMLInputElement>(null);
   const folderAccess = 'showDirectoryPicker' in window;
   const [modeChanging, setModeChanging] = useState(false);
+  const [installationSetup, setInstallationSetup] = useState<{
+    store: ProjectStore;
+    preview: SharedInstallationPreview;
+  } | null>(null);
   const [store, setStore] = useState<ProjectStore | null>(null),
     [snapshot, setSnapshot] = useState<ProjectSnapshot | null>(null),
     [path, setPath] = useState(''),
@@ -118,6 +127,9 @@ export default function App() {
   );
   const projected = snapshot ? visibleWorkItems(snapshot.index) : [];
   const diagnostics = [...(snapshot?.diagnostics ?? []), ...(snapshot?.index.diagnostics ?? [])];
+  const installationAbsent = snapshot?.index.diagnostics.some(
+    (diagnostic) => diagnostic.code === 'installation-absent',
+  );
   const changeDraft = (text: string) => {
     draftRef.current = text;
     setDraft(text);
@@ -158,6 +170,27 @@ export default function App() {
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
+  function acceptProject(nextStore: ProjectStore, next: ProjectSnapshot, skipped = 0) {
+    storeRef.current = nextStore;
+    setStore(nextStore);
+    setSnapshot(next);
+    setInstallationSetup(null);
+    setMode('read');
+    setView('documents');
+    activate(
+      next.index.documents.find((d) => d.kind === 'prd')?.path ??
+        next.index.documents[0]?.path ??
+        '',
+      next,
+    );
+    setCommentsOpen(false);
+    setCommentDirty(false);
+    setNotice(
+      nextStore.readOnly
+        ? `Read-only snapshot. ${skipped ? `${skipped} unsupported or excluded files skipped. ` : ''}Changes to the original folder are not refreshed; import it again to reread.`
+        : '',
+    );
+  }
   async function chooseProject(source: 'folder' | 'demo' | readonly File[] = 'folder') {
     const generation = ++projectGeneration.current;
     refreshSequence.current++;
@@ -176,24 +209,7 @@ export default function App() {
               });
       const next = await nextStore.refresh();
       if (generation !== projectGeneration.current) return;
-      storeRef.current = nextStore;
-      setStore(nextStore);
-      setSnapshot(next);
-      setMode('read');
-      setView('documents');
-      activate(
-        next.index.documents.find((d) => d.kind === 'prd')?.path ??
-          next.index.documents[0]?.path ??
-          '',
-        next,
-      );
-      setCommentsOpen(false);
-      setCommentDirty(false);
-      setNotice(
-        nextStore.readOnly
-          ? `Read-only snapshot. ${skipped ? `${skipped} unsupported or excluded files skipped. ` : ''}Changes to the original folder are not refreshed; import it again to reread.`
-          : '',
-      );
+      acceptProject(nextStore, next, skipped);
     } catch (e) {
       if (generation !== projectGeneration.current) return;
       if (e instanceof DOMException && e.name === 'AbortError')
@@ -201,6 +217,56 @@ export default function App() {
       else setError(errorText(e));
     } finally {
       if (generation === projectGeneration.current) setBusy(false);
+    }
+  }
+  async function chooseInstallation(existing?: ProjectStore) {
+    setError('');
+    setBusy(true);
+    try {
+      const installation = existing ?? (await ProjectStore.pickInstallation());
+      const preview = await installation.previewInstallation();
+      setInstallationSetup({ store: installation, preview });
+      setNotice('');
+    } catch (error) {
+      if (!(error instanceof DOMException && error.name === 'AbortError'))
+        setError(errorText(error));
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function chooseChildProject() {
+    if (!installationSetup) return;
+    const generation = ++projectGeneration.current;
+    refreshSequence.current++;
+    setError('');
+    setBusy(true);
+    try {
+      const nextStore = await ProjectStore.pickChildProject(installationSetup.store);
+      const next = await nextStore.refresh();
+      if (generation !== projectGeneration.current) return;
+      acceptProject(nextStore, next);
+      setNotice(`Using the shared BMAD installation in ${installationSetup.preview.name}.`);
+    } catch (error) {
+      if (generation !== projectGeneration.current) return;
+      if (!(error instanceof DOMException && error.name === 'AbortError'))
+        setError(errorText(error));
+    } finally {
+      if (generation === projectGeneration.current) setBusy(false);
+    }
+  }
+  async function connectSharedInstallation() {
+    if (!store) return;
+    setError('');
+    setBusy(true);
+    try {
+      await store.attachSharedInstallation();
+      await refresh();
+      setNotice(`Using the shared BMAD installation in ${store.sharedInstallationName}.`);
+    } catch (error) {
+      if (!(error instanceof DOMException && error.name === 'AbortError'))
+        setError(errorText(error));
+    } finally {
+      setBusy(false);
     }
   }
   const refresh = useCallback(async () => {
@@ -454,7 +520,7 @@ export default function App() {
             ))}
         </div>
       </header>
-      {store && snapshot && (
+      {store && snapshot && !installationSetup && (
         <>
           <div className={styles.projectBar}>
             <div className={styles.projectName}>
@@ -462,6 +528,11 @@ export default function App() {
               {snapshot.name}
               {snapshot.index.declaredVersion && (
                 <span className={styles.muted}>BMAD {snapshot.index.declaredVersion}</span>
+              )}
+              {store.sharedInstallationName && (
+                <span className={styles.muted}>
+                  Shared installation: {store.sharedInstallationName}
+                </span>
               )}
             </div>
             <div className={styles.actions}>
@@ -560,6 +631,12 @@ export default function App() {
           {notice}
         </p>
       )}
+      {installationAbsent && !installationSetup && (
+        <p role="status" className={`${styles.banner} ${styles.bannerInfo}`}>
+          No BMAD installation was detected in this project. Available documents and work items
+          remain accessible. You can connect a shared installation from Diagnostics.
+        </p>
+      )}
       {store?.recoveryPending && (
         <div role="alert" className={styles.banner}>
           <strong>A save needs verification.</strong>
@@ -581,7 +658,40 @@ export default function App() {
           Reading project files…
         </p>
       )}
-      {!store || !snapshot ? (
+      {installationSetup ? (
+        <main className={styles.welcome}>
+          <p className={styles.eyebrow}>Shared BMAD installation</p>
+          <h1>Choose the documentation project</h1>
+          <p>
+            Installation <strong>{installationSetup.preview.name}</strong> is available. Choose the
+            project folder inside it. Documents, comments and Git will use that project folder; only
+            BMAD configuration is read from this installation.
+          </p>
+          <div className={styles.startActions}>
+            <button className="primary" disabled={busy} onClick={() => void chooseChildProject()}>
+              <FolderOpen size={18} /> Choose documentation project
+            </button>
+            <button disabled={busy} onClick={() => setInstallationSetup(null)}>
+              Cancel
+            </button>
+          </div>
+          <h2>Configured document locations</h2>
+          <div className={styles.list}>
+            {installationSetup.preview.index.roots.map((root, i) => (
+              <section key={i} className={styles.listItem}>
+                <strong>{root.path || 'Installation root'}</strong>
+                <p className={styles.muted}>
+                  {root.role} · {root.source}
+                </p>
+              </section>
+            ))}
+          </div>
+          <p className={styles.muted}>
+            These paths are hints from the installation. The browser will ask you to choose the
+            child folder explicitly; other repositories are not scanned.
+          </p>
+        </main>
+      ) : !store || !snapshot ? (
         <main className={styles.welcome}>
           <p className={styles.eyebrow}>Public beta · Your project, from its files</p>
           <h1>
@@ -599,6 +709,9 @@ export default function App() {
             </button>
             <button disabled={busy || !folderAccess} onClick={() => void chooseProject()}>
               <FolderOpen size={18} /> Choose project folder
+            </button>
+            <button disabled={busy || !folderAccess} onClick={() => void chooseInstallation()}>
+              Choose shared BMAD installation
             </button>
             <button disabled={busy} onClick={() => importInput.current?.click()}>
               Import folder for reading
@@ -1017,6 +1130,19 @@ export default function App() {
                   Add documentation folder
                 </button>
               </div>
+              {!store.readOnly && (
+                <div className={styles.startActions}>
+                  {!installationAbsent && !store.sharedInstallationName ? (
+                    <button disabled={busy} onClick={() => void chooseInstallation(store)}>
+                      Open child project using this installation
+                    </button>
+                  ) : (
+                    <button disabled={busy} onClick={() => void connectSharedInstallation()}>
+                      Connect shared BMAD installation
+                    </button>
+                  )}
+                </div>
+              )}
               <div className={styles.list}>
                 {snapshot.index.roots.map((root, i) => (
                   <section key={i} className={styles.listItem}>

@@ -692,3 +692,114 @@ describe('read-only installed catalog and safe discovery', () => {
       expect(resolveDocumentLink('docs/a.md', url, files).kind).toBe('blocked');
   });
 });
+
+describe('project documents with an optional shared BMAD installation', () => {
+  const child = {
+    '_bmad-output/planning-artifacts/prd.md': '# Project PRD',
+    '_bmad-output/implementation-artifacts/sprint-status.yaml': sprint,
+    'docs/README.md': '# Project knowledge',
+  };
+  const shared = {
+    projectRelativePath: 'teams/bookings',
+    files: {
+      '_bmad/_config/manifest.yaml': manifest,
+      '_bmad/config.toml':
+        toml
+          .replaceAll('{project-root}/_bmad-output', '{project-root}/teams/bookings/_bmad-output')
+          .replaceAll('{project-root}/docs', '{project-root}/teams/bookings/docs') +
+        '[agents.bmad-agent-dev]\nname="Amelia"\nmodule="bmm"\n',
+      '_bmad/_config/bmad-help.csv': 'module,name,command\nbmm,Build,bmad-build\n',
+    },
+  };
+  it('indexes an output-only child and reports absent installation without implying missing documents', () => {
+    const result = indexProject(child, revisions(child));
+    expect(result.documents.map((document) => document.path)).toHaveLength(3);
+    expect(result.workItems.some((item) => item.family === 'sprint')).toBe(true);
+    expect(result.diagnostics.map((diagnostic) => diagnostic.code)).toContain(
+      'installation-absent',
+    );
+    expect(result.diagnostics.map((diagnostic) => diagnostic.code)).not.toContain(
+      'version-unknown',
+    );
+    expect(result.roots.find((root) => root.role === 'output')).toMatchObject({
+      path: '_bmad-output',
+      exists: true,
+    });
+  });
+  it('maps shared TOML and YAML roots into the child while indexing only child documents', () => {
+    const result = indexProject(child, revisions(child), {
+      sharedInstallation: {
+        ...shared,
+        files: {
+          ...shared.files,
+          '_bmad/bmm/config.yaml':
+            'output_folder: "{project-root}/teams/bookings/_bmad-output"\nproject_knowledge: "{project-root}/teams/bookings/docs"\n',
+          'teams/other/_bmad-output/private.md': '# Must not appear',
+        },
+      },
+    });
+    expect(result.declaredVersion).toBe('6.12.0');
+    expect(result.roots.find((root) => root.role === 'output')).toMatchObject({
+      path: '_bmad-output',
+      exists: true,
+    });
+    expect(result.roots.find((root) => root.role === 'knowledge')).toMatchObject({
+      path: 'docs',
+      exists: true,
+    });
+    expect(result.agents).toHaveLength(1);
+    expect(result.skills).toHaveLength(1);
+    expect(result.documents).toHaveLength(3);
+    expect(result.coverage.filesProvided).toBe(3);
+    expect(result.diagnostics.map((diagnostic) => diagnostic.code)).not.toContain(
+      'installation-absent',
+    );
+  });
+  it('rejects roots outside the selected child without scanning sibling content', () => {
+    const result = indexProject(child, revisions(child), {
+      sharedInstallation: {
+        projectRelativePath: 'teams/bookings',
+        files: {
+          '_bmad/config.toml':
+            '[core]\noutput_folder="{project-root}/teams/other/_bmad-output"\nproject_knowledge="{project-root}/teams/bookings/docs"\n',
+          'teams/other/_bmad-output/secret.md': '# No',
+        },
+      },
+    });
+    expect(result.roots.some((root) => root.role === 'output')).toBe(false);
+    expect(result.roots.find((root) => root.role === 'knowledge')?.path).toBe('docs');
+    expect(result.documents).toHaveLength(3);
+    expect(result.diagnostics.map((diagnostic) => diagnostic.code)).toContain(
+      'shared-root-outside-project',
+    );
+  });
+  it('resolves plain relative roots against the shared installation folder', () => {
+    const result = indexProject(child, revisions(child), {
+      sharedInstallation: {
+        projectRelativePath: 'teams/bookings',
+        files: {
+          '_bmad/config.toml':
+            '[core]\noutput_folder="teams/bookings/_bmad-output"\nproject_knowledge="teams/bookings/docs"\n',
+        },
+      },
+    });
+    expect(result.roots.find((root) => root.role === 'output')?.path).toBe('_bmad-output');
+    expect(result.roots.find((root) => root.role === 'knowledge')?.path).toBe('docs');
+    expect(result.diagnostics.map((diagnostic) => diagnostic.code)).not.toContain(
+      'shared-root-outside-project',
+    );
+  });
+  it('does not trust an escaping project path or convert shared metadata into documents', () => {
+    const result = indexProject(child, revisions(child), {
+      sharedInstallation: {
+        projectRelativePath: '../teams/bookings',
+        files: shared.files,
+      },
+    });
+    expect(result.declaredVersion).toBeUndefined();
+    expect(result.documents).toHaveLength(3);
+    expect(result.diagnostics.map((diagnostic) => diagnostic.code)).toContain(
+      'shared-project-path-invalid',
+    );
+  });
+});
