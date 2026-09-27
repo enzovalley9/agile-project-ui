@@ -264,7 +264,7 @@ export async function processIdentity(pid) {
   try {
     const { stdout } =
       process.platform === 'win32'
-        ? await processQuery(
+        ? await exec(
             'powershell.exe',
             [
               '-NoProfile',
@@ -355,8 +355,17 @@ async function start(connector, args) {
     // duplicate foreground-console signal before this message.
     if (child?.connected) child.send({ type: 'agile-project-ui:shutdown' }, () => {});
   };
+  const parentMessage = (value) => {
+    if (value && value.type === 'agile-project-ui:shutdown') shutdown();
+  };
   process.on('SIGINT', shutdown);
   process.on('SIGTERM', shutdown);
+  // An owning Node supervisor can request the same drain without relying on
+  // POSIX signals, which forcibly terminate processes on Windows.
+  if (process.connected) {
+    process.on('message', parentMessage);
+    process.channel.unref();
+  }
   try {
     const registry = root + '.running';
     await fs.mkdir(registry, { recursive: true, mode: 0o700 });
@@ -397,6 +406,13 @@ async function start(connector, args) {
       throw error;
     }
     // A graceful stop is already underway; do not send a second OS signal.
+    // No birth-identity lease may have been written. Keep maintenance excluded
+    // until this owned child has drained, rather than exposing an untracked live
+    // process between releasing the lock and observing its exit.
+    await new Promise((resolve) => {
+      if (child.exitCode !== null || child.signalCode !== null) resolve();
+      else child.once('exit', resolve);
+    });
   } finally {
     await fs.rmdir(lock);
   }
@@ -410,6 +426,8 @@ async function start(connector, args) {
   } finally {
     process.removeListener('SIGINT', shutdown);
     process.removeListener('SIGTERM', shutdown);
+    process.removeListener('message', parentMessage);
+    if (process.connected) process.disconnect();
     if (lease) {
       try {
         if ((await fs.readFile(lease, 'utf8')) === leaseText) await fs.unlink(lease);
