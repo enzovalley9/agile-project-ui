@@ -26,7 +26,11 @@ export interface DiscoveredRoot {
   raw: string;
   exists: boolean;
 }
-export interface Heading extends SourceRef { level: number; title: string; anchor: string }
+export interface Heading extends SourceRef {
+  level: number;
+  title: string;
+  anchor: string;
+}
 export interface DocumentLink {
   href: string;
   kind: 'local' | 'external' | 'anchor' | 'blocked';
@@ -35,7 +39,24 @@ export interface DocumentLink {
   line: number;
   image: boolean;
 }
-export type DocumentKind = 'markdown' | 'prd' | 'architecture' | 'adr' | 'ux' | 'spec' | 'epics' | 'story' | 'build' | 'sprint' | 'stories' | 'retrospective' | 'context' | 'yaml' | 'toml' | 'json' | 'text';
+export type DocumentKind =
+  | 'markdown'
+  | 'prd'
+  | 'architecture'
+  | 'adr'
+  | 'ux'
+  | 'spec'
+  | 'epics'
+  | 'story'
+  | 'build'
+  | 'sprint'
+  | 'stories'
+  | 'retrospective'
+  | 'context'
+  | 'yaml'
+  | 'toml'
+  | 'json'
+  | 'text';
 export interface DocumentRecord {
   path: string;
   title: string;
@@ -89,7 +110,15 @@ export interface WorkItem {
   warnings: string[];
   documentPath?: string;
   relatedPaths: string[];
-  family: 'epic-breakdown' | 'legacy-story' | 'sprint' | 'build' | 'build-auto' | 'spec-story' | 'checklist' | 'retro-action';
+  family:
+    | 'epic-breakdown'
+    | 'legacy-story'
+    | 'sprint'
+    | 'build'
+    | 'build-auto'
+    | 'spec-story'
+    | 'checklist'
+    | 'retro-action';
 }
 export interface AgentRecord {
   id: string;
@@ -126,14 +155,31 @@ export interface ProjectIndex {
   agents: AgentRecord[];
   skills: SkillRecord[];
   diagnostics: Diagnostic[];
-  coverage: { filesProvided: number; documents: number; excluded: number; partial: boolean; exclusions: string[] };
+  coverage: {
+    filesProvided: number;
+    documents: number;
+    excluded: number;
+    partial: boolean;
+    exclusions: string[];
+  };
 }
-export interface IndexOptions { additionalRoots?: string[]; projectName?: string }
-export interface FileChange { path: string; before: string; after: string; expectedRevision: string }
+export interface IndexOptions {
+  additionalRoots?: string[];
+  projectName?: string;
+}
+export interface FileChange {
+  path: string;
+  before: string;
+  after: string;
+  expectedRevision: string;
+}
 export interface WorkItemEdit {
   id: string;
   field: 'title' | 'description' | 'status' | 'checklist';
   value: string | boolean;
   checklistId?: string;
 }
-export interface EditPlan { changes: FileChange[]; warnings: string[] }
+export interface EditPlan {
+  changes: FileChange[];
+  warnings: string[];
+}

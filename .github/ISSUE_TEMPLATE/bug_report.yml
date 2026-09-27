@@ -1,0 +1,32 @@
+name: Bug report
+description: Report a reproducible problem using synthetic, sanitized data.
+title: '[Bug] '
+body:
+  - type: markdown
+    attributes:
+      value: 'For vulnerabilities, follow SECURITY.md. Do not include credentials, session files or private project content.'
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Commit/version, OS, browser/version, and optional connector/provider profile.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps and minimal example
+      description: Use a synthetic document and explain the steps from opening the project.
+    validations:
+      required: true
+  - type: textarea
+    id: expected_actual
+    attributes:
+      label: Expected and actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Sanitized evidence
+      description: Include relevant diagnostics, screenshots or logs. State what has already been checked.

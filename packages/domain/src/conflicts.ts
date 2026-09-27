@@ -8,7 +8,8 @@ export function hasMergeConflict(text: string): boolean {
   for (const line of text.replace(/^\uFEFF/, '').split(/\r\n|\n|\r/)) {
     if (fence) {
       const close = /^ {0,3}(`+|~+)[ \t]*$/.exec(line);
-      if (close && close[1][0] === fence.character && close[1].length >= fence.length) fence = undefined;
+      if (close && close[1][0] === fence.character && close[1].length >= fence.length)
+        fence = undefined;
       continue;
     }
     const open = /^ {0,3}(`{3,}|~{3,})(.*)$/.exec(line);

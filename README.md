@@ -1,83 +1,93 @@
 # BMAD Project UI
 
-Interfaz web para leer y editar los archivos de un proyecto BMAD Method, revisar historias y épicas, y mantener conversaciones junto al texto. Los documentos del proyecto son la fuente de verdad.
+A browser workspace for reading and editing BMAD Method project files, exploring stories and epics, and discussing specific passages. Project documents remain the source of truth. There is no authoritative application database.
 
-El perfil estructurado implementado es **BMAD Method 6.12.0**. Las versiones o formatos no reconocidos conservan la lectura genérica y muestran sus límites. La aplicación no ejecuta agentes ni workflows de BMAD.
+The structured adapter targets **BMAD Method 6.12.0**. Unknown versions and formats retain generic reading with visible compatibility limits. The application does not run BMAD agents or workflows.
 
-## Inicio local
+This repository is currently private and being prepared for an open-source release. **A project license has not yet been selected.** Documentation and contribution templates do not themselves grant reuse or redistribution rights. Third-party components retain their own licenses.
 
-Requisitos para desarrollar: Node.js 24 LTS y npm. La versión utilizada para los paquetes está fijada en `.node-version`.
+## Run locally
+
+Use Node.js 24 LTS and npm. The tested packaging runtime is pinned in [`.node-version`](.node-version); the supported source-development range is declared in [`package.json`](package.json). Use desktop Chrome or Edge.
 
 ```sh
 npm ci
 npm run dev
 ```
 
-Abre `http://127.0.0.1:5173` en Chrome o Edge de escritorio y selecciona la **raíz de tu proyecto**. La primera apertura está en modo lectura. El botón **Activar Editor** solicita el permiso de escritura del navegador.
+Open `http://127.0.0.1:5173` and select your **project root**. The workspace starts in read mode. The edit-mode switch requests browser write permission. Use the theme control to choose a light or dark appearance; document content keeps its original language. No connector is needed to read, edit or comment on local documents.
+
+For a disposable example, select [`tests/fixtures/huerto`](tests/fixtures/huerto) from this checkout. Copy it elsewhere before editing if you want to preserve the test fixture. Its documents are original synthetic test data; opening them does not require installing or running BMAD.
+
+The production build writes static assets to `dist/web` and Node connectors to `dist/connectors`. Browser directory access requires HTTPS or localhost. The development and preview servers listen only on loopback.
+
+## Workspace
+
+- **Documents:** searchable file tree, rendered Markdown, source text, headings, relative links and local raster images. Remote images do not load automatically.
+- **Work:** drag stories between supported states in Stories or Sprint when edit mode is enabled. Review the affected source files before confirming; the Move button provides the same action by keyboard. Epic details and the sprint show expandable story/task lists with completion markers. Sprint state, execution state and checklist completion keep their separate meanings.
+- **Editing:** one draft shared by visual and source views. Structured changes show affected files before saving. Save, commit and push are separate actions.
+- **Comments:** fragment threads, replies, reactions, edits to your own messages and resolution, stored in `.bmad-project-ui/comments/threads` outside `_bmad-output`.
+- **Catalog and diagnostics:** read-only installation-defined agents, skills and workflows, plus unknown formats, ambiguous data, missing files and partial scan coverage.
+
+Derived documents can be edited and commented on with a regeneration warning. Edits do not implicitly rewrite memlogs or invent states missing from the originals. Files containing unresolved merge markers are displayed as read-only source until you resolve them externally and reread the project.
+
+| Content                                    | Support                                                                                                     |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
+| Markdown                                   | Rendered reading, source and editing. Active HTML is blocked.                                               |
+| YAML, TOML, JSON, CSV, TXT, MDX, HTML, XML | UTF-8 source; structured projections only where an adapter exists. Templates and components do not execute. |
+| PNG, JPEG, GIF, WebP                       | Markdown-referenced images inside authorized roots, up to 8 MiB. No image editing.                          |
+| SVG, PDF and other attachments             | Excluded from the text inventory with diagnostics; not executed or edited.                                  |
+
+Text scans are bounded to 2 MiB per file, 32 MiB per inventory, 5,000 files and 20 directory levels. A limit or read failure means partial coverage, not an empty project. Secret/tool/dependency paths and nested repositories are excluded.
+
+## Optional connectors
+
+### Native Git
+
+The Git connector requires Git installed on your computer and uses its identity, signing, hooks and credential helpers. Its trust prompt matters: native repository configuration can run local programs.
+
+Create a private directory outside the project, then start the connector:
 
 ```sh
-npm run check       # tipos, tests y compilación
-npm run test:e2e    # recorridos de navegador; requiere Chromium de Playwright
-```
-
-Para preparar el navegador de las pruebas:
-
-```sh
-npx playwright install chromium
-```
-
-La compilación produce la web estática en `dist/web` y los conectores en `dist/connectors`. La web necesita HTTPS o localhost para utilizar File System Access. No necesita un servidor con acceso a los documentos. El servidor de desarrollo escucha exclusivamente en loopback.
-
-## Trabajo con el proyecto
-
-- **Documentos:** árbol de archivos, búsqueda, Markdown seguro, fuente, enlaces relativos y secciones. Las imágenes remotas no se cargan automáticamente.
-- **Historias, épicas y sprint:** contenido y estados con su procedencia. El estado de sprint, el estado de ejecución y las casillas de tareas conservan sus significados independientes.
-- **Edición:** un borrador compartido entre vista visual y fuente. Los cambios estructurados muestran los archivos afectados antes de aplicar. Guardar, commit y push son acciones separadas.
-- **Comentarios:** hilos por fragmento, respuestas, reacciones, historial de edición propia y resolución. Se guardan en `.bmad-project-ui/comments/threads`, fuera de `_bmad-output`.
-- **Catálogo:** agentes, skills y workflows declarados por la instalación, solo para consulta.
-- **Diagnóstico:** configuración, cobertura parcial, formatos ambiguos, archivos ausentes y estados no reconocidos.
-
-Todos los documentos compatibles pueden editarse, incluidos los derivados. La interfaz avisa cuando BMAD puede regenerar un archivo. No actualiza implícitamente `.memlog` ni inventa estados que no existen en los originales.
-
-| Formato | Lectura y edición |
-| --- | --- |
-| Markdown | Vista renderizada, fuente y edición; HTML activo bloqueado. |
-| YAML, TOML, JSON, CSV, TXT, MDX, HTML, XML | Fuente de texto UTF-8; proyecciones estructuradas solo cuando existe un adaptador. No ejecuta plantillas ni componentes. |
-| PNG, JPEG, GIF, WebP | Imágenes referenciadas desde Markdown dentro de las raíces autorizadas, hasta 8 MiB; sin edición. |
-| SVG, PDF y otros adjuntos | No se editan ni se ejecutan. El diagnóstico identifica su exclusión del inventario de texto. |
-
-Los documentos de texto tienen un límite de 2 MiB por archivo, 32 MiB por inventario, 5.000 archivos y 20 niveles de profundidad. Un límite o fallo de lectura se muestra como cobertura parcial. Las rutas de secretos, herramientas, dependencias y repositorios anidados se excluyen.
-
-## Conectores opcionales
-
-Los conectores son procesos separados. La edición local y los comentarios funcionan sin ellos.
-
-### Git
-
-Necesita Git instalado en el sistema. Utiliza su identidad, firma, hooks y gestores de credenciales; revisa la confianza del repositorio antes de conectar.
-
-```sh
+mkdir -p "$HOME/.bmad-project-ui"
 npm run connector:git -- \
-  --repo /ruta/al/proyecto \
+  --repo /absolute/path/to/project \
   --origin http://127.0.0.1:5173 \
-  --token-file /ruta/privada/fuera-del-proyecto/sesion-git
+  --token-file "$HOME/.bmad-project-ui/git-session"
 ```
 
-Carga el archivo de sesión desde **Conexión con Git**. La aplicación comprueba que el navegador y el conector trabajan sobre la misma carpeta. Puedes revisar un commit de archivos concretos, cambiar a una rama local existente y revisar todos los commits salientes antes de hacer push a una rama remota existente. No hay force push ni resolución de conflictos dentro de la aplicación. Los archivos con marcadores de conflicto se muestran como fuente de solo lectura, sin convertirlos en tareas o estados; resuélvelos externamente y relee el proyecto antes de continuar.
+Load the generated local session file in the Git connection panel. It is not a GitHub token. The application verifies that browser and connector refer to the same folder, then offers explicit commit review, existing local branch switching and outgoing-history review before push. There is no force push, automatic pull or visual merge resolver. See the [Git guide](docs/git-connector.md).
 
-Consulta [la guía del conector Git](docs/git-connector.md).
+### Jira and Confluence
 
-### Jira y Confluence
+Each provider uses an independent connector process, local session, credentials and selected scope. The browser verifies account/service identity before explicit resource linking. The implemented profiles support reading, bounded search, available history, field comparison, export proposals and reviewed local imports.
 
-Cada servicio tiene su propio proceso, sesión, instancia, credenciales y ámbito. Los asistentes comprueban la identidad de la cuenta, el servicio y un recurso del ámbito antes de guardar la configuración. Los vínculos son explícitos y no crean recursos remotos.
+**Production remote writes are blocked** where the API cannot prove the required atomic update or draft-preservation guarantees. Mock atomic adapters test publication and recovery without claiming real-provider guarantees. No live Atlassian account was used in acceptance. See [profiles, setup and limitations](docs/atlassian-connectors.md).
 
-Se implementan lectura, búsqueda, historial disponible, comparación por campos, propuestas exportables e importación local revisada. **La escritura remota de los perfiles actuales está bloqueada** cuando la API no puede garantizar la condición de concurrencia o la conservación de borradores requerida. Los tests con un adaptador atómico simulado verifican el flujo de publicación y recuperación; no certifican garantías de una cuenta real.
+Provider credentials belong in private connector files or environment variables, never in the browser or repository. Verified comparison bases use browser-private storage and are separate from versioned links; the UI identifies when only an in-memory base is available.
 
-Consulta [configuración, perfiles y límites de Atlassian](docs/atlassian-connectors.md). No introduzcas credenciales del proveedor en la web ni en el repositorio.
+## Integrity and recovery
 
-Las bases de comparación verificadas se guardan en el almacenamiento privado del navegador, separadas de los vínculos versionados. Se recuperan al reabrir la misma asociación; cambiar su identidad invalida la base. Si ese almacenamiento no está disponible, la interfaz indica que la base solo dura durante la sesión.
+The browser checks file revisions before writing, before closing the stream and after saving. External changes retain your draft for review. Web Locks coordinate writes and Git operations between application tabs sharing an origin.
 
-## Paquetes con runtime incluido
+An incomplete write leaves a hash journal in `.bmad-project-ui/local/write-recovery.json` and blocks further mutations. Original/planned copies use browser-private storage when available. Recovery checks current bytes and preserves later external changes. Local journals are excluded from connector commits.
+
+Unsaved drafts live in the current tab. Export them before closing if needed. Clearing browser/profile/origin storage can remove private recovery copies. External editors do not participate in Web Locks; these checks are not a universal filesystem transaction. Comment identity is locally declared, not team authentication.
+
+## Develop and test
+
+```sh
+npm run check
+npm run format:check
+npm run notices:check
+npm run audit:dependencies
+npx playwright install chromium
+npm run test:e2e
+```
+
+[`CONTRIBUTING.md`](CONTRIBUTING.md), the [development guide](docs/development.md), [architecture](docs/architecture.md) and [testing guide](docs/testing.md) explain the module boundaries and expected evidence. CI checks macOS, Linux and Windows and runs browser journeys in Chromium and Edge. See [support](SUPPORT.md) for troubleshooting and [security reporting](SECURITY.md) for sensitive issues.
+
+## Bundled connector runtime
 
 ```sh
 npm run build:connectors
@@ -85,24 +95,10 @@ node scripts/package-connectors.mjs
 node scripts/smoke-package.mjs
 ```
 
-El empaquetado descarga el runtime oficial fijado y comprueba su SHA-256. Produce paquetes para el sistema y arquitectura de la ejecución. La CI construye y prueba paquetes en macOS, Windows y Linux. El instalador valida el contenido en una carpeta temporal antes de completar la instalación y no inicia servicios automáticamente.
+Packaging downloads the pinned official Node runtime and checks its SHA-256. It builds for the selected platform/architecture. CI installs and starts the packages on macOS, Windows and Linux. Installation verifies files in a staging directory and does not start services automatically.
 
-Los paquetes son artefactos privados de GitHub Actions, sin firma ni notarización de distribución pública. No se deben confundir con una publicación firmada.
+These are private CI artifacts, **unsigned and not notarized**. Checksums detect corruption; they do not establish publisher identity. The [development guide](docs/development.md#connector-packages) describes installation and removal. Public releases, signing and hosting have not been established.
 
-## Integridad y recuperación
+## Third-party notices
 
-El navegador comprueba la revisión del archivo antes de escribir, justo antes de cerrar el stream y después de guardar. Un cambio externo conserva el borrador y obliga a revisar. Las escrituras de la aplicación y las operaciones Git coordinan su exclusión entre pestañas del mismo origen mediante Web Locks.
-
-Un guardado incompleto deja un registro de hashes en `.bmad-project-ui/local/write-recovery.json` y bloquea nuevas mutaciones. Las copias originales y previstas se mantienen en el filesystem privado del navegador cuando está disponible; la interfaz permite revisar el resultado antes de recuperar o aceptar el estado observado. Los registros privados locales no se pueden incluir en un commit mediante el conector.
-
-Los borradores que todavía no se han guardado viven en la pestaña. Expórtalos antes de cerrar si necesitas conservarlos. El almacenamiento privado depende de ese navegador, perfil y origen: borrar sus datos elimina esas copias. Los cambios realizados por editores externos no participan en los Web Locks; las comprobaciones de revisión reducen las carreras, pero no equivalen a una transacción universal del filesystem.
-
-La identidad de comentarios es local y declarada. No es una autenticación de equipo.
-
-## Pruebas y alcance
-
-Los tests cubren parsers, conservación de fuentes, comentarios, permisos y fallos de escritura, recuperación, Git nativo sobre repositorios temporales, transportes de proveedor y conectores HTTP. Los recorridos Playwright utilizan archivos reales de disco con un selector de carpeta sustituido únicamente en el driver de pruebas. La aceptación con el selector nativo es una verificación adicional, no una propiedad que ese driver pueda demostrar.
-
-`tests/fixtures/huerto` contiene artefactos sintéticos originales para los contratos de BMAD 6.12.0. No representa usuarios, resultados ni trabajo real. Las pruebas no necesitan instalar BMAD ni invocar sus agentes.
-
-No se incluyen ejecución de agentes, bases de datos autoritativas, migraciones automáticas de esquemas BMAD, resolución visual de conflictos, sincronización remota sin revisión ni compatibilidad universal con forks o versiones desconocidas.
+[`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) retains the locked production dependency and build-helper notices, including mixed Lucide/Feather attribution. `npm run notices` regenerates it after dependency changes; CI rejects stale or unreviewed notices. Web builds and connector archives include this file. Connector archives also retain Node's complete upstream license at `runtime/LICENSE`. These notices do not grant a first-party project license.

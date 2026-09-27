@@ -1,11 +1,31 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
-import { FolderOpen, FileText, GitBranch, MessageSquare, RefreshCw, PanelLeft, AlertTriangle, FileQuestion, CircleCheck, BookOpen, ListChecks, Search, Users, Layers } from 'lucide-react';
+import {
+  FolderOpen,
+  FileText,
+  GitBranch,
+  MessageSquare,
+  RefreshCw,
+  PanelLeft,
+  AlertTriangle,
+  FileQuestion,
+  CircleCheck,
+  BookOpen,
+  ListChecks,
+  Search,
+  Users,
+  Layers,
+  SunMoon,
+  Pencil,
+  Eye,
+} from 'lucide-react';
 import { visibleWorkItems, type WorkItem } from '../../../packages/domain/src/index';
 import { ProjectStore, type ProjectSnapshot, type RecoveryStatus } from './services/project-store';
 import { FileTree } from './components/FileTree';
 import { DocumentReader } from './components/DocumentReader';
 import type { SourceSelection } from './components/SourceEditor';
-const SourceEditor = lazy(()=>import('./components/SourceEditor').then(module=>({default:module.SourceEditor})));
+const SourceEditor = lazy(() =>
+  import('./components/SourceEditor').then((module) => ({ default: module.SourceEditor })),
+);
 import { CommentsPanel } from './components/CommentsPanel';
 import { StoryBoard, StoryDialog, statusLabel } from './components/WorkViews';
 import { Dialog } from './components/Dialog';
@@ -13,76 +33,1048 @@ import { RecoveryDialog } from './components/RecoveryDialog';
 import { GitPanel } from './components/GitPanel';
 import { AtlassianPanel } from './components/AtlassianPanel';
 import styles from './App.module.css';
+import { useTheme, type ThemePreference } from './hooks/use-theme';
 
-type View='documents'|'stories'|'epics'|'sprint'|'catalog'|'diagnostics'|'git'|'jira'|'confluence';
-const errorText=(error:unknown)=>error instanceof Error?error.message:String(error);
-const navItems:[View,string][]=[['documents','Documentos'],['stories','Historias'],['epics','Épicas'],['sprint','Sprint'],['catalog','Agentes y skills'],['diagnostics','Diagnóstico']];
+type View =
+  | 'documents'
+  | 'stories'
+  | 'epics'
+  | 'sprint'
+  | 'catalog'
+  | 'diagnostics'
+  | 'git'
+  | 'jira'
+  | 'confluence';
+const errorText = (error: unknown) => (error instanceof Error ? error.message : String(error));
+const navItems: [View, string][] = [
+  ['documents', 'Documents'],
+  ['stories', 'Stories'],
+  ['epics', 'Epics'],
+  ['sprint', 'Sprint'],
+  ['catalog', 'Agents and skills'],
+  ['diagnostics', 'Diagnostics'],
+];
 export default function App() {
-  const [store,setStore]=useState<ProjectStore|null>(null),[snapshot,setSnapshot]=useState<ProjectSnapshot|null>(null),[path,setPath]=useState(''),[view,setView]=useState<View>('documents'),[mode,setMode]=useState<'read'|'edit'>('read'),[format,setFormat]=useState<'visual'|'source'>('visual'),[draft,setDraft]=useState(''),[base,setBase]=useState(''),[revision,setRevision]=useState(''),[busy,setBusy]=useState(false),[saving,setSaving]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState(''),[commentsOpen,setCommentsOpen]=useState(false),[commentDirty,setCommentDirty]=useState(false),[commentReset,setCommentReset]=useState(0),[selection,setSelection]=useState<SourceSelection|null>(null),[highlightLine,setHighlightLine]=useState<number>(),[selectedItem,setSelectedItem]=useState<WorkItem|null>(null),[showDiff,setShowDiff]=useState(false),[pending,setPending]=useState<{action:()=>void;description:string}|null>(null),[search,setSearch]=useState(''),[gitStatus,setGitStatus]=useState('No conectado'),[gitBusy,setGitBusy]=useState(false),[pendingFragment,setPendingFragment]=useState<string|null>(null),[jiraStatus,setJiraStatus]=useState('No conectado'),[confluenceStatus,setConfluenceStatus]=useState('No conectado'),[integrationBusy,setIntegrationBusy]=useState(false);
-  const [recoveryReview,setRecoveryReview]=useState<RecoveryStatus|null>(null);
-  const [auxiliarySaving,setAuxiliarySaving]=useState(false),[visualDirty,setVisualDirty]=useState(false);
-  const visualDirtyRef=useRef(false);const onVisualDraft=useCallback((value:boolean)=>{visualDirtyRef.current=value;setVisualDirty(value);},[]);
-  const draftRef=useRef(draft); draftRef.current=draft;
-  const storeRef=useRef(store);storeRef.current=store;const pathRef=useRef(path);pathRef.current=path;const projectGeneration=useRef(0),refreshSequence=useRef(0);
-  const dirty=draft!==base||visualDirty;
-  const stale=!!snapshot&&!!path&&revision!==snapshot.revisions[path];
-  const selectedDoc=snapshot?.index.documents.find(d=>d.path===path);
-  const conflicted=!!snapshot?.index.diagnostics.some(d=>d.path===path&&d.code==='merge-conflict');
-  const unavailable=snapshot?.diagnostics.find(d=>d.path===path&&['read-error','size-limit','binary-file','depth-limit'].includes(d.code));
-  const projected=snapshot?visibleWorkItems(snapshot.index):[];
-  const diagnostics=[...(snapshot?.diagnostics??[]),...(snapshot?.index.diagnostics??[])];
-  const changeDraft=(text:string)=>{draftRef.current=text;setDraft(text);setNotice('');};
-  function activate(nextPath:string,nextSnapshot=snapshot){onVisualDraft(false);setPath(nextPath);setDraft(nextSnapshot?.files[nextPath]??'');draftRef.current=nextSnapshot?.files[nextPath]??'';setBase(nextSnapshot?.files[nextPath]??'');setRevision(nextSnapshot?.revisions[nextPath]??'');setFormat('visual');setSelection(null);setHighlightLine(undefined);setError('');setNotice('');}
-  function guard(action:()=>void,description='salir de esta vista'){if(saving||auxiliarySaving||gitBusy||integrationBusy){setError('Espera a que se confirme el guardado antes de cambiar de contexto.');return;}if(dirty||commentDirty){setPending({action,description});return;}action();}
-  function exportDraft(){(document.activeElement as HTMLElement)?.blur();const url=URL.createObjectURL(new Blob([draftRef.current],{type:'text/markdown;charset=utf-8'}));const link=document.createElement('a');link.href=url;link.download=path.split('/').at(-1)||'borrador.md';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
-  async function chooseProject(){const generation=++projectGeneration.current;refreshSequence.current++;setError('');setBusy(true);try{const nextStore=await ProjectStore.pick();const next=await nextStore.refresh();if(generation!==projectGeneration.current)return;storeRef.current=nextStore;setStore(nextStore);setSnapshot(next);setMode('read');setView('documents');activate(next.index.documents.find(d=>d.kind==='prd')?.path??next.index.documents[0]?.path??'',next);setCommentsOpen(false);setCommentDirty(false);}catch(e){if(generation!==projectGeneration.current)return;if(e instanceof DOMException&&e.name==='AbortError')setNotice('La selección de carpeta se ha cancelado.');else setError(errorText(e));}finally{if(generation===projectGeneration.current)setBusy(false);}}
-  const refresh=useCallback(async()=>{if(!store)return;const generation=projectGeneration.current,request=++refreshSequence.current;const next=await store.refresh();if(storeRef.current!==store||generation!==projectGeneration.current||request!==refreshSequence.current)return;setSnapshot(next);if(path&&pathRef.current===path&&!visualDirtyRef.current&&draftRef.current===base&&next.files[path]!==undefined){setDraft(next.files[path]);draftRef.current=next.files[path];setBase(next.files[path]);setRevision(next.revisions[path]);}},[store,path,base]);
-  async function addDocumentationFolder(){if(!store)return;setError('');setBusy(true);try{await store.addDocumentationFolder();await refresh();setNotice('Carpeta documental añadida al ámbito de lectura.');}catch(e){if(!(e instanceof DOMException&&e.name==='AbortError'))setError(errorText(e));}finally{setBusy(false);}}
-  async function manualRefresh(){setBusy(true);setError('');try{await refresh();setNotice('Archivos releídos desde la carpeta.');}catch(e){setError(errorText(e));}finally{setBusy(false);}}
-  async function saveDocument(){if(!store||!path||saving||auxiliarySaving||mode!=='edit'||gitBusy||integrationBusy||store.recoveryPending||conflicted)return;const value=draftRef.current;if(value===base)return;setSaving(true);setError('');setNotice('');try{await store.save(path,value,revision);const next=await store.refresh();setSnapshot(next);setBase(value);setRevision(next.revisions[path]);setNotice('Guardado localmente y verificado.');setSelection(null);}catch(e){setError(errorText(e));try{setSnapshot(await store.refresh());}catch{/* Preserve the original write error and draft. */}}finally{setSaving(false);}}
-  const saveRef=useRef(saveDocument); saveRef.current=saveDocument;
-  useEffect(()=>{const handler=(event:KeyboardEvent)=>{if((event.metaKey||event.ctrlKey)&&event.key.toLowerCase()==='s'){event.preventDefault();(document.activeElement as HTMLElement)?.blur();void saveRef.current();}};document.addEventListener('keydown',handler);return()=>document.removeEventListener('keydown',handler);},[]);
-  useEffect(()=>{const unload=(event:BeforeUnloadEvent)=>{if(dirty||commentDirty||saving||auxiliarySaving){event.preventDefault();event.returnValue='';}};window.addEventListener('beforeunload',unload);return()=>window.removeEventListener('beforeunload',unload);},[dirty,commentDirty,saving,auxiliarySaving]);
-  useEffect(()=>{const focus=()=>{if(!saving&&!auxiliarySaving)void refresh().catch(e=>setError(errorText(e)));};window.addEventListener('focus',focus);return()=>window.removeEventListener('focus',focus);},[refresh,saving,auxiliarySaving]);
-  function navigateDocument(nextPath:string,fragment?:string){guard(()=>{setView('documents');setSelectedItem(null);activate(nextPath);setPendingFragment(fragment??null);},`abrir ${nextPath}`);}
-  useEffect(()=>{if(!pendingFragment||format!=='visual')return;const frame=requestAnimationFrame(()=>{let fragment=pendingFragment;try{fragment=decodeURIComponent(fragment);}catch{}const target=document.getElementById(fragment);if(target)target.scrollIntoView({block:'start'});else setNotice(`No se encuentra la sección «${fragment}» en este documento.`);setPendingFragment(null);});return()=>cancelAnimationFrame(frame);},[path,draft,format,pendingFragment]);
-  function navigateView(next:View){guard(()=>{setView(next);setSelectedItem(null);},`abrir ${next}`);}
-  function setEditorMode(){guard(()=>{void(async()=>{if(!store)return;setError('');try{const next=mode==='read'?'edit':'read';await store.setMode(next);setMode(next);}catch(e){setError(errorText(e));}})();},'cambiar de modo');}
-  function jumpToLine(line:number){setFormat('visual');setHighlightLine(line);requestAnimationFrame(()=>requestAnimationFrame(()=>{document.querySelector(`[data-source-line="${line}"]`)?.scrollIntoView({block:'center',behavior:'smooth'});}));}
-  const updateCommentDirty=useCallback((value:boolean)=>setCommentDirty(value),[]);
-  const brand=<div className={styles.brand}><span className={styles.mark} aria-hidden="true"><i/><i/><i/><i/></span>BMAD Project UI</div>;
-  return <div className={styles.app}>
-    <header className={styles.header}>{brand}<div className={styles.headerActions}>{store&&(['git','jira','confluence'] as const).map(service=><button key={service} className={styles.connection} aria-pressed={view===service} onClick={()=>navigateView(service)}>Conexión con {service==='git'?'Git':service==='jira'?'Jira':'Confluence'}<span>{service==='git'?gitStatus:service==='jira'?jiraStatus:confluenceStatus}</span></button>)}</div></header>
-    {store&&snapshot&&<><div className={styles.projectBar}><div className={styles.projectName}><FolderOpen size={16}/>{snapshot.name}{snapshot.index.declaredVersion&&<span className={styles.muted}>BMAD {snapshot.index.declaredVersion}</span>}</div><div className={styles.actions}><span className={styles.mode}>{mode==='read'?'Lectura':'Editor'}</span><button disabled={busy||saving||auxiliarySaving||gitBusy||integrationBusy} onClick={setEditorMode}>{mode==='read'?'Activar Editor':'Volver a lectura'}</button><button className="iconButton" title="Releer archivos" aria-label="Releer archivos" disabled={busy||saving||auxiliarySaving||gitBusy||integrationBusy} onClick={()=>void manualRefresh()}><RefreshCw size={15}/></button><button disabled={busy||saving||auxiliarySaving||gitBusy||integrationBusy} onClick={()=>guard(()=>void chooseProject(),'cambiar de proyecto')}>Cambiar carpeta</button></div></div><nav className={styles.tabs} aria-label="Vistas del proyecto">{navItems.map(([id,label])=><button key={id} className={view===id?'active':''} aria-current={view===id?'page':undefined} onClick={()=>navigateView(id)}>{label}{id==='diagnostics'&&diagnostics.length>0?` (${diagnostics.length})`:''}</button>)}</nav></>}
-    {error&&<div role="alert" className={`${styles.banner} ${styles.bannerError}`}><strong>No se ha podido completar la acción.</strong><p>{error}</p>{dirty&&<button onClick={()=>void navigator.clipboard.writeText(draftRef.current).then(()=>setNotice('Borrador copiado.')).catch(e=>setError(errorText(e)))}>Copiar borrador</button>}<button onClick={()=>setError('')}>Cerrar aviso</button></div>}
-    {notice&&<p role="status" className={`${styles.banner} ${styles.bannerSuccess}`}>{notice}</p>}
-    {store?.recoveryPending&&<div role="alert" className={styles.banner}><strong>Hay un guardado pendiente de comprobar.</strong><p>Las nuevas escrituras y las operaciones Git quedan bloqueadas hasta revisar los archivos.</p><button onClick={()=>void store.recoveryStatus().then(setRecoveryReview).catch(e=>setError(errorText(e)))}>Revisar recuperación</button></div>}
-    {busy&&<p role="status" className={`${styles.banner} ${styles.bannerInfo}`}>Leyendo archivos del proyecto…</p>}
-    {!store||!snapshot?<main className={styles.welcome}><p className={styles.eyebrow}>Tu proyecto, desde sus archivos</p><h1>Todo el contexto de BMAD,<br/>en un mismo lugar.</h1><p>Abre la carpeta de tu proyecto para recorrer documentos, épicas e historias. Lee primero y activa el editor cuando quieras trabajar sobre los archivos originales.</p><button className="primary" disabled={busy} onClick={()=>void chooseProject()}><FolderOpen size={18}/>Elegir carpeta del proyecto</button><p className={styles.muted}>Chrome o Edge de escritorio. Los documentos permanecen en tu equipo.</p><div className={styles.welcomeFeatures}><section><BookOpen size={22}/><h2>Documentos conectados</h2><p>Árbol completo, Markdown y referencias entre los archivos.</p></section><section><ListChecks size={22}/><h2>Trabajo con contexto</h2><p>Historias, estados y procedencia sin duplicar la planificación.</p></section><section><MessageSquare size={22}/><h2>Conversaciones junto al texto</h2><p>Edita y comenta; guarda los cambios antes de compartirlos con Git.</p></section></div></main>:<>
-      {view==='documents'&&<div className={styles.shell}><FileTree paths={snapshot.index.documents.map(d=>d.path)} selected={path} onSelect={navigateDocument}/><main className={styles.main}>
-        {!path?<div className={styles.empty}><FolderOpen size={30}/><h1>Elige un documento</h1><p>{snapshot.index.documents.length?'Abre cualquier archivo del árbol para empezar.':'No se han encontrado documentos compatibles en esta carpeta. Consulta el diagnóstico para revisar el ámbito.'}</p><button onClick={()=>navigateView('diagnostics')}>Ver diagnóstico</button></div>:snapshot.files[path]===undefined?<div className={styles.empty}><FileQuestion size={30}/><h1>{unavailable?'No se pudo leer el archivo':'No se encuentra el archivo'}</h1><code>{path}</code><p>{unavailable?unavailable.message:'El archivo puede haberse movido o no estar disponible. El resto del proyecto sigue accesible.'}</p><button onClick={()=>void manualRefresh()}>Volver a comprobar</button></div>:<>
-          <div className={styles.fileHeader}><p className={styles.filePath}>{path}</p><div className={styles.fileToolbar}><span className={styles.saveState} role="status">{saving?'Guardando…':dirty?'Cambios sin guardar':'Sin cambios'}</span><div className={styles.actions}><button disabled={conflicted} aria-pressed={format==='source'||conflicted} onClick={()=>{(document.activeElement as HTMLElement)?.blur();setFormat(format==='visual'?'source':'visual');}}>{format==='visual'?'Markdown':'Vista visual'}</button>{mode==='edit'&&<><button disabled={!dirty} onClick={()=>setShowDiff(true)}>Ver cambios</button><button className="primary" disabled={!dirty||saving||auxiliarySaving||stale||gitBusy||integrationBusy||store.recoveryPending||conflicted} onClick={()=>void saveDocument()}>Guardar</button></>}<button aria-pressed={commentsOpen} onClick={()=>setCommentsOpen(!commentsOpen)}><MessageSquare size={14}/>Comentarios</button></div></div></div>
-          {dirty&&<div className={`${styles.banner} ${styles.bannerInfo}`}><p>Este borrador solo está en la memoria de esta pestaña. Guarda el archivo o descarga una copia antes de cerrar o recargar.</p><button onClick={exportDraft}>Exportar borrador</button></div>}
-          {conflicted&&<div className={styles.banner} role="alert">Este archivo contiene marcadores de conflicto. Resuélvelo con Git o tu editor y relee los archivos. Se muestra la fuente sin interpretar ni permitir su edición.</div>}
-          {selectedDoc?.derived&&mode==='edit'&&<div className={styles.banner}>Este documento es derivado. BMAD puede regenerarlo y sobrescribir las modificaciones manuales.</div>}
-          {stale&&<div className={styles.banner} role="alert"><strong>El archivo cambió fuera de esta vista.</strong><p>Tu borrador se conserva. Compara ambas versiones antes de continuar; no se sobrescribirá el archivo actual.</p><button onClick={()=>setShowDiff(true)}>Comparar versiones</button><button onClick={()=>guard(()=>activate(path),'recargar el archivo actual')}>Recargar archivo actual</button><button onClick={()=>void navigator.clipboard.writeText(draftRef.current).then(()=>setNotice('Borrador copiado.')).catch(e=>setError(errorText(e)))}>Copiar borrador</button></div>}
-          <div className={`${styles.readerShell} ${commentsOpen?styles.withComments:''}`}><section className={styles.reading}>{selection&&mode==='edit'&&!commentsOpen&&<div className={styles.selection}><p>{selection.quote}</p><button onClick={()=>setCommentsOpen(true)}>Comentar fragmento</button></div>}{format==='source'||conflicted?<Suspense fallback={<p role="status">Abriendo editor Markdown…</p>}><SourceEditor value={draft} readOnly={mode==='read'||conflicted} onChange={changeDraft} onSelect={setSelection} onSave={()=>void saveDocument()}/></Suspense>:<DocumentReader store={store} resourceVersion={snapshot} source={draft} path={path} editable={mode==='edit'&&!conflicted} onChange={changeDraft} onNavigate={navigateDocument} onSelect={setSelection} highlightLine={highlightLine} onDraftChange={onVisualDraft}/>}</section>
-            <CommentsPanel store={store} snapshot={snapshot} path={path} source={draft} selection={selection} documentDirty={dirty} hidden={!commentsOpen} onClose={()=>setCommentsOpen(false)} onRefresh={refresh} onDirty={updateCommentDirty} onJump={jumpToLine} onBusy={setAuxiliarySaving} resetVersion={commentReset}/>
+  const [theme, setTheme] = useTheme();
+  const [modeChanging, setModeChanging] = useState(false);
+  const [store, setStore] = useState<ProjectStore | null>(null),
+    [snapshot, setSnapshot] = useState<ProjectSnapshot | null>(null),
+    [path, setPath] = useState(''),
+    [view, setView] = useState<View>('documents'),
+    [mode, setMode] = useState<'read' | 'edit'>('read'),
+    [format, setFormat] = useState<'visual' | 'source'>('visual'),
+    [draft, setDraft] = useState(''),
+    [base, setBase] = useState(''),
+    [revision, setRevision] = useState(''),
+    [busy, setBusy] = useState(false),
+    [saving, setSaving] = useState(false),
+    [error, setError] = useState(''),
+    [notice, setNotice] = useState(''),
+    [commentsOpen, setCommentsOpen] = useState(false),
+    [commentDirty, setCommentDirty] = useState(false),
+    [commentReset, setCommentReset] = useState(0),
+    [selection, setSelection] = useState<SourceSelection | null>(null),
+    [highlightLine, setHighlightLine] = useState<number>(),
+    [selectedItem, setSelectedItem] = useState<WorkItem | null>(null),
+    [showDiff, setShowDiff] = useState(false),
+    [pending, setPending] = useState<{ action: () => void; description: string } | null>(null),
+    [search, setSearch] = useState(''),
+    [gitStatus, setGitStatus] = useState('Not connected'),
+    [gitBusy, setGitBusy] = useState(false),
+    [pendingFragment, setPendingFragment] = useState<string | null>(null),
+    [jiraStatus, setJiraStatus] = useState('Not connected'),
+    [confluenceStatus, setConfluenceStatus] = useState('Not connected'),
+    [integrationBusy, setIntegrationBusy] = useState(false);
+  const [recoveryReview, setRecoveryReview] = useState<RecoveryStatus | null>(null);
+  const [auxiliarySaving, setAuxiliarySaving] = useState(false),
+    [visualDirty, setVisualDirty] = useState(false);
+  const visualDirtyRef = useRef(false);
+  const onVisualDraft = useCallback((value: boolean) => {
+    visualDirtyRef.current = value;
+    setVisualDirty(value);
+  }, []);
+  const draftRef = useRef(draft);
+  draftRef.current = draft;
+  const storeRef = useRef(store);
+  storeRef.current = store;
+  const pathRef = useRef(path);
+  pathRef.current = path;
+  const projectGeneration = useRef(0),
+    refreshSequence = useRef(0);
+  const dirty = draft !== base || visualDirty;
+  const stale = !!snapshot && !!path && revision !== snapshot.revisions[path];
+  const selectedDoc = snapshot?.index.documents.find((d) => d.path === path);
+  const conflicted = !!snapshot?.index.diagnostics.some(
+    (d) => d.path === path && d.code === 'merge-conflict',
+  );
+  const unavailable = snapshot?.diagnostics.find(
+    (d) =>
+      d.path === path &&
+      ['read-error', 'size-limit', 'binary-file', 'depth-limit'].includes(d.code),
+  );
+  const projected = snapshot ? visibleWorkItems(snapshot.index) : [];
+  const diagnostics = [...(snapshot?.diagnostics ?? []), ...(snapshot?.index.diagnostics ?? [])];
+  const changeDraft = (text: string) => {
+    draftRef.current = text;
+    setDraft(text);
+    setNotice('');
+  };
+  function activate(nextPath: string, nextSnapshot = snapshot) {
+    onVisualDraft(false);
+    setPath(nextPath);
+    setDraft(nextSnapshot?.files[nextPath] ?? '');
+    draftRef.current = nextSnapshot?.files[nextPath] ?? '';
+    setBase(nextSnapshot?.files[nextPath] ?? '');
+    setRevision(nextSnapshot?.revisions[nextPath] ?? '');
+    setFormat('visual');
+    setSelection(null);
+    setHighlightLine(undefined);
+    setError('');
+    setNotice('');
+  }
+  function guard(action: () => void, description = 'leave this view') {
+    if (saving || auxiliarySaving || gitBusy || integrationBusy) {
+      setError('Wait for saving to finish before changing context.');
+      return;
+    }
+    if (dirty || commentDirty) {
+      setPending({ action, description });
+      return;
+    }
+    action();
+  }
+  function exportDraft() {
+    (document.activeElement as HTMLElement)?.blur();
+    const url = URL.createObjectURL(
+      new Blob([draftRef.current], { type: 'text/markdown;charset=utf-8' }),
+    );
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = path.split('/').at(-1) || 'draft.md';
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  async function chooseProject() {
+    const generation = ++projectGeneration.current;
+    refreshSequence.current++;
+    setError('');
+    setBusy(true);
+    try {
+      const nextStore = await ProjectStore.pick();
+      const next = await nextStore.refresh();
+      if (generation !== projectGeneration.current) return;
+      storeRef.current = nextStore;
+      setStore(nextStore);
+      setSnapshot(next);
+      setMode('read');
+      setView('documents');
+      activate(
+        next.index.documents.find((d) => d.kind === 'prd')?.path ??
+          next.index.documents[0]?.path ??
+          '',
+        next,
+      );
+      setCommentsOpen(false);
+      setCommentDirty(false);
+    } catch (e) {
+      if (generation !== projectGeneration.current) return;
+      if (e instanceof DOMException && e.name === 'AbortError')
+        setNotice('Folder selection was cancelled.');
+      else setError(errorText(e));
+    } finally {
+      if (generation === projectGeneration.current) setBusy(false);
+    }
+  }
+  const refresh = useCallback(async () => {
+    if (!store) return;
+    const generation = projectGeneration.current,
+      request = ++refreshSequence.current;
+    const next = await store.refresh();
+    if (
+      storeRef.current !== store ||
+      generation !== projectGeneration.current ||
+      request !== refreshSequence.current
+    )
+      return;
+    setSnapshot(next);
+    if (
+      path &&
+      pathRef.current === path &&
+      !visualDirtyRef.current &&
+      draftRef.current === base &&
+      next.files[path] !== undefined
+    ) {
+      setDraft(next.files[path]);
+      draftRef.current = next.files[path];
+      setBase(next.files[path]);
+      setRevision(next.revisions[path]);
+    }
+  }, [store, path, base]);
+  async function addDocumentationFolder() {
+    if (!store) return;
+    setError('');
+    setBusy(true);
+    try {
+      await store.addDocumentationFolder();
+      await refresh();
+      setNotice('Documentation folder added to the reading scope.');
+    } catch (e) {
+      if (!(e instanceof DOMException && e.name === 'AbortError')) setError(errorText(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function manualRefresh() {
+    setBusy(true);
+    setError('');
+    try {
+      await refresh();
+      setNotice('Files refreshed from the folder.');
+    } catch (e) {
+      setError(errorText(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function saveDocument() {
+    if (
+      !store ||
+      !path ||
+      saving ||
+      auxiliarySaving ||
+      mode !== 'edit' ||
+      gitBusy ||
+      integrationBusy ||
+      store.recoveryPending ||
+      conflicted
+    )
+      return;
+    const value = draftRef.current;
+    if (value === base) return;
+    setSaving(true);
+    setError('');
+    setNotice('');
+    try {
+      await store.save(path, value, revision);
+      const next = await store.refresh();
+      setSnapshot(next);
+      setBase(value);
+      setRevision(next.revisions[path]);
+      setNotice('Saved locally and verified.');
+      setSelection(null);
+    } catch (e) {
+      setError(errorText(e));
+      try {
+        setSnapshot(await store.refresh());
+      } catch {
+        /* Preserve the original write error and draft. */
+      }
+    } finally {
+      setSaving(false);
+    }
+  }
+  const saveRef = useRef(saveDocument);
+  saveRef.current = saveDocument;
+  useEffect(() => {
+    const handler = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 's') {
+        event.preventDefault();
+        (document.activeElement as HTMLElement)?.blur();
+        void saveRef.current();
+      }
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, []);
+  useEffect(() => {
+    const unload = (event: BeforeUnloadEvent) => {
+      if (dirty || commentDirty || saving || auxiliarySaving) {
+        event.preventDefault();
+        event.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', unload);
+    return () => window.removeEventListener('beforeunload', unload);
+  }, [dirty, commentDirty, saving, auxiliarySaving]);
+  useEffect(() => {
+    const focus = () => {
+      if (!saving && !auxiliarySaving) void refresh().catch((e) => setError(errorText(e)));
+    };
+    window.addEventListener('focus', focus);
+    return () => window.removeEventListener('focus', focus);
+  }, [refresh, saving, auxiliarySaving]);
+  function navigateDocument(nextPath: string, fragment?: string) {
+    guard(() => {
+      setView('documents');
+      setSelectedItem(null);
+      activate(nextPath);
+      setPendingFragment(fragment ?? null);
+    }, `open ${nextPath}`);
+  }
+  useEffect(() => {
+    if (!pendingFragment || format !== 'visual') return;
+    const frame = requestAnimationFrame(() => {
+      let fragment = pendingFragment;
+      try {
+        fragment = decodeURIComponent(fragment);
+      } catch {}
+      const target = document.getElementById(fragment);
+      if (target) target.scrollIntoView({ block: 'start' });
+      else setNotice(`Section “${fragment}” was not found in this document.`);
+      setPendingFragment(null);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [path, draft, format, pendingFragment]);
+  function navigateView(next: View) {
+    guard(() => {
+      setView(next);
+      setSelectedItem(null);
+    }, `open ${next}`);
+  }
+  function setEditorMode() {
+    guard(() => {
+      void (async () => {
+        if (!store) return;
+        setError('');
+        setModeChanging(true);
+        try {
+          const next = mode === 'read' ? 'edit' : 'read';
+          await store.setMode(next);
+          setMode(next);
+        } catch (e) {
+          setError(errorText(e));
+        } finally {
+          setModeChanging(false);
+        }
+      })();
+    }, 'change mode');
+  }
+  function jumpToLine(line: number) {
+    setFormat('visual');
+    setHighlightLine(line);
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        document
+          .querySelector(`[data-source-line="${line}"]`)
+          ?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      }),
+    );
+  }
+  const updateCommentDirty = useCallback((value: boolean) => setCommentDirty(value), []);
+  const brand = (
+    <div className={styles.brand}>
+      <span className={styles.mark} aria-hidden="true">
+        <i />
+        <i />
+        <i />
+        <i />
+      </span>
+      BMAD Project UI
+    </div>
+  );
+  return (
+    <div className={styles.app}>
+      <header className={styles.header}>
+        {brand}
+        <div className={styles.headerActions}>
+          <label className={styles.themePicker}>
+            <SunMoon size={16} aria-hidden="true" />
+            <span className="srOnly">Theme</span>
+            <select
+              aria-label="Theme"
+              value={theme}
+              onChange={(event) => setTheme(event.target.value as ThemePreference)}
+            >
+              <option value="system">System</option>
+              <option value="light">Light</option>
+              <option value="dark">Dark</option>
+            </select>
+          </label>
+          {store &&
+            (['git', 'jira', 'confluence'] as const).map((service) => (
+              <button
+                key={service}
+                className={styles.connection}
+                aria-pressed={view === service}
+                onClick={() => navigateView(service)}
+              >
+                Connect to {service === 'git' ? 'Git' : service === 'jira' ? 'Jira' : 'Confluence'}
+                <span>
+                  {service === 'git'
+                    ? gitStatus
+                    : service === 'jira'
+                      ? jiraStatus
+                      : confluenceStatus}
+                </span>
+              </button>
+            ))}
+        </div>
+      </header>
+      {store && snapshot && (
+        <>
+          <div className={styles.projectBar}>
+            <div className={styles.projectName}>
+              <FolderOpen size={16} />
+              {snapshot.name}
+              {snapshot.index.declaredVersion && (
+                <span className={styles.muted}>BMAD {snapshot.index.declaredVersion}</span>
+              )}
+            </div>
+            <div className={styles.actions}>
+              <button
+                role="switch"
+                aria-checked={mode === 'edit'}
+                aria-label="Edit mode"
+                className={styles.modeSwitch}
+                disabled={
+                  modeChanging || busy || saving || auxiliarySaving || gitBusy || integrationBusy
+                }
+                onClick={setEditorMode}
+              >
+                <span className={styles.switchTrack}>
+                  <span />
+                </span>
+                {mode === 'edit' ? <Pencil size={14} /> : <Eye size={14} />}
+                <span>
+                  {modeChanging ? 'Requesting permission…' : mode === 'edit' ? 'Edit' : 'Read'}
+                </span>
+              </button>
+              <button
+                className="iconButton"
+                title="Refresh files"
+                aria-label="Refresh files"
+                disabled={busy || saving || auxiliarySaving || gitBusy || integrationBusy}
+                onClick={() => void manualRefresh()}
+              >
+                <RefreshCw size={15} />
+              </button>
+              <button
+                disabled={busy || saving || auxiliarySaving || gitBusy || integrationBusy}
+                onClick={() => guard(() => void chooseProject(), 'switch project')}
+              >
+                Change folder
+              </button>
+            </div>
           </div>
-        </>}
-      </main></div>}
-      {view==='stories'&&<main><StoryBoard index={snapshot.index} onOpen={item=>setSelectedItem(item)}/></main>}
-      {view==='epics'&&<main className={styles.content}><div className={styles.contentTitle}><div><h1>Épicas</h1><p className={styles.muted}>Relaciones y contenido extraídos de los documentos.</p></div></div><div className={styles.list}>{projected.filter(i=>i.kind==='epic').map(item=><section key={item.id} className={styles.listItem}><h2>{item.nativeId??item.id} · {item.title}</h2>{item.status&&<span className={styles.badge} data-status={item.status.valid?item.status.raw:'unknown'}>{statusLabel(item.status.raw)}</span>}<p>{item.description}</p><p className={styles.muted}>{projected.filter(i=>i.kind==='story'&&(i.epicId===item.id||i.epicId===item.nativeId)).length} historias relacionadas</p><button onClick={()=>setSelectedItem(item)}>Abrir épica</button></section>)}</div>{!snapshot.index.workItems.some(i=>i.kind==='epic')&&<p>No hay épicas reconocidas. Puedes seguir leyendo los archivos originales.</p>}</main>}
-      {view==='sprint'&&<main className={styles.content}><div className={styles.contentTitle}><div><h1>Sprint y seguimiento</h1><p className={styles.muted}>Cada estado conserva su archivo y su ámbito.</p></div></div><div className={styles.list}>{snapshot.index.workItems.filter(i=>i.status?.role==='sprint'||i.relatedStatuses.some(s=>s.role==='sprint')).map(item=><section key={item.id} className={styles.listItem}><div className={styles.contentTitle}><h2>{item.nativeId??item.id} · {item.title}</h2><button onClick={()=>setSelectedItem(item)}>Ver detalle</button></div>{[item.status,...item.relatedStatuses].filter(s=>s?.role==='sprint').map((status,i)=>status&&<div key={i}><span className={styles.badge} data-status={status.valid?status.raw:'unknown'}>{status.raw}</span><p><button className="link" onClick={()=>navigateDocument(status.source.path)}>{status.source.path}</button></p></div>)}</section>)}</div>{!snapshot.index.workItems.some(i=>i.status?.role==='sprint')&&<p>No se ha encontrado seguimiento de sprint compatible.</p>}</main>}
-      {view==='catalog'&&<main className={styles.content}><div className={styles.contentTitle}><div><h1>Agentes y skills</h1><p className={styles.muted}>Catálogo instalado. Consultar una definición no ejecuta su contenido.</p></div><input aria-label="Buscar en catálogo" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar por nombre o módulo…"/></div><h2>Agentes</h2><div className={styles.catalogGrid}>{snapshot.index.agents.filter(a=>`${a.name} ${a.code} ${a.module}`.toLowerCase().includes(search.toLowerCase())).map(a=><article className={styles.listItem} key={a.id}><h3>{a.name}</h3><p className={styles.muted}>{a.code} · {a.module??'Módulo no declarado'}{a.customized?' · Personalizado':''}</p><p>{a.title??a.description}</p><button onClick={()=>navigateDocument(a.source)}>Ver definición</button></article>)}</div>{!snapshot.index.agents.length&&<p className={styles.muted}>No hay un manifiesto de agentes reconocido.</p>}<h2>Skills y workflows</h2><div className={styles.catalogGrid}>{snapshot.index.skills.filter(a=>`${a.name} ${a.code} ${a.module}`.toLowerCase().includes(search.toLowerCase())).map(a=><article className={styles.listItem} key={a.id}><h3>{a.name}</h3><p className={styles.muted}>{a.module} {a.phase&&`· ${a.phase}`}</p><p>{a.description}</p><button onClick={()=>navigateDocument(a.source)}>Ver origen</button></article>)}</div>{!snapshot.index.skills.length&&<p className={styles.muted}>No hay skills reconocidas en el ámbito leído.</p>}</main>}
-      {view==='diagnostics'&&<main className={styles.content}><div className={styles.contentTitle}><div><h1>Diagnóstico del proyecto</h1><p className={styles.muted}>Perfil {snapshot.index.compatibility==='unknown'?'no reconocido':snapshot.index.compatibility}; cobertura {snapshot.index.coverage.partial?'parcial':'del ámbito configurado'}.</p></div><button disabled={busy} onClick={()=>void manualRefresh()}><RefreshCw size={15}/>Releer</button></div><div className={styles.statGrid}><div className={styles.stat}><strong>{snapshot.index.documents.length}</strong><span>Documentos</span></div><div className={styles.stat}><strong>{snapshot.index.workItems.length}</strong><span>Elementos de trabajo</span></div><div className={styles.stat}><strong>{snapshot.index.agents.length}</strong><span>Agentes declarados</span></div><div className={styles.stat}><strong>{diagnostics.length}</strong><span>Avisos</span></div></div><div className={styles.contentTitle}><h2>Raíces documentales</h2><button disabled={busy} onClick={()=>void addDocumentationFolder()}><FolderOpen size={15}/>Añadir carpeta documental</button></div><div className={styles.list}>{snapshot.index.roots.map((root,i)=><section key={i} className={styles.listItem}><strong>{root.path||'Raíz del proyecto'}</strong><p className={styles.muted}>{root.role} · {root.exists?'Disponible':'No encontrada'}</p><code>{root.source}</code></section>)}</div><h2>Comprobaciones</h2>{diagnostics.length?<div className={styles.list}>{diagnostics.map((d,i)=><section className={styles.listItem} key={i}><strong>{d.code}</strong><p>{d.message}</p>{d.path&&<button className="link" onClick={()=>navigateDocument(d.path!)}>{d.path}</button>}</section>)}</div>:<p><CircleCheck size={16}/> No hay avisos en los archivos leídos.</p>}</main>}
-      <GitPanel store={store} hidden={view!=='git'} context={{drafts:Number(dirty)+Number(commentDirty),saving:saving||auxiliarySaving,recoveryPending:store.recoveryPending||stale}} onStatus={setGitStatus} onBusy={setGitBusy} onRefresh={refresh}/>
-      <AtlassianPanel provider="jira" store={store} snapshot={snapshot} activePath={path} hidden={view!=='jira'} dirty={dirty||commentDirty} saving={saving||auxiliarySaving||gitBusy} onStatus={setJiraStatus} onBusy={setIntegrationBusy} onRefresh={refresh}/>
-      <AtlassianPanel provider="confluence" store={store} snapshot={snapshot} activePath={path} hidden={view!=='confluence'} dirty={dirty||commentDirty} saving={saving||auxiliarySaving||gitBusy} onStatus={setConfluenceStatus} onBusy={setIntegrationBusy} onRefresh={refresh}/>
-      {selectedItem&&<StoryDialog item={snapshot.index.workItems.find(i=>i.id===selectedItem.id)??selectedItem} snapshot={snapshot} store={store} onClose={()=>setSelectedItem(null)} onNavigate={navigateDocument} onRefresh={refresh} onBusy={setAuxiliarySaving}/>}
-    </>}
-    {recoveryReview&&store&&<RecoveryDialog store={store} status={recoveryReview} onClose={()=>setRecoveryReview(null)} onBusy={setSaving} onRecovered={async()=>{setRecoveryReview(null);await refresh();setNotice('Estado de los archivos comprobado. Puedes continuar los cambios pendientes.');}}/>}
-    {showDiff&&<Dialog title={stale?'Cambio externo y borrador':'Cambios del documento'} onClose={()=>setShowDiff(false)} wide><p className={styles.filePath}>{path}</p><div className={styles.diff}><section><h3>{stale?'Archivo actual en disco':'Versión guardada'}</h3><pre>{stale?snapshot?.files[path]??'Archivo no disponible':base}</pre></section><section><h3>Tu borrador</h3><pre>{draft}</pre></section></div><div className={styles.dialogFooter}><button onClick={()=>setShowDiff(false)}>Volver al documento</button>{!stale&&!conflicted&&mode==='edit'&&<button className="primary" disabled={saving||!dirty} onClick={()=>{setShowDiff(false);void saveDocument();}}>Guardar</button>}</div></Dialog>}
-    {pending&&<Dialog title="Hay cambios sin guardar" onClose={()=>setPending(null)}><p>Antes de {pending.description}, decide qué hacer con los borradores de <strong>{path||'este proyecto'}</strong>.</p><p className={styles.muted}>Los cambios guardados en los archivos se conservarán.</p><div className={styles.dialogFooter}><button autoFocus onClick={()=>setPending(null)}>Seguir aquí</button><button onClick={()=>{const action=pending.action;setPending(null);setCommentDirty(false);setCommentReset(v=>v+1);onVisualDraft(false);setDraft(base);draftRef.current=base;action();}}>Descartar borradores y continuar</button></div></Dialog>}
-  </div>;
+          <nav className={styles.tabs} aria-label="Project views">
+            {navItems.map(([id, label]) => (
+              <button
+                key={id}
+                className={view === id ? 'active' : ''}
+                aria-current={view === id ? 'page' : undefined}
+                onClick={() => navigateView(id)}
+              >
+                {label}
+                {id === 'diagnostics' && diagnostics.length > 0 ? ` (${diagnostics.length})` : ''}
+              </button>
+            ))}
+          </nav>
+        </>
+      )}
+      {error && (
+        <div role="alert" className={`${styles.banner} ${styles.bannerError}`}>
+          <strong>The action could not be completed.</strong>
+          <p>{error}</p>
+          {dirty && (
+            <button
+              onClick={() =>
+                void navigator.clipboard
+                  .writeText(draftRef.current)
+                  .then(() => setNotice('Draft copied.'))
+                  .catch((e) => setError(errorText(e)))
+              }
+            >
+              Copy draft
+            </button>
+          )}
+          <button onClick={() => setError('')}>Dismiss notice</button>
+        </div>
+      )}
+      {notice && (
+        <p role="status" className={`${styles.banner} ${styles.bannerSuccess}`}>
+          {notice}
+        </p>
+      )}
+      {store?.recoveryPending && (
+        <div role="alert" className={styles.banner}>
+          <strong>A save needs verification.</strong>
+          <p>New writes and Git operations are blocked until the files have been reviewed.</p>
+          <button
+            onClick={() =>
+              void store
+                .recoveryStatus()
+                .then(setRecoveryReview)
+                .catch((e) => setError(errorText(e)))
+            }
+          >
+            Review recovery
+          </button>
+        </div>
+      )}
+      {busy && (
+        <p role="status" className={`${styles.banner} ${styles.bannerInfo}`}>
+          Reading project files…
+        </p>
+      )}
+      {!store || !snapshot ? (
+        <main className={styles.welcome}>
+          <p className={styles.eyebrow}>Your project, from its files</p>
+          <h1>
+            Your BMAD context,
+            <br />
+            in one place.
+          </h1>
+          <p>
+            Open your project folder to explore documents, epics and stories. Start in read mode,
+            then enable editing to work on the original files.
+          </p>
+          <button className="primary" disabled={busy} onClick={() => void chooseProject()}>
+            <FolderOpen size={18} />
+            Choose project folder
+          </button>
+          <p className={styles.muted}>
+            Desktop Chrome or Edge. Your documents stay on your computer.
+          </p>
+          <div className={styles.welcomeFeatures}>
+            <section>
+              <BookOpen size={22} />
+              <h2>Connected documents</h2>
+              <p>A complete file tree, Markdown and links between documents.</p>
+            </section>
+            <section>
+              <ListChecks size={22} />
+              <h2>Work with context</h2>
+              <p>Stories, states and provenance without duplicating your plans.</p>
+            </section>
+            <section>
+              <MessageSquare size={22} />
+              <h2>Discussions beside the text</h2>
+              <p>Edit and comment; save your changes before sharing them with Git.</p>
+            </section>
+          </div>
+        </main>
+      ) : (
+        <>
+          {view === 'documents' && (
+            <div className={styles.shell}>
+              <FileTree
+                paths={snapshot.index.documents.map((d) => d.path)}
+                selected={path}
+                onSelect={navigateDocument}
+              />
+              <main className={styles.main}>
+                {!path ? (
+                  <div className={styles.empty}>
+                    <FolderOpen size={30} />
+                    <h1>Choose a document</h1>
+                    <p>
+                      {snapshot.index.documents.length
+                        ? 'Open a file from the tree to get started.'
+                        : 'No supported documents were found in this folder. Check diagnostics to review the scope.'}
+                    </p>
+                    <button onClick={() => navigateView('diagnostics')}>View diagnostics</button>
+                  </div>
+                ) : snapshot.files[path] === undefined ? (
+                  <div className={styles.empty}>
+                    <FileQuestion size={30} />
+                    <h1>{unavailable ? 'Could not read the file' : 'File not found'}</h1>
+                    <code>{path}</code>
+                    <p>
+                      {unavailable
+                        ? unavailable.message
+                        : 'The file may have moved or become unavailable. The rest of the project is still accessible.'}
+                    </p>
+                    <button onClick={() => void manualRefresh()}>Check again</button>
+                  </div>
+                ) : (
+                  <>
+                    <div className={styles.fileHeader}>
+                      <p className={styles.filePath}>{path}</p>
+                      <div className={styles.fileToolbar}>
+                        <span className={styles.saveState} role="status">
+                          {saving ? 'Saving…' : dirty ? 'Unsaved changes' : 'No changes'}
+                        </span>
+                        <div className={styles.actions}>
+                          <button
+                            disabled={conflicted}
+                            aria-pressed={format === 'source' || conflicted}
+                            onClick={() => {
+                              (document.activeElement as HTMLElement)?.blur();
+                              setFormat(format === 'visual' ? 'source' : 'visual');
+                            }}
+                          >
+                            {format === 'visual' ? 'Markdown' : 'Visual view'}
+                          </button>
+                          {mode === 'edit' && (
+                            <>
+                              <button disabled={!dirty} onClick={() => setShowDiff(true)}>
+                                Review changes
+                              </button>
+                              <button
+                                className="primary"
+                                disabled={
+                                  !dirty ||
+                                  saving ||
+                                  auxiliarySaving ||
+                                  stale ||
+                                  gitBusy ||
+                                  integrationBusy ||
+                                  store.recoveryPending ||
+                                  conflicted
+                                }
+                                onClick={() => void saveDocument()}
+                              >
+                                Save
+                              </button>
+                            </>
+                          )}
+                          <button
+                            aria-pressed={commentsOpen}
+                            onClick={() => setCommentsOpen(!commentsOpen)}
+                          >
+                            <MessageSquare size={14} />
+                            Comments
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                    {dirty && (
+                      <div className={`${styles.banner} ${styles.bannerInfo}`}>
+                        <p>
+                          This draft only lives in this tab. Save the file or download a copy before
+                          closing or reloading.
+                        </p>
+                        <button onClick={exportDraft}>Export draft</button>
+                      </div>
+                    )}
+                    {conflicted && (
+                      <div className={styles.banner} role="alert">
+                        This file contains conflict markers. Resolve them with Git or your editor,
+                        then refresh the files. The source remains read-only and is not interpreted.
+                      </div>
+                    )}
+                    {selectedDoc?.derived && mode === 'edit' && (
+                      <div className={styles.banner}>
+                        This document is derived. BMAD may regenerate it and overwrite manual
+                        changes.
+                      </div>
+                    )}
+                    {stale && (
+                      <div className={styles.banner} role="alert">
+                        <strong>The file changed outside this view.</strong>
+                        <p>
+                          Your draft is preserved. Compare both versions before continuing; the
+                          current file will not be overwritten.
+                        </p>
+                        <button onClick={() => setShowDiff(true)}>Compare versions</button>
+                        <button
+                          onClick={() => guard(() => activate(path), 'reload the current file')}
+                        >
+                          Reload current file
+                        </button>
+                        <button
+                          onClick={() =>
+                            void navigator.clipboard
+                              .writeText(draftRef.current)
+                              .then(() => setNotice('Draft copied.'))
+                              .catch((e) => setError(errorText(e)))
+                          }
+                        >
+                          Copy draft
+                        </button>
+                      </div>
+                    )}
+                    <div
+                      className={`${styles.readerShell} ${commentsOpen ? styles.withComments : ''}`}
+                    >
+                      <section className={styles.reading}>
+                        {selection && mode === 'edit' && !commentsOpen && (
+                          <div className={styles.selection}>
+                            <p>{selection.quote}</p>
+                            <button onClick={() => setCommentsOpen(true)}>
+                              Comment on selection
+                            </button>
+                          </div>
+                        )}
+                        {format === 'source' || conflicted ? (
+                          <Suspense fallback={<p role="status">Opening Markdown editor…</p>}>
+                            <SourceEditor
+                              value={draft}
+                              readOnly={mode === 'read' || conflicted}
+                              onChange={changeDraft}
+                              onSelect={setSelection}
+                              onSave={() => void saveDocument()}
+                            />
+                          </Suspense>
+                        ) : (
+                          <DocumentReader
+                            store={store}
+                            resourceVersion={snapshot}
+                            source={draft}
+                            path={path}
+                            editable={mode === 'edit' && !conflicted}
+                            onChange={changeDraft}
+                            onNavigate={navigateDocument}
+                            onSelect={setSelection}
+                            highlightLine={highlightLine}
+                            onDraftChange={onVisualDraft}
+                          />
+                        )}
+                      </section>
+                      <CommentsPanel
+                        store={store}
+                        snapshot={snapshot}
+                        path={path}
+                        source={draft}
+                        selection={selection}
+                        documentDirty={dirty}
+                        hidden={!commentsOpen}
+                        onClose={() => setCommentsOpen(false)}
+                        onRefresh={refresh}
+                        onDirty={updateCommentDirty}
+                        onJump={jumpToLine}
+                        onBusy={setAuxiliarySaving}
+                        resetVersion={commentReset}
+                      />
+                    </div>
+                  </>
+                )}
+              </main>
+            </div>
+          )}
+          {view === 'stories' && (
+            <main>
+              <StoryBoard
+                snapshot={snapshot}
+                store={store}
+                onOpen={(item) => setSelectedItem(item)}
+                onRefresh={refresh}
+                onBusy={setAuxiliarySaving}
+                blocked={busy || saving || gitBusy || integrationBusy}
+              />
+            </main>
+          )}
+          {view === 'epics' && (
+            <main className={styles.content}>
+              <div className={styles.contentTitle}>
+                <div>
+                  <h1>Epics</h1>
+                  <p className={styles.muted}>
+                    Relationships and content read from the project documents.
+                  </p>
+                </div>
+              </div>
+              <div className={styles.list}>
+                {projected
+                  .filter((i) => i.kind === 'epic')
+                  .map((item) => (
+                    <section key={item.id} className={styles.listItem}>
+                      <h2>
+                        {item.nativeId ?? item.id} · {item.title}
+                      </h2>
+                      {item.status && (
+                        <span
+                          className={styles.badge}
+                          data-status={item.status.valid ? item.status.raw : 'unknown'}
+                        >
+                          {statusLabel(item.status.raw)}
+                        </span>
+                      )}
+                      <p>{item.description}</p>
+                      <p className={styles.muted}>
+                        {
+                          projected.filter(
+                            (i) =>
+                              i.kind === 'story' &&
+                              (i.epicId === item.id || i.epicId === item.nativeId),
+                          ).length
+                        }{' '}
+                        related stories
+                      </p>
+                      <button onClick={() => setSelectedItem(item)}>Open epic</button>
+                    </section>
+                  ))}
+              </div>
+              {!snapshot.index.workItems.some((i) => i.kind === 'epic') && (
+                <p>No recognized epics. You can still read the original files.</p>
+              )}
+            </main>
+          )}
+          {view === 'sprint' && (
+            <main>
+              <StoryBoard
+                key="sprint"
+                scope="sprint"
+                snapshot={snapshot}
+                store={store}
+                onOpen={(item) => setSelectedItem(item)}
+                onRefresh={refresh}
+                onBusy={setAuxiliarySaving}
+                blocked={busy || saving || gitBusy || integrationBusy}
+              />
+            </main>
+          )}
+          {view === 'catalog' && (
+            <main className={styles.content}>
+              <div className={styles.contentTitle}>
+                <div>
+                  <h1>Agents and skills</h1>
+                  <p className={styles.muted}>
+                    Installed catalog. Viewing a definition does not execute it.
+                  </p>
+                </div>
+                <input
+                  aria-label="Search catalog"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search by name or module…"
+                />
+              </div>
+              <h2>Agents</h2>
+              <div className={styles.catalogGrid}>
+                {snapshot.index.agents
+                  .filter((a) =>
+                    `${a.name} ${a.code} ${a.module}`.toLowerCase().includes(search.toLowerCase()),
+                  )
+                  .map((a) => (
+                    <article className={styles.listItem} key={a.id}>
+                      <h3>{a.name}</h3>
+                      <p className={styles.muted}>
+                        {a.code} · {a.module ?? 'No declared module'}
+                        {a.customized ? ' · Customized' : ''}
+                      </p>
+                      <p>{a.title ?? a.description}</p>
+                      <button onClick={() => navigateDocument(a.source)}>View definition</button>
+                    </article>
+                  ))}
+              </div>
+              {!snapshot.index.agents.length && (
+                <p className={styles.muted}>No recognized agent manifest.</p>
+              )}
+              <h2>Skills and workflows</h2>
+              <div className={styles.catalogGrid}>
+                {snapshot.index.skills
+                  .filter((a) =>
+                    `${a.name} ${a.code} ${a.module}`.toLowerCase().includes(search.toLowerCase()),
+                  )
+                  .map((a) => (
+                    <article className={styles.listItem} key={a.id}>
+                      <h3>{a.name}</h3>
+                      <p className={styles.muted}>
+                        {a.module} {a.phase && `· ${a.phase}`}
+                      </p>
+                      <p>{a.description}</p>
+                      <button onClick={() => navigateDocument(a.source)}>View source</button>
+                    </article>
+                  ))}
+              </div>
+              {!snapshot.index.skills.length && (
+                <p className={styles.muted}>No recognized skills in the reading scope.</p>
+              )}
+            </main>
+          )}
+          {view === 'diagnostics' && (
+            <main className={styles.content}>
+              <div className={styles.contentTitle}>
+                <div>
+                  <h1>Project diagnostics</h1>
+                  <p className={styles.muted}>
+                    Profile{' '}
+                    {snapshot.index.compatibility === 'unknown'
+                      ? 'unrecognized'
+                      : snapshot.index.compatibility}
+                    ; coverage {snapshot.index.coverage.partial ? 'partial' : 'configured scope'}.
+                  </p>
+                </div>
+                <button disabled={busy} onClick={() => void manualRefresh()}>
+                  <RefreshCw size={15} />
+                  Refresh
+                </button>
+              </div>
+              <div className={styles.statGrid}>
+                <div className={styles.stat}>
+                  <strong>{snapshot.index.documents.length}</strong>
+                  <span>Documents</span>
+                </div>
+                <div className={styles.stat}>
+                  <strong>{snapshot.index.workItems.length}</strong>
+                  <span>Work items</span>
+                </div>
+                <div className={styles.stat}>
+                  <strong>{snapshot.index.agents.length}</strong>
+                  <span>Declared agents</span>
+                </div>
+                <div className={styles.stat}>
+                  <strong>{diagnostics.length}</strong>
+                  <span>Notices</span>
+                </div>
+              </div>
+              <div className={styles.contentTitle}>
+                <h2>Document roots</h2>
+                <button disabled={busy} onClick={() => void addDocumentationFolder()}>
+                  <FolderOpen size={15} />
+                  Add documentation folder
+                </button>
+              </div>
+              <div className={styles.list}>
+                {snapshot.index.roots.map((root, i) => (
+                  <section key={i} className={styles.listItem}>
+                    <strong>{root.path || 'Project root'}</strong>
+                    <p className={styles.muted}>
+                      {root.role} · {root.exists ? 'Available' : 'Not found'}
+                    </p>
+                    <code>{root.source}</code>
+                  </section>
+                ))}
+              </div>
+              <h2>Checks</h2>
+              {diagnostics.length ? (
+                <div className={styles.list}>
+                  {diagnostics.map((d, i) => (
+                    <section className={styles.listItem} key={i}>
+                      <strong>{d.code}</strong>
+                      <p>{d.message}</p>
+                      {d.path && (
+                        <button className="link" onClick={() => navigateDocument(d.path!)}>
+                          {d.path}
+                        </button>
+                      )}
+                    </section>
+                  ))}
+                </div>
+              ) : (
+                <p>
+                  <CircleCheck size={16} /> No notices in the files read.
+                </p>
+              )}
+            </main>
+          )}
+          <GitPanel
+            store={store}
+            hidden={view !== 'git'}
+            context={{
+              drafts: Number(dirty) + Number(commentDirty),
+              saving: saving || auxiliarySaving,
+              recoveryPending: store.recoveryPending || stale,
+            }}
+            onStatus={setGitStatus}
+            onBusy={setGitBusy}
+            onRefresh={refresh}
+          />
+          <AtlassianPanel
+            provider="jira"
+            store={store}
+            snapshot={snapshot}
+            activePath={path}
+            hidden={view !== 'jira'}
+            dirty={dirty || commentDirty}
+            saving={saving || auxiliarySaving || gitBusy}
+            onStatus={setJiraStatus}
+            onBusy={setIntegrationBusy}
+            onRefresh={refresh}
+          />
+          <AtlassianPanel
+            provider="confluence"
+            store={store}
+            snapshot={snapshot}
+            activePath={path}
+            hidden={view !== 'confluence'}
+            dirty={dirty || commentDirty}
+            saving={saving || auxiliarySaving || gitBusy}
+            onStatus={setConfluenceStatus}
+            onBusy={setIntegrationBusy}
+            onRefresh={refresh}
+          />
+          {selectedItem && (
+            <StoryDialog
+              key={selectedItem.id}
+              onOpenItem={setSelectedItem}
+              item={snapshot.index.workItems.find((i) => i.id === selectedItem.id) ?? selectedItem}
+              snapshot={snapshot}
+              store={store}
+              onClose={() => setSelectedItem(null)}
+              onNavigate={navigateDocument}
+              onRefresh={refresh}
+              onBusy={setAuxiliarySaving}
+            />
+          )}
+        </>
+      )}
+      {recoveryReview && store && (
+        <RecoveryDialog
+          store={store}
+          status={recoveryReview}
+          onClose={() => setRecoveryReview(null)}
+          onBusy={setSaving}
+          onRecovered={async () => {
+            setRecoveryReview(null);
+            await refresh();
+            setNotice('File state verified. You can continue your pending changes.');
+          }}
+        />
+      )}
+      {showDiff && (
+        <Dialog
+          title={stale ? 'External change and draft' : 'Document changes'}
+          onClose={() => setShowDiff(false)}
+          wide
+        >
+          <p className={styles.filePath}>{path}</p>
+          <div className={styles.diff}>
+            <section>
+              <h3>{stale ? 'Current file on disk' : 'Saved version'}</h3>
+              <pre>{stale ? (snapshot?.files[path] ?? 'File unavailable') : base}</pre>
+            </section>
+            <section>
+              <h3>Your draft</h3>
+              <pre>{draft}</pre>
+            </section>
+          </div>
+          <div className={styles.dialogFooter}>
+            <button onClick={() => setShowDiff(false)}>Back to document</button>
+            {!stale && !conflicted && mode === 'edit' && (
+              <button
+                className="primary"
+                disabled={saving || !dirty}
+                onClick={() => {
+                  setShowDiff(false);
+                  void saveDocument();
+                }}
+              >
+                Save
+              </button>
+            )}
+          </div>
+        </Dialog>
+      )}
+      {pending && (
+        <Dialog title="Unsaved changes" onClose={() => setPending(null)}>
+          <p>
+            Before you {pending.description}, decide what to do with drafts in{' '}
+            <strong>{path || 'this project'}</strong>.
+          </p>
+          <p className={styles.muted}>Changes already saved to files will be preserved.</p>
+          <div className={styles.dialogFooter}>
+            <button autoFocus onClick={() => setPending(null)}>
+              Stay here
+            </button>
+            <button
+              onClick={() => {
+                const action = pending.action;
+                setPending(null);
+                setCommentDirty(false);
+                setCommentReset((v) => v + 1);
+                onVisualDraft(false);
+                setDraft(base);
+                draftRef.current = base;
+                action();
+              }}
+            >
+              Discard drafts and continue
+            </button>
+          </div>
+        </Dialog>
+      )}
+    </div>
+  );
 }

@@ -7,12 +7,12 @@ The web app reads and saves project documents with browser directory permissions
 Use Node 24 and the Git already installed on the computer for development:
 
 ```sh
-npm run connector:git -- --repo /absolute/project/root --origin http://localhost:5173 --token-file /private/directory/bmad-git-capability
+npm run connector:git -- --repo /absolute/project/root --origin http://127.0.0.1:5173 --token-file /private/directory/bmad-git-capability
 ```
 
 The token file's parent directory must already exist and must be outside the repository. The connector creates the file privately if absent, or reads an existing private regular file. It never prints the capability. Default address is `127.0.0.1:43120`; `--port` can select another unprivileged port. The exact web origin must match, including scheme and port. Runtime-included distribution uses the same arguments and native Git configuration.
 
-Enter the local capability in the web connection panel. It grants the connector session; it is not a GitHub token. Keep it out of repositories, URLs, screenshots and logs. Native Git uses the launch environment's SSH agent and installed credential helpers. A graphical launcher may need different environment setup from a terminal. The connector does not change global Git configuration, install helpers or weaken ownership checks.
+Load the local capability file in the web connection panel. It grants the connector session; it is not a GitHub token. Keep it out of repositories, URLs, screenshots and logs. Native Git uses the launch environment's SSH agent and installed credential helpers. A graphical launcher may need different environment setup from a terminal. The connector does not change global Git configuration, install helpers or weaken ownership checks.
 
 Before mutations, explicitly choose whether to trust this repository's Git hooks, filters, signing programs and credential helpers. A read permission does not establish that trust. Native status is limited when an untrusted repository configures executable content filters; browser document reading remains available. Submodule inspection is not recursive. Hooks can have their own effects; the connector verifies the intended Git result and warns when Git reported an error despite observing that result.
 
@@ -30,23 +30,23 @@ No marker is written in read mode. The web app can remain fully usable without G
 
 All requests except health require an exact authorized `Origin` and `Authorization: Bearer <local capability>`. Repository, plan and operation routes also require `X-BMAD-Binding`. POST bodies are JSON, limited to 64 KiB. Errors are `{ "error": { "code": "...", "message": "..." } }`; raw native command errors and credentials are not returned.
 
-| Method and path | Body or response |
-| --- | --- |
-| `GET /v1/health` | Product identity, protocol `1` and application version. Health alone does not prove a bound project or working Git. |
-| `POST /v1/session` | `{trustRepository: boolean}` → protocol, trust, expiry and binding requirement. |
-| `DELETE /v1/session` | Revoke the current session. |
-| `POST /v1/bindings/challenge` | `{}` → `{id,path,content,expiresAt}`. |
-| `POST /v1/bindings/verify` | `{id}` → `{bindingId,rootName,removePath}`. |
-| `GET /v1/repository` | Branch, HEAD, changed/staged/conflicted paths, native operation markers, sanitized remote destinations and trust. |
-| `GET /v1/branches` | Existing local branches, current flag and whether a branch belongs to another worktree. |
-| `POST /v1/plans/commit` | Context plus `{paths,message}` → explicit reviewed diffs and expiring plan ID. |
-| `POST /v1/plans/branch` | Context plus `{branch}` → existing clean-branch plan. |
-| `POST /v1/plans/push` | Context plus `{remote,branch}` → exact destination and every outgoing commit/file diff. |
-| `POST /v1/operations` | Context plus `{planId}` → recorded operation. Reusing the plan ID returns its existing operation. |
-| `GET /v1/operations` | Up to 20 public records, unresolved first, newest first, with `hasMore`. Call on every reconnect/reload to discover recovery work. |
-| `GET /v1/operations/by-plan/:planId` | Recover the operation ID when the initial POST response was lost; 404 if no operation was recorded. |
-| `GET /v1/operations/:id` | Recorded status and verification evidence. |
-| `POST /v1/operations/:id/reconcile` | `{}` → reread native/remote state without replaying the mutation. |
+| Method and path                      | Body or response                                                                                                                   |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /v1/health`                     | Product identity, protocol `1` and application version. Health alone does not prove a bound project or working Git.                |
+| `POST /v1/session`                   | `{trustRepository: boolean}` → protocol, trust, expiry and binding requirement.                                                    |
+| `DELETE /v1/session`                 | Revoke the current session.                                                                                                        |
+| `POST /v1/bindings/challenge`        | `{}` → `{id,path,content,expiresAt}`.                                                                                              |
+| `POST /v1/bindings/verify`           | `{id}` → `{bindingId,rootName,removePath}`.                                                                                        |
+| `GET /v1/repository`                 | Branch, HEAD, changed/staged/conflicted paths, native operation markers, sanitized remote destinations and trust.                  |
+| `GET /v1/branches`                   | Existing local branches, current flag and whether a branch belongs to another worktree.                                            |
+| `POST /v1/plans/commit`              | Context plus `{paths,message}` → explicit reviewed diffs and expiring plan ID.                                                     |
+| `POST /v1/plans/branch`              | Context plus `{branch}` → existing clean-branch plan.                                                                              |
+| `POST /v1/plans/push`                | Context plus `{remote,branch}` → exact destination and every outgoing commit/file diff.                                            |
+| `POST /v1/operations`                | Context plus `{planId}` → recorded operation. Reusing the plan ID returns its existing operation.                                  |
+| `GET /v1/operations`                 | Up to 20 public records, unresolved first, newest first, with `hasMore`. Call on every reconnect/reload to discover recovery work. |
+| `GET /v1/operations/by-plan/:planId` | Recover the operation ID when the initial POST response was lost; 404 if no operation was recorded.                                |
+| `GET /v1/operations/:id`             | Recorded status and verification evidence.                                                                                         |
+| `POST /v1/operations/:id/reconcile`  | `{}` → reread native/remote state without replaying the mutation.                                                                  |
 
 Context is `{drafts: number, saving: boolean, recoveryPending: boolean}` and must reflect the current browser state at both review and execution. Branch/commit require no pending drafts; push publishes reviewed commits and may leave drafts or saved changes local. Any save in progress or partial-save recovery blocks mutations. The frontend must also disable its own saves while an operation that can alter project files is running. The service cannot inspect in-memory browser drafts.
 

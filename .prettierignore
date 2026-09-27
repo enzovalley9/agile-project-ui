@@ -1,0 +1,11 @@
+node_modules/
+dist/
+coverage/
+playwright-report/
+test-results/
+# Original byte-preservation and multilingual test inputs must not be reformatted.
+tests/fixtures/
+package-lock.json
+THIRD_PARTY_NOTICES.md
+LICENSE
+LICENSES/

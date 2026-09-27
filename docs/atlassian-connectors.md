@@ -4,12 +4,12 @@ The application connects to Jira and Confluence through two independent local pr
 
 ## Supported profiles and current limits
 
-| Profile | Available | Remote writes |
-| --- | --- | --- |
-| Jira Cloud REST v3 | Account identity, projects, bounded issue search, immutable issue IDs, summary, ADF description, current status, transitions, changelog, comparison, import proposal and export | Blocked: this adapter has no verified atomic update precondition. An `updated` timestamp plus a preflight GET does not close the subsequent race. |
-| Confluence Cloud REST v2, v1 current-user identity | Account identity, spaces, bounded exact-title page search, immutable page IDs, ADF body, page version, version history, comparison, import proposal and export | Blocked: current-page version checks do not prove that an unpublished draft is preserved. |
-| Jira Data Center REST v2 read profile | Identity, projects, issue search, title/status read and comparison. Wiki body remains opaque. | Blocked. No server-version compatibility certification or body conversion. |
-| Confluence Data Center REST v1 read profile | Identity, spaces, exact-title page search, title read and comparison. Storage body remains opaque. | Blocked. No server-version compatibility certification or body conversion. |
+| Profile                                            | Available                                                                                                                                                                       | Remote writes                                                                                                                                     |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Jira Cloud REST v3                                 | Account identity, projects, bounded issue search, immutable issue IDs, summary, ADF description, current status, transitions, changelog, comparison, import proposal and export | Blocked: this adapter has no verified atomic update precondition. An `updated` timestamp plus a preflight GET does not close the subsequent race. |
+| Confluence Cloud REST v2, v1 current-user identity | Account identity, spaces, bounded exact-title page search, immutable page IDs, ADF body, page version, version history, comparison, import proposal and export                  | Blocked: current-page version checks do not prove that an unpublished draft is preserved.                                                         |
+| Jira Data Center REST v2 read profile              | Identity, projects, issue search, title/status read and comparison. Wiki body remains opaque.                                                                                   | Blocked. No server-version compatibility certification or body conversion.                                                                        |
+| Confluence Data Center REST v1 read profile        | Identity, spaces, exact-title page search, title read and comparison. Storage body remains opaque.                                                                              | Blocked. No server-version compatibility certification or body conversion.                                                                        |
 
 All capabilities come from the adapter. The browser cannot opt into an unsafe production write. A test-only injected adapter demonstrates atomic update, partial outcomes, journal recovery and reconciliation; its success does not certify Jira or Confluence.
 
@@ -28,7 +28,7 @@ npm run connector:atlassian -- \
   --provider jira \
   --deployment cloud \
   --instance https://example.atlassian.net \
-  --origin http://localhost:5173 \
+  --origin http://127.0.0.1:5173 \
   --token-file "$HOME/.bmad-project-ui/jira-capability" \
   --credentials-file "$HOME/.bmad-project-ui/jira-credentials.json"
 ```
@@ -40,20 +40,20 @@ The capability file is generated if absent, with mode `0600`. Load this local fi
 A credentials file must be a private regular file (mode `0600` on POSIX), contain exactly one of the following forms, and remain outside the project:
 
 ```json
-{"email":"operator@example.com","apiToken":"REPLACE_LOCALLY"}
+{ "email": "operator@example.com", "apiToken": "REPLACE_LOCALLY" }
 ```
 
 ```json
-{"bearerToken":"REPLACE_LOCALLY"}
+{ "bearerToken": "REPLACE_LOCALLY" }
 ```
 
 ```json
-{"authorization":"REPLACE_WITH_A_PROVIDER_SUPPORTED_AUTHORIZATION_HEADER"}
+{ "authorization": "REPLACE_WITH_A_PROVIDER_SUPPORTED_AUTHORIZATION_HEADER" }
 ```
 
 The connector can instead use `BMAD_ATLASSIAN_BEARER_TOKEN`, or the pair `BMAD_ATLASSIAN_EMAIL` and `BMAD_ATLASSIAN_API_TOKEN`. Their suitability depends on the selected provider, deployment and credential type. Provider authorization never appears in API responses, project metadata, operation journals or startup logs. This implementation does not provision credentials or manage provider MFA.
 
-On Windows, protect these files and their parent directory using the operator's account ACL; POSIX mode checks cannot prove Windows ACL isolation. No Windows or Linux installation was exercised by the connector tests.
+On Windows, protect these files and their parent directory using the operator's account ACL; POSIX mode checks cannot prove Windows ACL isolation. The CI package smoke installs and starts the bundled service on macOS, Linux and Windows. Those checks exercise the local health/auth boundary, not live provider credentials, account permissions or Windows ACL isolation.
 
 ## Connection and review flow
 
@@ -72,22 +72,22 @@ No operation creates or deletes remote resources, uploads attachments, copies lo
 
 Every authenticated request needs the exact configured `Origin`, `Host: 127.0.0.1:<port>` and `Authorization: Bearer <sessionToken>`. Session creation uses the launcher capability instead. POST bodies use JSON. Request bodies are limited to 1.2 MiB and individual local text to 1 MiB; provider responses are limited to 2 MiB. Errors are `{ "error": { "code": "...", "message": "..." } }`. Error messages never echo provider response bodies or authorization.
 
-| Method and path | Result or request |
-| --- | --- |
-| `GET /v1/health` | Minimal provider identity and `protocolVersion: 1`; no account or scope proof. |
-| `POST /v1/session` | `{}`; returns session token, expiry, instance, adapter capabilities and verified account identity. |
-| `DELETE /v1/session` | Revokes the session and its unexecuted plans. |
-| `GET /v1/capabilities` | Adapter guarantees and production write-block reasons. |
-| `GET /v1/scopes` | `{items,complete,warnings}` for projects or spaces. |
-| `GET /v1/search?scope=…&q=…` | Bounded candidate list. Jira uses escaped JQL; Confluence uses an exact page title when provided. |
-| `GET /v1/resources/:id` | Immutable identity, selected source fields, representation coverage, scope, observed version and provenance. |
-| `GET /v1/resources/:id/history` | Bounded provider history; incomplete coverage is explicit. |
-| `POST /v1/plans` | `{resourceId,scopeId,local:{path,revision,text,title?,status?,entityId?},base?,direction,fields,transitionId?}`. Revision is the browser's SHA256. |
-| `POST /v1/operations` | `{planId}` only. Production remote updates are currently rejected. Imports are applied by the browser. |
-| `GET /v1/operations` | Up to 20 operation records, unresolved first, for reload/reconnect recovery. |
-| `GET /v1/operations/by-plan/:planId` | Recover a recorded operation after losing the initial response. |
-| `GET /v1/operations/:id` | Read current recorded outcome. |
-| `POST /v1/operations/:id/reconcile` | Re-read remote state and compare reviewed fields; never resends the update. |
+| Method and path                      | Result or request                                                                                                                                  |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /v1/health`                     | Minimal provider identity and `protocolVersion: 1`; no account or scope proof.                                                                     |
+| `POST /v1/session`                   | `{}`; returns session token, expiry, instance, adapter capabilities and verified account identity.                                                 |
+| `DELETE /v1/session`                 | Revokes the session and its unexecuted plans.                                                                                                      |
+| `GET /v1/capabilities`               | Adapter guarantees and production write-block reasons.                                                                                             |
+| `GET /v1/scopes`                     | `{items,complete,warnings}` for projects or spaces.                                                                                                |
+| `GET /v1/search?scope=…&q=…`         | Bounded candidate list. Jira uses escaped JQL; Confluence uses an exact page title when provided.                                                  |
+| `GET /v1/resources/:id`              | Immutable identity, selected source fields, representation coverage, scope, observed version and provenance.                                       |
+| `GET /v1/resources/:id/history`      | Bounded provider history; incomplete coverage is explicit.                                                                                         |
+| `POST /v1/plans`                     | `{resourceId,scopeId,local:{path,revision,text,title?,status?,entityId?},base?,direction,fields,transitionId?}`. Revision is the browser's SHA256. |
+| `POST /v1/operations`                | `{planId}` only. Production remote updates are currently rejected. Imports are applied by the browser.                                             |
+| `GET /v1/operations`                 | Up to 20 operation records, unresolved first, for reload/reconnect recovery.                                                                       |
+| `GET /v1/operations/by-plan/:planId` | Recover a recorded operation after losing the initial response.                                                                                    |
+| `GET /v1/operations/:id`             | Read current recorded outcome.                                                                                                                     |
+| `POST /v1/operations/:id/reconcile`  | Re-read remote state and compare reviewed fields; never resends the update.                                                                        |
 
 Typed public shapes live in `packages/integrations/src/types.ts`. `createAtlassianApp`, `createAdapter` and `ProviderTransport` are exported for integration tests. HTTP provider instances are allowed only through the explicit programmatic loopback-test option; the production CLI has no HTTP or unsafe-write switch.
 

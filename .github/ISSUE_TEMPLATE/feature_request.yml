@@ -1,0 +1,23 @@
+name: Feature request
+description: Describe a user problem and a proposed outcome.
+title: '[Feature] '
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What are you trying to do, and what gets in the way?
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Proposed behavior
+      description: Explain the desired result and any alternatives considered.
+    validations:
+      required: true
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Constraints and examples
+      description: Note relevant file formats, privacy, provider limitations and synthetic examples.
