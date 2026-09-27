@@ -21,6 +21,7 @@ import {
 } from '../services/git-client';
 import type { ProjectStore } from '../services/project-store';
 import { Dialog } from './Dialog';
+import { ConnectorSetupGuide } from './ConnectorSetupGuide';
 import styles from '../App.module.css';
 
 type Phase =
@@ -651,44 +652,7 @@ export function GitPanel({
           </div>
         </Dialog>
       )}
-      {guide && (
-        <Dialog title="Install the Git connector" onClose={() => setGuide(false)}>
-          <p>
-            The BMAD Project UI package includes the Node runtime. Git must be installed on your
-            computer.
-          </p>
-          <ol>
-            <li>Open the package for macOS, Windows, or Linux.</li>
-            <li>
-              Run <code>install.command</code>, <code>install.cmd</code> or <code>install.sh</code>.
-              Installation does not start services automatically.
-            </li>
-            <li>Open the launcher for the repository and authorize this web address.</li>
-            <li>Return here, load the connector session file, and bind the folder.</li>
-          </ol>
-          <p className={styles.muted}>
-            Private packages and their SHA-256 checksums are available as GitHub Actions build
-            artifacts. Download the package for your system.
-          </p>
-          <p>
-            <a
-              href="https://github.com/enzovalley9/bmad-project-ui/actions"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Open private artifacts on GitHub
-            </a>
-          </p>
-          <details>
-            <summary>Start from the project source</summary>
-            <pre className={styles.rawText}>
-              npm run connector:git -- --repo /path/to/project --origin {window.location.origin}{' '}
-              --token-file /private/path/session-key
-            </pre>
-          </details>
-          <button onClick={() => setGuide(false)}>Already installed / Connect</button>
-        </Dialog>
-      )}
+      {guide && <ConnectorSetupGuide provider="git" onClose={() => setGuide(false)} />}
     </main>
   );
 }

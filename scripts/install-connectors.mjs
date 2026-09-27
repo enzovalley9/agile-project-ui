@@ -136,7 +136,7 @@ async function install() {
     await fs.rename(staging, destination);
     staging = undefined;
     process.stdout.write(
-      `Installed at ${destination}\nNo login item, service, or network listener was started.\nRun bmad-connectors --help in that folder to connect a project.\n`,
+      `Installed at ${destination}\nNo login item, service, or network listener was started.\nRun ${process.platform === 'win32' ? '.\\bmad-connectors.cmd' : './bmad-connectors'} --help in that folder.\nSetup: https://github.com/enzovalley9/bmad-project-ui/blob/main/docs/connector-setup.md\n`,
     );
   } finally {
     if (staging) await fs.rm(staging, { recursive: true, force: true });

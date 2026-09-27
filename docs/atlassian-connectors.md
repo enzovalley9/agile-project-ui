@@ -1,5 +1,7 @@
 # Jira and Confluence connectors
 
+For installation and browser setup, start with the [connector setup guide](connector-setup.md). It covers the bundled runtime, all three operating systems, session files and troubleshooting. The reference below describes profiles and protocol behavior.
+
 The application connects to Jira and Confluence through two independent local processes. Neither process reads project files or runs Git. The browser retains responsibility for mapping local documents, reviewing changes and saving imports through the selected directory handle.
 
 ## Supported profiles and current limits

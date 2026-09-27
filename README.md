@@ -4,7 +4,7 @@ A browser workspace for reading and editing BMAD Method project files, exploring
 
 The structured adapter targets **BMAD Method 6.12.0**. Unknown versions and formats retain generic reading with visible compatibility limits. The application does not run BMAD agents or workflows.
 
-This repository is currently private and being prepared for an open-source release. **A project license has not yet been selected.** Documentation and contribution templates do not themselves grant reuse or redistribution rights. Third-party components retain their own licenses.
+**A project license has not yet been selected.** Documentation and contribution templates do not themselves grant reuse or redistribution rights. Third-party components retain their own licenses.
 
 ## Run locally
 
@@ -41,6 +41,8 @@ Derived documents can be edited and commented on with a regeneration warning. Ed
 Text scans are bounded to 2 MiB per file, 32 MiB per inventory, 5,000 files and 20 directory levels. A limit or read failure means partial coverage, not an empty project. Secret/tool/dependency paths and nested repositories are excluded.
 
 ## Optional connectors
+
+Start with the [step-by-step connector setup guide](docs/connector-setup.md) for downloads, installation, commands for macOS/Windows/Linux, credential files and browser connection steps for Git, Jira and Confluence. The same instructions are available from each connection panel.
 
 ### Native Git
 
@@ -97,7 +99,7 @@ node scripts/smoke-package.mjs
 
 Packaging downloads the pinned official Node runtime and checks its SHA-256. It builds for the selected platform/architecture. CI installs and starts the packages on macOS, Windows and Linux. Installation verifies files in a staging directory and does not start services automatically.
 
-These are private CI artifacts, **unsigned and not notarized**. Checksums detect corruption; they do not establish publisher identity. The [development guide](docs/development.md#connector-packages) describes installation and removal. Public releases, signing and hosting have not been established.
+Connector packages are **unsigned and not notarized**. Checksums detect corruption; they do not establish publisher identity. Use [Releases](https://github.com/enzovalley9/bmad-project-ui/releases) to download available packages. The [setup guide](docs/connector-setup.md) covers installation and connection; the [development guide](docs/development.md#connector-packages) covers package verification and removal.
 
 ## Third-party notices
 

@@ -65,7 +65,7 @@ Keep `package-lock.json` synchronized with dependency changes. Review direct and
 
 Before a public release:
 
-1. Resolve the project license and distribution terms; the current private repository is not yet an open-source release.
+1. Resolve the project license and distribution terms; source visibility alone does not grant open-source redistribution rights.
 2. Review the exact tracked files and history for secrets, private research, personal data and unapproved assets. Rotating a leaked credential is separate from removing it from history.
 3. Run the documented checks at the release commit, inspect all three package targets and both browser jobs, and retain artifact checksums/notices.
 4. Establish a working confidential vulnerability-reporting route and verify its availability. A `SECURITY.md` file alone does not enable a reporting service.

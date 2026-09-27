@@ -31,6 +31,7 @@ import {
 } from '../services/integration-state';
 import type { ProjectStore, ProjectSnapshot } from '../services/project-store';
 import { Dialog } from './Dialog';
+import { ConnectorSetupGuide } from './ConnectorSetupGuide';
 import styles from '../App.module.css';
 
 const providerName = { jira: 'Jira', confluence: 'Confluence' };
@@ -114,6 +115,7 @@ export function AtlassianPanel({
     [endpoint, setEndpoint] = useState(defaultEndpoint),
     [token, setToken] = useState(''),
     [wizard, setWizard] = useState<number | null>(null),
+    [guide, setGuide] = useState(false),
     [scopes, setScopes] = useState<Scope[]>([]),
     [scopeId, setScopeId] = useState(''),
     [localRoot, setLocalRoot] = useState(''),
@@ -787,17 +789,14 @@ export function AtlassianPanel({
                 <Plug size={16} />
                 Set up connection
               </button>
-              <details>
-                <summary>Prepare the local connector</summary>
-                <p>
-                  Configure the instance and provider credentials in the connector on your computer.
-                  The web app only uses its local session file.
-                </p>
-                <p>
-                  The connector package includes the runtime. Follow its setup guide and return here
-                  once it is running.
-                </p>
-              </details>
+              <p>
+                Install the local package, configure your account on this computer, then load the
+                generated session file to connect.
+              </p>
+              <button onClick={() => setGuide(true)}>
+                <Download size={16} />
+                Install {name} connector
+              </button>
             </>
           ) : (
             <section className={styles.listItem}>
@@ -1194,6 +1193,10 @@ export function AtlassianPanel({
                 Provider credentials remain on the connector system. They are not saved in the
                 project.
               </p>
+              <button onClick={() => setGuide(true)}>
+                <Download size={16} />
+                Installation and startup instructions
+              </button>
             </div>
           )}
           {wizard === 1 && (
@@ -1585,6 +1588,7 @@ export function AtlassianPanel({
           </div>
         </Dialog>
       )}
+      {guide && <ConnectorSetupGuide provider={provider} onClose={() => setGuide(false)} />}
     </main>
   );
 }
