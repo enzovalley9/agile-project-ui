@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
@@ -11,9 +11,19 @@ import type { GitOptions, GitPlan, GitOperation, GitRunner } from '../src/types'
 import { parseArguments } from '../src/cli';
 
 const exec = promisify(execFile); const roots: string[] = [];
+let configurationRoot: string;
+let emptyGlobalConfig: string;
+beforeAll(async () => {
+  configurationRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'bmad-git-test-config-'));
+  emptyGlobalConfig = path.join(configurationRoot, 'empty.gitconfig');
+  // Git for Windows cannot read Node's device path (\\.\nul) as a config file.
+  // A real empty file isolates every native invocation on all three platforms.
+  await fs.writeFile(emptyGlobalConfig, '', { mode: 0o600 });
+});
+afterAll(async () => { if (configurationRoot) await fs.rm(configurationRoot, { recursive: true, force: true }); });
 const context = { drafts: 0, saving: false, recoveryPending: false };
 const origin = 'http://localhost:5173'; const token = 'a'.repeat(64);
-async function git(repo: string, args: string[]) { return (await exec('git', ['-c', 'core.fsmonitor=false', ...args], { cwd: repo, env: { ...process.env, GIT_TERMINAL_PROMPT: '0', GIT_CONFIG_GLOBAL: os.devNull, GIT_CONFIG_NOSYSTEM: '1' } })).stdout.trimEnd(); }
+async function git(repo: string, args: string[]) { return (await exec('git', ['-c', 'core.fsmonitor=false', ...args], { cwd: repo, env: { ...process.env, GIT_TERMINAL_PROMPT: '0', GIT_CONFIG_GLOBAL: emptyGlobalConfig, GIT_CONFIG_NOSYSTEM: '1' } })).stdout.trimEnd(); }
 async function fixture(options: Partial<GitOptions> = {}, initialCommit = true) {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'bmad-git-test-')); roots.push(root);
   const repo = path.join(root, 'project'); await fs.mkdir(repo);
@@ -21,7 +31,7 @@ async function fixture(options: Partial<GitOptions> = {}, initialCommit = true) 
   await fs.writeFile(path.join(repo, '.gitignore'), '.bmad-project-ui/local/\n');
   await fs.writeFile(path.join(repo, 'prd.md'), '# Test project\n');
   if (initialCommit) { await git(repo, ['add', '.']); await git(repo, ['commit', '-m', 'Initial fixture']); }
-  const app = createGitApp({ repo, origin, token, stateDir: path.join(root, 'private'), allowLocalRemotes: true, ...options, runner: (args, config) => (options.runner ?? nativeGitRunner)(args, { ...config, env: { ...config.env, GIT_CONFIG_GLOBAL: os.devNull, GIT_CONFIG_NOSYSTEM: '1' } }) }); await app.service.ready;
+  const app = createGitApp({ repo, origin, token, stateDir: path.join(root, 'private'), allowLocalRemotes: true, ...options, runner: (args, config) => (options.runner ?? nativeGitRunner)(args, { ...config, env: { ...config.env, GIT_CONFIG_GLOBAL: emptyGlobalConfig, GIT_CONFIG_NOSYSTEM: '1' } }) }); await app.service.ready;
   let binding = '';
   const request = async (route: string, method = 'GET', body?: unknown, headers: Record<string, string> = {}) => app.request(`http://127.0.0.1:43120/v1/${route}`, { method, headers: { Origin: origin, Authorization: `Bearer ${token}`, 'X-BMAD-Binding': binding, ...(body ? { 'Content-Type': 'application/json' } : {}), ...headers }, ...(body ? { body: JSON.stringify(body) } : {}) });
   const establish = async (trusted = true) => {

@@ -34,12 +34,12 @@ export function resolveDocumentLink(current:string, target:string): string | nul
   for (const part of decoded.split('/')) {if(!part||part==='.')continue;if(part==='..'){if(!parts.length)return null;parts.pop();}else parts.push(part);}
   return parts.join('/');
 }
-interface DocumentReaderProps {store?:ProjectStore;source:string;path:string;editable:boolean;onChange:(source:string)=>void;onNavigate:(path:string,fragment?:string)=>void;onSelect:(selection:SourceSelection|null)=>void;highlightLine?:number;onDraftChange?:(dirty:boolean)=>void}
+interface DocumentReaderProps {store?:ProjectStore;resourceVersion?:object;source:string;path:string;editable:boolean;onChange:(source:string)=>void;onNavigate:(path:string,fragment?:string)=>void;onSelect:(selection:SourceSelection|null)=>void;highlightLine?:number;onDraftChange?:(dirty:boolean)=>void}
 export function DocumentReader(props:DocumentReaderProps){const callbacks=useRef(props);callbacks.current=props;const onChange=useCallback((source:string)=>callbacks.current.onChange(source),[]),onNavigate=useCallback((path:string,fragment?:string)=>callbacks.current.onNavigate(path,fragment),[]),onSelect=useCallback((selection:SourceSelection|null)=>callbacks.current.onSelect(selection),[]),onDraftChange=useCallback((dirty:boolean)=>callbacks.current.onDraftChange?.(dirty),[]);return <DocumentContent {...props} onChange={onChange} onNavigate={onNavigate} onSelect={onSelect} onDraftChange={onDraftChange}/>;}
-const DocumentContent=memo(function DocumentContent({ source,path,editable,onChange,onNavigate,onSelect,highlightLine,onDraftChange,store }:DocumentReaderProps) {
+const DocumentContent=memo(function DocumentContent({ source,path,editable,onChange,onNavigate,onSelect,highlightLine,onDraftChange,store,resourceVersion }:DocumentReaderProps) {
   const ref=useRef<HTMLElement>(null);
   const headings=useMemo(()=>{ const tree=unified().use(remarkParse).use(remarkFrontmatter).use(remarkGfm).parse(source) as MarkdownNode; const result:{id:string;level:number;title:string}[]=[]; const counts=new Map<string,number>(); const text=(node:MarkdownNode):string=>node.value??node.children?.map(text).join('')??''; const walk=(node:MarkdownNode)=>{if(node.type==='heading'){const title=text(node),base=headingAnchor(title),count=counts.get(base)??0;counts.set(base,count+1);result.push({id:count?`${base}-${count}`:base,level:node.depth??1,title});}node.children?.forEach(walk);};walk(tree);return result;},[source]);
-  const rendererContext=useRef({source,path,editable,onChange,onNavigate,highlightLine,onDraftChange,store});rendererContext.current={source,path,editable,onChange,onNavigate,highlightLine,onDraftChange,store};
+  const rendererContext=useRef({source,path,editable,onChange,onNavigate,highlightLine,onDraftChange,store,resourceVersion});rendererContext.current={source,path,editable,onChange,onNavigate,highlightLine,onDraftChange,store,resourceVersion};
   const components=useMemo<Components>(()=>({
     span: (props) => {
       const {source,editable,onChange,highlightLine,onDraftChange}=rendererContext.current;
@@ -59,7 +59,7 @@ const DocumentContent=memo(function DocumentContent({ source,path,editable,onCha
       const resolved=resolveDocumentLink(path,href);
       return resolved ? <a href={`#document/${encodeURIComponent(resolved)}`} onClick={e=>{e.preventDefault();onNavigate(resolved,href.split('#')[1]);}}>{children}</a>:<span title="Enlace fuera del ámbito autorizado">{children}</span>;
     },
-    img:({src,alt})=>{const {path,store}=rendererContext.current;return <DocumentImage src={src} alt={alt} documentPath={path} store={store}/>;},
+    img:({src,alt})=>{const {path,store,resourceVersion}=rendererContext.current;return <DocumentImage src={src} alt={alt} documentPath={path} store={store} resourceVersion={resourceVersion}/>;},
     input: ({node: _node,...props})=> <input {...props} disabled aria-label="Casilla del documento"/>,
     table: ({node: _node,...props})=> <div className={styles.tableScroll}><table {...props}/></div>,
   }),[]);
