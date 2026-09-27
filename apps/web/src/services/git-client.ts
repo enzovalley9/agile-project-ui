@@ -1,3 +1,7 @@
+import {
+  validateConnectorHealth,
+  type ConnectorHealth,
+} from '../../../../packages/connectors/src/protocol';
 import type {
   GitRepository,
   GitPlan,
@@ -21,6 +25,10 @@ export class ConnectorError extends Error {
   }
 }
 const rejectedBeforeExecution = new Set([
+  'CONNECTOR_PREFLIGHT',
+  'CONNECTOR_PROTOCOL',
+  'CONNECTOR_PRODUCT',
+  'CONNECTOR_VERSION',
   'PLAN_EXPIRED',
   'STALE_PLAN',
   'TRUST_REQUIRED',
@@ -57,6 +65,7 @@ export function definitiveRejection(error: unknown) {
 /** Session capability is deliberately memory-only and never part of project files. */
 export class GitClient {
   private token = '';
+  healthInfo?: ConnectorHealth;
   private binding = '';
   private store?: ProjectStore;
   private expected?: { branch: string | null; head: string | null };
@@ -124,9 +133,20 @@ export class GitClient {
     body?: unknown,
     method = body === undefined ? 'GET' : 'POST',
   ): Promise<T> {
+    if (path !== '/v1/health') {
+      try {
+        await this.health();
+      } catch (error) {
+        if (error instanceof ConnectorError && error.code.startsWith('CONNECTOR_')) throw error;
+        throw new ConnectorError(
+          'CONNECTOR_PREFLIGHT',
+          'The connector health check failed before the request was sent. Check the local service and try again.',
+        );
+      }
+    }
     const headers: Record<string, string> = {};
-    if (this.token) headers.Authorization = `Bearer ${this.token}`;
-    if (this.binding) headers['X-BMAD-Binding'] = this.binding;
+    if (this.token && path !== '/v1/health') headers.Authorization = `Bearer ${this.token}`;
+    if (this.binding && path !== '/v1/health') headers['X-BMAD-Binding'] = this.binding;
     if (body !== undefined) headers['Content-Type'] = 'application/json';
     let response: Response;
     try {
@@ -153,8 +173,18 @@ export class GitClient {
       );
     return data as T;
   }
-  health() {
-    return this.request<{ version: string; service?: string }>('/v1/health');
+  async health() {
+    this.healthInfo = undefined;
+    try {
+      return (this.healthInfo = validateConnectorHealth(
+        await this.request<unknown>('/v1/health'),
+        'git',
+      ));
+    } catch (error) {
+      if (error instanceof Error && 'code' in error)
+        throw new ConnectorError(String(error.code), error.message);
+      throw error;
+    }
   }
   async connect(store: ProjectStore, token: string, trustRepository: boolean) {
     if (!trustRepository)
@@ -167,6 +197,7 @@ export class GitClient {
         'editor-required',
         'Enable Editor mode to verify the folder using a temporary marker.',
       );
+    await this.health();
     this.token = token;
     this.binding = '';
     try {

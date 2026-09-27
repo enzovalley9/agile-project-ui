@@ -73,6 +73,20 @@ for (const [provider, name, port] of [
     await expect(guide.getByRole('region', { name: 'Run from source', exact: true })).toContainText(
       `npm run connector:${provider === 'git' ? 'git' : 'atlassian'} --`,
     );
+    await guide.getByText('Guided setup and diagnostics', { exact: true }).click();
+    await expect(
+      guide.getByRole('region', { name: 'Check the installed package', exact: true }),
+    ).toContainText('./agile-connectors doctor');
+    await expect(
+      guide.getByRole('region', { name: `Guided ${name} setup`, exact: true }),
+    ).toContainText(`setup ${provider}`);
+    await guide.getByText('Update or roll back a connector', { exact: true }).click();
+    await expect(
+      guide.getByRole('region', { name: 'Update from the extracted package', exact: true }),
+    ).toContainText('./install.sh --update --confirm-stopped');
+    await expect(
+      guide.getByRole('region', { name: 'Roll back from the extracted package', exact: true }),
+    ).toContainText('./install.sh --rollback --confirm-stopped');
     await guide.getByText('Troubleshooting', { exact: true }).click();
     await expect(guide.getByText('Cannot reach the connector', { exact: true })).toBeVisible();
     const results = await new AxeBuilder({ page }).analyze();

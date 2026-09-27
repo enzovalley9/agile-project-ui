@@ -106,7 +106,7 @@ async function startedConnector(launcher, args, port) {
     throw error;
   }
 }
-async function nativeConnectorSmoke(launcher) {
+async function nativeConnectorSmoke(launcher, installWrapper) {
   const repo = path.join(root, 'native project');
   await fs.mkdir(repo);
   await exec('git', ['init', '-b', 'main', repo], options);
@@ -141,6 +141,10 @@ async function nativeConnectorSmoke(launcher) {
       port,
     );
     assert.equal(running.health.protocol, 1);
+    assert.equal(
+      running.health.version,
+      JSON.parse(await fs.readFile('package.json', 'utf8')).version,
+    );
     const base = `http://127.0.0.1:${port}`;
     assert.equal(
       (await fetch(base + '/v1/repository', { headers: { Origin: origin } })).status,
@@ -174,6 +178,10 @@ async function nativeConnectorSmoke(launcher) {
     const repository = await request('/v1/repository', undefined, binding.bindingId);
     assert.equal(repository.rootName, 'native project');
     assert.equal(repository.branch, 'main');
+    await assert.rejects(
+      invoke(installWrapper, ['--update', '--confirm-stopped', '--destination', destination]),
+      /still running/,
+    );
   } finally {
     await running?.stop();
     await fs.rmdir(nativeJournal).catch((error) => {
@@ -212,6 +220,10 @@ async function nativeConnectorSmoke(launcher) {
   );
   try {
     assert.equal(running.health.provider, 'jira');
+    assert.equal(
+      running.health.version,
+      JSON.parse(await fs.readFile('package.json', 'utf8')).version,
+    );
     const response = await fetch(`http://127.0.0.1:${atlassianPort}/v1/scopes`, {
       headers: { Origin: origin },
       signal: AbortSignal.timeout(5000),
@@ -276,12 +288,112 @@ try {
   );
   assert.match((await invoke(launcher, ['--help'])).stdout, /Usage:/);
   assert.match((await invoke(launcher, ['git', '--help'])).stdout, /--token-file/);
-  await nativeConnectorSmoke(launcher);
+  assert.match((await invoke(launcher, ['--version'])).stdout, /Agile Project UI .*protocol 1/);
+  assert.match(
+    (await invoke(launcher, ['doctor'])).stdout,
+    /Integrity: all 12 package files verified/,
+  );
+  await assert.rejects(invoke(launcher, ['setup', 'git']), /interactive terminal/);
+  await nativeConnectorSmoke(launcher, installWrapper);
+  const beforeUpdate = await fs.readFile(path.join(destination, 'manifest.json'), 'utf8');
+  await assert.rejects(
+    invoke(installWrapper, ['--update', '--destination', destination]),
+    /explicitly confirm/,
+  );
+  await assert.rejects(
+    exec(
+      runtime,
+      [
+        '--import',
+        pathToFileURL(fault).href,
+        installer,
+        '--update',
+        '--confirm-stopped',
+        '--destination',
+        destination,
+      ],
+      options,
+    ),
+    /Simulated interrupted copy/,
+  );
+  assert.equal(await fs.readFile(path.join(destination, 'manifest.json'), 'utf8'), beforeUpdate);
+  await assert.rejects(fs.lstat(destination + '.previous'), { code: 'ENOENT' });
+  const activationFault = path.join(root, 'activation-fault.mjs');
+  await fs.writeFile(
+    activationFault,
+    "import {promises as fs} from 'node:fs'; const original = fs.rename; fs.rename = async (...args) => { if (String(args[0]).includes('.staging-')) throw new Error('Simulated activation failure'); return original(...args); };\n",
+  );
+  await assert.rejects(
+    exec(
+      runtime,
+      [
+        '--import',
+        pathToFileURL(activationFault).href,
+        installer,
+        '--update',
+        '--confirm-stopped',
+        '--destination',
+        destination,
+      ],
+      options,
+    ),
+    /Simulated activation failure/,
+  );
+  assert.equal(await fs.readFile(path.join(destination, 'manifest.json'), 'utf8'), beforeUpdate);
+  await assert.rejects(fs.lstat(destination + '.previous'), { code: 'ENOENT' });
+  const privateState = path.join(root, 'private', 'keep-journal.json');
+  await fs.writeFile(privateState, '{"schema":1,"status":"uncertain"}');
+  // Only the disposable fixture's version label differs; the package payload is
+  // still the current platform's native runtime and connector bundle.
+  await fs.writeFile(
+    path.join(destination, 'manifest.json'),
+    JSON.stringify({ ...manifest, version: '0.0.0-smoke' }),
+  );
+  await invoke(installWrapper, ['--update', '--confirm-stopped', '--destination', destination]);
+  assert.equal(
+    JSON.parse(await fs.readFile(path.join(destination + '.previous', 'manifest.json'), 'utf8'))
+      .version,
+    '0.0.0-smoke',
+  );
+  assert.equal(
+    JSON.parse(await fs.readFile(path.join(destination, 'manifest.json'), 'utf8')).version,
+    manifest.version,
+  );
+  await assert.rejects(
+    invoke(installWrapper, ['--update', '--confirm-stopped', '--destination', destination]),
+    /rollback copy already exists/,
+  );
+  assert.equal(await fs.readFile(privateState, 'utf8'), '{"schema":1,"status":"uncertain"}');
+  await invoke(installWrapper, ['--rollback', '--confirm-stopped', '--destination', destination]);
+  assert.equal(
+    JSON.parse(await fs.readFile(path.join(destination, 'manifest.json'), 'utf8')).version,
+    '0.0.0-smoke',
+  );
+  assert.equal(await fs.readFile(privateState, 'utf8'), '{"schema":1,"status":"uncertain"}');
+  const retained = (await fs.readdir(path.dirname(destination))).filter((name) =>
+    name.startsWith('connectors.rollback-retained-'),
+  );
+  assert.equal(retained.length, 1);
+  assert.equal(
+    JSON.parse(
+      await fs.readFile(path.join(path.dirname(destination), retained[0], 'manifest.json'), 'utf8'),
+    ).version,
+    manifest.version,
+  );
+  await invoke(installWrapper, ['--update', '--confirm-stopped', '--destination', destination]);
+  assert.match(
+    (await invoke(launcher, ['doctor'])).stdout,
+    /Integrity: all 12 package files verified/,
+  );
   await fs.writeFile(path.join(destination, 'preserve.txt'), 'Existing installation stays intact');
   await assert.rejects(invoke(installWrapper, ['--destination', destination]), /already exists/);
   assert.equal(
     await fs.readFile(path.join(destination, 'preserve.txt'), 'utf8'),
     'Existing installation stays intact',
+  );
+  await assert.rejects(
+    invoke(installWrapper, ['--update', '--confirm-stopped', '--destination', destination]),
+    /extra files/,
   );
   // Only the disposable installed smoke fixture is changed to observe exact argv.
   await fs.writeFile(
@@ -311,7 +423,7 @@ try {
   );
   await assert.rejects(fs.lstat(rejectedDestination), { code: 'ENOENT' });
   process.stdout.write(
-    `Package smoke passed on ${process.platform}/${process.arch}: interrupted copy, verified install, installed Git session/root binding, installed Jira health/auth boundary, listener shutdown, complete launcher arguments, existing-install preservation, checksum rejection and disposable uninstall.\n`,
+    `Package smoke passed on ${process.platform}/${process.arch}: interrupted copy, failed-activation restore, explicit update, rollback, external-journal preservation, live-process protection, diagnostics, verified install, installed Git session/root binding, installed Jira health/auth boundary, listener shutdown, complete launcher arguments, existing-install preservation, checksum rejection and disposable uninstall.\n`,
   );
 } finally {
   await fs.rm(root, { recursive: true, force: true });

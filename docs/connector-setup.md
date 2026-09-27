@@ -99,6 +99,14 @@ chmod 600 "$HOME/.agile-project-ui/confluence-credentials.json"
 
 Protect only the files you created. Never upload these JSON files to the app or put them in the project. The **generated session file**, described next, is the file to load in the browser.
 
+## Guided launcher and diagnostics
+
+From the installed directory, run `./agile-connectors doctor` (Windows: `.\agile-connectors.cmd doctor`). It prints the installed version, source revision, bundled Node version and platform, validates every package checksum, and checks whether Git is available. It does not read provider credentials or contact a remote account.
+
+Optional checks: `doctor --repo /absolute/repository/root --port 43120` verifies the exact local Git root and whether a loopback port is available. Port checks briefly bind and close the local socket; they do not certify browser permission or an account login. An occupied port might belong to an already-running connector.
+
+Run `./agile-connectors setup git`, `setup jira` or `setup confluence` for interactive startup (Windows: `.\agile-connectors.cmd setup git`). The prompts collect your app origin and file paths, never provider tokens. Prepare private provider credential files first. The last prompt requires `yes` before the launcher starts anything. No service, login item or automatic restart is installed. The direct commands below remain available for scripts and troubleshooting.
+
 ## 3. Start the connector
 
 The UI installation guide inserts the current browser origin for you. In the examples below, replace `http://127.0.0.1:5173` with your actual app origin: scheme, hostname and port, with **no path or trailing slash**. Preview commonly uses port 4173; a hosted app uses its HTTPS origin. `localhost` and `127.0.0.1` are different origins.
@@ -190,8 +198,52 @@ After reopening a page, load its connector session file again. If the process st
 | Provider rejects access             | Credential type/expiry, account permissions and exact HTTPS instance/context. For Confluence Cloud, avoid adding `/wiki` twice.                             |
 | No project or space appears         | Verify account and instance, then confirm that account can view the target in the provider.                                                                 |
 | Startup fails                       | Correct package architecture, extracted files, valid credential JSON without BOM and restrictive file permissions.                                          |
-| Installation already exists         | Preserve it; choose another destination or handle an intentional replacement separately. The installer does not overwrite it.                               |
+| Installation already exists         | Use the explicit update flow below, or choose a different destination. A normal install never overwrites it.                                                |
 | An operation has an unknown outcome | Use the app's check/reconciliation flow before any new operation; do not repeatedly submit it.                                                              |
+
+## Updates and rollback
+
+The public website may update before your local package. The connector panel shows the installed version and protocol. This web app supports **protocol 1** for Git, Jira and Confluence, including the original 0.1.0 release. Its versionless Atlassian health response is recognized as legacy metadata; new packages report their package version. The browser validates the exact product/provider, protocol and version shape before sending its capability, and rechecks health before every authenticated request. Different software versions are compatible when they share this protocol; an unsupported or malformed service is rejected before the operation is sent.
+
+1. Finish or reconcile any pending operation. Disconnect in the browser and stop **all** connector terminals with Ctrl+C. The update requires an explicit `--confirm-stopped`; new launchers also maintain process leases that block replacement while a connector is running. Original 0.1.0 launchers have no lease, so the stop confirmation remains essential.
+2. Download and verify the new archive, then extract it into a **separate** folder. Keep that extracted folder until acceptance and rollback checks are complete.
+3. Run its installer with `--update --confirm-stopped`. Add `--destination ABSOLUTE_DIRECTORY` if you used a custom destination. Examples from the extracted folder:
+
+```sh
+# macOS; Linux uses ./install.sh with the same arguments.
+./install.command --update --confirm-stopped
+```
+
+```powershell
+.\install.cmd --update --confirm-stopped
+```
+
+Both the source package and existing installation are checked before replacement. A verified staging copy is activated only after its bundled runtime passes a native check. The old directory is retained as `connectors.previous` beside the installation. Extra or modified installation files, a live process lease or an existing previous copy cause a refusal. No elevation, network request or automatic download is part of updating. A checksum validates package integrity, not publisher identity; obtain the archive from the release channel you trust.
+
+Start from the normal installed path again, run `doctor`, then reconnect and check the displayed version, folder binding and recovery state. Project files, credentials, session files, `.bmad-project-ui` sidecars and external operation journals are neither migrated nor deleted. Keep these outside the installation; unknown files inside it must be preserved elsewhere or handled with a separate installation, rather than silently overwritten. Do not delete journals to get around an unresolved operation.
+
+To roll back, first disconnect and stop all connector processes again. From the **separate extracted package**, run:
+
+```sh
+./install.command --rollback --confirm-stopped
+```
+
+```powershell
+.\install.cmd --rollback --confirm-stopped
+```
+
+On Linux substitute `./install.sh`. Use the same `--destination` for a custom installation. Rollback verifies and restores the previous package, and retains the replaced version under `connectors.rollback-retained-<id>` for recovery. It does not reset project data or replay operations. Reconnect and check compatibility before writing. Before another update, move any existing `connectors.previous` to a backup location after you have verified which version it contains; the installer never deletes that backup for you.
+
+### Interrupted maintenance
+
+Ordinary copy or activation failures leave the old installation usable and clean up this installer's staging and lock. A power loss or forced process termination cannot run that cleanup. First verify that no installer or connector is running. Preserve all installation and backup directories before proceeding:
+
+- If the normal destination still exists, inspect its `manifest.json` and run its `doctor`; keep the `.previous` copy until you verify the active version.
+- If the destination is missing but its sibling `.previous` exists, restore that directory to the original destination name. This recovers the untouched old installation; do not run a fresh install into the missing destination first.
+- Only after checking that no maintenance process remains, remove that destination's `.connectors.install-lock` directory. A leftover `.connectors.staging-*` directory contains the incomplete new package and can be moved aside. Do not remove `.bmad-project-ui` state, credential folders or other installations.
+- Retry from a verified extracted archive or contact the maintainer with the error text and version only. Do not attach capability or provider credential files.
+
+The update protocol uses staging and recoverable same-filesystem renames, not a transaction across the operating system and running processes. Automated native smoke tests cover copy failure, activation failure with restoration, live-process rejection, update, rollback and an untouched external journal; they do not simulate every filesystem or power-loss behavior.
 
 ## Alternative: run from source
 

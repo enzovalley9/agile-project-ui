@@ -107,7 +107,7 @@ export function GitPanel({
     if (code === 'unreachable') setPhase(client?.connected ? 'disconnected' : 'idle');
     else if (/GIT_NOT|GIT_MISSING|gitmissing/.test(code)) setPhase('gitmissing');
     else if (/AUTH|ORIGIN|TRUST|permission/.test(code)) setPhase('permission');
-    else if (/VERSION|PROTOCOL/.test(code)) setPhase('update');
+    else if (/VERSION|PROTOCOL|CONNECTOR_PRODUCT/.test(code)) setPhase('update');
     else setPhase(client?.connected ? 'attention' : 'idle');
   }
   async function run(action: () => Promise<void>, mutation = false) {
@@ -270,6 +270,12 @@ export function GitPanel({
           {label[phase]}
         </span>
       </div>
+      {client?.healthInfo && (
+        <p className={styles.muted} role="status">
+          Installed connector {client.healthInfo.version} · protocol {client.healthInfo.protocol}.
+          <button onClick={() => setGuide(true)}>Update or roll back</button>
+        </p>
+      )}
       {error && (
         <div
           role="alert"

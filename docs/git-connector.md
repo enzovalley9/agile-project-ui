@@ -1,6 +1,6 @@
 # Optional native Git connector
 
-For installation and browser setup, start with the [connector setup guide](connector-setup.md). It covers the bundled runtime, all three operating systems, session files and troubleshooting. The reference below describes profiles and protocol behavior.
+For installation and browser setup, start with the [connector setup guide](connector-setup.md). It covers the bundled runtime, all three operating systems, session files and troubleshooting. The reference below describes profiles and protocol behavior. The guide also covers verified updates, rollback, the `doctor` preflight and interactive `setup` launcher. Installed software versions are visible in the connection panel; the browser validates product, provider and protocol 1 before authorization and mutations.
 
 The web app reads and saves project documents with browser directory permissions. This connector only binds that browser folder to a locally authorized repository and runs reviewed native Git operations. It has no general file endpoint, terminal, agent runtime or Git-provider token form.
 

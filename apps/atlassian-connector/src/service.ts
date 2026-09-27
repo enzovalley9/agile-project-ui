@@ -1,3 +1,4 @@
+import { connectorHealth } from '../../../packages/connectors/src/protocol';
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import { mkdir, readFile, rename, writeFile, lstat, rmdir } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -267,14 +268,7 @@ export async function createAtlassianApp(options: ServiceOptions): Promise<Hono>
       checkSession(c.req.header('authorization'));
     await next();
   });
-  app.get('/v1/health', (c) =>
-    c.json({
-      ok: true,
-      product: 'Agile Project UI Atlassian Connector',
-      provider: adapter.capabilities.provider,
-      protocolVersion: 1,
-    }),
-  );
+  app.get('/v1/health', (c) => c.json(connectorHealth(adapter.capabilities.provider)));
   app.post('/v1/session', async (c) => {
     if (!equal(sessionOf(c.req.header('authorization')), options.launcherToken))
       throw new ConnectorError('invalid_capability', 'Launcher capability is invalid', 401);

@@ -1,6 +1,6 @@
 # Jira and Confluence connectors
 
-For installation and browser setup, start with the [connector setup guide](connector-setup.md). It covers the bundled runtime, all three operating systems, session files and troubleshooting. The reference below describes profiles and protocol behavior.
+For installation and browser setup, start with the [connector setup guide](connector-setup.md). It covers the bundled runtime, all three operating systems, session files and troubleshooting. The reference below describes profiles and protocol behavior. The guide also covers verified updates, rollback, the `doctor` preflight and interactive `setup` launcher. Installed software versions are visible in the connection panel; the browser validates product, provider and protocol 1 before authorization and mutations.
 
 The application connects to Jira and Confluence through two independent local processes. Neither process reads project files or runs Git. The browser retains responsibility for mapping local documents, reviewing changes and saving imports through the selected directory handle.
 
@@ -74,22 +74,22 @@ No operation creates or deletes remote resources, uploads attachments, copies lo
 
 Every authenticated request needs the exact configured `Origin`, `Host: 127.0.0.1:<port>` and `Authorization: Bearer <sessionToken>`. Session creation uses the launcher capability instead. POST bodies use JSON. Request bodies are limited to 1.2 MiB and individual local text to 1 MiB; provider responses are limited to 2 MiB. Errors are `{ "error": { "code": "...", "message": "..." } }`. Error messages never echo provider response bodies or authorization.
 
-| Method and path                      | Result or request                                                                                                                                  |
-| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /v1/health`                     | Minimal provider identity and `protocolVersion: 1`; no account or scope proof.                                                                     |
-| `POST /v1/session`                   | `{}`; returns session token, expiry, instance, adapter capabilities and verified account identity.                                                 |
-| `DELETE /v1/session`                 | Revokes the session and its unexecuted plans.                                                                                                      |
-| `GET /v1/capabilities`               | Adapter guarantees and production write-block reasons.                                                                                             |
-| `GET /v1/scopes`                     | `{items,complete,warnings}` for projects or spaces.                                                                                                |
-| `GET /v1/search?scope=…&q=…`         | Bounded candidate list. Jira uses escaped JQL; Confluence uses an exact page title when provided.                                                  |
-| `GET /v1/resources/:id`              | Immutable identity, selected source fields, representation coverage, scope, observed version and provenance.                                       |
-| `GET /v1/resources/:id/history`      | Bounded provider history; incomplete coverage is explicit.                                                                                         |
-| `POST /v1/plans`                     | `{resourceId,scopeId,local:{path,revision,text,title?,status?,entityId?},base?,direction,fields,transitionId?}`. Revision is the browser's SHA256. |
-| `POST /v1/operations`                | `{planId}` only. Production remote updates are currently rejected. Imports are applied by the browser.                                             |
-| `GET /v1/operations`                 | Up to 20 operation records, unresolved first, for reload/reconnect recovery.                                                                       |
-| `GET /v1/operations/by-plan/:planId` | Recover a recorded operation after losing the initial response.                                                                                    |
-| `GET /v1/operations/:id`             | Read current recorded outcome.                                                                                                                     |
-| `POST /v1/operations/:id/reconcile`  | Re-read remote state and compare reviewed fields; never resends the update.                                                                        |
+| Method and path                      | Result or request                                                                                                                                            |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `GET /v1/health`                     | Product/provider identity, package `version` and `protocolVersion: 1`; no account or scope proof. The original 0.1.0 versionless response remains supported. |
+| `POST /v1/session`                   | `{}`; returns session token, expiry, instance, adapter capabilities and verified account identity.                                                           |
+| `DELETE /v1/session`                 | Revokes the session and its unexecuted plans.                                                                                                                |
+| `GET /v1/capabilities`               | Adapter guarantees and production write-block reasons.                                                                                                       |
+| `GET /v1/scopes`                     | `{items,complete,warnings}` for projects or spaces.                                                                                                          |
+| `GET /v1/search?scope=…&q=…`         | Bounded candidate list. Jira uses escaped JQL; Confluence uses an exact page title when provided.                                                            |
+| `GET /v1/resources/:id`              | Immutable identity, selected source fields, representation coverage, scope, observed version and provenance.                                                 |
+| `GET /v1/resources/:id/history`      | Bounded provider history; incomplete coverage is explicit.                                                                                                   |
+| `POST /v1/plans`                     | `{resourceId,scopeId,local:{path,revision,text,title?,status?,entityId?},base?,direction,fields,transitionId?}`. Revision is the browser's SHA256.           |
+| `POST /v1/operations`                | `{planId}` only. Production remote updates are currently rejected. Imports are applied by the browser.                                                       |
+| `GET /v1/operations`                 | Up to 20 operation records, unresolved first, for reload/reconnect recovery.                                                                                 |
+| `GET /v1/operations/by-plan/:planId` | Recover a recorded operation after losing the initial response.                                                                                              |
+| `GET /v1/operations/:id`             | Read current recorded outcome.                                                                                                                               |
+| `POST /v1/operations/:id/reconcile`  | Re-read remote state and compare reviewed fields; never resends the update.                                                                                  |
 
 Typed public shapes live in `packages/integrations/src/types.ts`. `createAtlassianApp`, `createAdapter` and `ProviderTransport` are exported for integration tests. HTTP provider instances are allowed only through the explicit programmatic loopback-test option; the production CLI has no HTTP or unsafe-write switch.
 

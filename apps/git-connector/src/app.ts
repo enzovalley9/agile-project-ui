@@ -1,3 +1,4 @@
+import { connectorHealth } from '../../../packages/connectors/src/protocol';
 import { Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import { timingSafeEqual } from 'node:crypto';
@@ -105,9 +106,7 @@ export function createGitApp(options: GitOptions): Hono & { service: GitService 
     }
     await next();
   });
-  app.get('/v1/health', (c) =>
-    c.json({ product: 'Agile Project UI Git Connector', protocol: 1, version: '0.1.0' }),
-  );
+  app.get('/v1/health', (c) => c.json(connectorHealth('git')));
   app.post('/v1/session', async (c) => {
     const body = await c.req.json<{ trustRepository: boolean }>();
     requireCondition(

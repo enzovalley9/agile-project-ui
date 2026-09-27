@@ -1,3 +1,4 @@
+import { CONNECTOR_VERSION } from '../../../packages/connectors/src/protocol';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createServer, type Server } from 'node:http';
 import { mkdtemp, readFile, rm, stat, mkdir, writeFile, rmdir } from 'node:fs/promises';
@@ -538,6 +539,7 @@ describe('independent loopback capability, sessions and plan authorization', () 
         product: 'Agile Project UI Atlassian Connector',
         provider: 'jira',
         protocolVersion: 1,
+        version: CONNECTOR_VERSION,
       });
     } finally {
       await new Promise<void>((resolve) => local.close(() => resolve()));

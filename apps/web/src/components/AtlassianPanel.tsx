@@ -54,6 +54,10 @@ const explain = (error: unknown) => (error instanceof Error ? error.message : St
 export function indeterminateAtlassianApply(error: unknown) {
   const code = (error as { code?: string })?.code;
   return ![
+    'CONNECTOR_PROTOCOL',
+    'CONNECTOR_PRODUCT',
+    'CONNECTOR_VERSION',
+    'CONNECTOR_PREFLIGHT',
     'plan_expired',
     'plan_not_found',
     'blocked_plan',
@@ -1587,6 +1591,17 @@ export function AtlassianPanel({
             </button>
           </div>
         </Dialog>
+      )}
+      {(client?.healthInfo || draftClient?.healthInfo) && (
+        <p className={styles.muted} role="status">
+          Installed connector {(client?.healthInfo || draftClient?.healthInfo)?.version}
+          {(client?.healthInfo || draftClient?.healthInfo)?.legacyVersion
+            ? ' (legacy health metadata)'
+            : ''}
+          {' · protocol '}
+          {(client?.healthInfo || draftClient?.healthInfo)?.protocol}.
+          <button onClick={() => setGuide(true)}>Update or roll back</button>
+        </p>
       )}
       {guide && <ConnectorSetupGuide provider={provider} onClose={() => setGuide(false)} />}
     </main>

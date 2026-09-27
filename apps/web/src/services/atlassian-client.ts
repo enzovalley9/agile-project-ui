@@ -1,3 +1,7 @@
+import {
+  validateConnectorHealth,
+  type ConnectorHealth,
+} from '../../../../packages/connectors/src/protocol';
 import type {
   Provider,
   AdapterCapabilities,
@@ -13,6 +17,7 @@ import type {
 export * from '../../../../packages/integrations/src/types';
 export class AtlassianClient {
   private token = '';
+  healthInfo?: ConnectorHealth;
   instance = '';
   identity?: { id: string; displayName: string };
   readonly baseUrl: string;
@@ -41,8 +46,26 @@ export class AtlassianClient {
     body?: unknown,
     method = body === undefined ? 'GET' : 'POST',
   ): Promise<T> {
+    if (path !== '/v1/health') {
+      try {
+        await this.health();
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          'code' in error &&
+          String(error.code).startsWith('CONNECTOR_')
+        )
+          throw error;
+        throw Object.assign(
+          new Error(
+            'The connector health check failed before the request was sent. Check the local service and try again.',
+          ),
+          { code: 'CONNECTOR_PREFLIGHT' },
+        );
+      }
+    }
     const headers: Record<string, string> = {};
-    if (this.token) headers.Authorization = `Bearer ${this.token}`;
+    if (this.token && path !== '/v1/health') headers.Authorization = `Bearer ${this.token}`;
     if (body !== undefined) headers['Content-Type'] = 'application/json';
     let response: Response;
     try {
@@ -68,10 +91,15 @@ export class AtlassianClient {
       );
     return data;
   }
-  health() {
-    return this.request<{ provider: Provider; protocolVersion: number }>('/v1/health');
+  async health() {
+    this.healthInfo = undefined;
+    return (this.healthInfo = validateConnectorHealth(
+      await this.request<unknown>('/v1/health'),
+      this.provider,
+    ));
   }
   async authorize(launcherToken: string) {
+    await this.health();
     this.token = launcherToken;
     try {
       const result = await this.request<{

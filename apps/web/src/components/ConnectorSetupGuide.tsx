@@ -66,7 +66,8 @@ export function ConnectorSetupGuide({
   const args = git
     ? `git --repo ${quote(windows ? 'C:\\path\\to\\your\\project' : '/absolute/path/to/your/project', windows)} --origin ${quote(origin, windows)} --token-file "${directory}${separator}${session}"`
     : `atlassian --provider ${provider} --deployment ${deployment} --instance ${quote(instance, windows)} --origin ${quote(origin, windows)} --token-file "${directory}${separator}${session}" --credentials-file "${directory}${separator}${credentials}"`;
-  const command = `${installed}\n${windows ? '.\\agile-connectors.cmd' : './agile-connectors'} ${args}`;
+  const launcher = windows ? '.\\agile-connectors.cmd' : './agile-connectors';
+  const command = `${installed}\n${launcher} ${args}`;
   const sourceCommand = `npm ci\nnpm run connector:${git ? 'git' : 'atlassian'} -- ${args.slice(args.indexOf(' ') + 1)}`;
 
   return (
@@ -261,6 +262,17 @@ export function ConnectorSetupGuide({
                 ? 'Replace the example repository path with the full path of the same project folder you selected in the browser.'
                 : `Replace ${instance} with your instance URL${provider === 'confluence' && deployment === 'cloud' ? ', without /wiki (the connector adds it)' : ''}. For Data Center, include a deployment context path if your administrator requires it.`}
             </p>
+            <details>
+              <summary>Guided setup and diagnostics</summary>
+              <p>
+                The launcher checks package integrity and the bundled runtime, then asks for your
+                app origin and local paths. It never asks you to type a provider token. Type yes
+                only when you are ready to start the local service.
+              </p>
+              <Command title="Check the installed package">{`${installed}\n${launcher} doctor`}</Command>
+              <Command title={`Guided ${name} setup`}>{`${launcher} setup ${provider}`}</Command>
+              <p>Use the direct command below if you prefer to supply the arguments yourself.</p>
+            </details>
             <Command title={`Start the ${name} connector`}>{command}</Command>
             <p>
               The command allows this exact web address: <code>{origin}</code>. If the app address
@@ -333,6 +345,36 @@ export function ConnectorSetupGuide({
             </p>
           </li>
         </ol>
+        <details className={styles.troubleshooting}>
+          <summary>Update or roll back a connector</summary>
+          <p>
+            Disconnect in the app, check that no operation is pending, then stop every connector
+            terminal with Ctrl+C. Download and extract the new package into a separate folder. Run
+            its installer with the command below. For a custom installation, also pass --destination
+            followed by its absolute path.
+          </p>
+          <Command title="Update from the extracted package">{`${installer} --update --confirm-stopped`}</Command>
+          <p>
+            The installer verifies both packages and preserves the old one as a .previous folder.
+            Credentials, project files and historical .bmad-project-ui journals stay in their
+            existing external locations. Extra files inside the installation block the update. Keep
+            the extracted package until you have checked the new version in the app.
+          </p>
+          <Command title="Roll back from the extracted package">{`${installer} --rollback --confirm-stopped`}</Command>
+          <p>
+            Rollback restores the previous installation and retains the replaced version in a
+            separate folder. The web app supports protocol 1 and checks compatibility before
+            authorization and mutations. A version mismatch requires a compatible package;
+            refreshing the website does not update local software.
+          </p>
+          <a
+            href="https://agile-project-ui.enzovalley9.workers.dev/help/connector-setup/#updates-and-rollback"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Update safety and interruption recovery
+          </a>
+        </details>
         <details className={styles.troubleshooting}>
           <summary>Troubleshooting</summary>
           <dl>

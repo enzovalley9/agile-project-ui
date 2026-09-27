@@ -7,6 +7,10 @@ import { StoryDescription } from './WorkViews';
 describe('Atlassian operation evidence', () => {
   it('allows re-comparison after an explicitly rejected pre-effect request', () => {
     for (const code of [
+      'CONNECTOR_PROTOCOL',
+      'CONNECTOR_PRODUCT',
+      'CONNECTOR_VERSION',
+      'CONNECTOR_PREFLIGHT',
       'plan_expired',
       'blocked_plan',
       'remote_stale',

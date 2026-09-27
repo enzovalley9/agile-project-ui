@@ -1,3 +1,4 @@
+import { CONNECTOR_VERSION } from '../../../packages/connectors/src/protocol';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
@@ -127,6 +128,7 @@ describe('Git connector capability and repository binding', () => {
     expect(await (await f.request('health')).json()).toMatchObject({
       product: 'Agile Project UI Git Connector',
       protocol: 1,
+      version: CONNECTOR_VERSION,
     });
     expect((await f.request('health')).headers.get('Access-Control-Allow-Origin')).toBe(origin);
     expect(

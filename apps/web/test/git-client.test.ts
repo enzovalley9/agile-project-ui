@@ -112,6 +112,8 @@ async function fixture() {
   };
   const requests: (MutationContext & { planId: string })[] = [];
   const behavior = {
+    health: async () =>
+      Response.json({ product: 'Agile Project UI Git Connector', version: '0.1.0', protocol: 1 }),
     execute: async (_body: MutationContext & { planId: string }) => Response.json(operation),
   };
   vi.stubGlobal(
@@ -121,6 +123,10 @@ async function fixture() {
           typeof input === 'string' ? input : input instanceof URL ? input.href : input.url,
         ),
         method = init?.method ?? 'GET';
+      if (url.pathname === '/v1/health') {
+        expect(init?.headers).toEqual({});
+        return behavior.health();
+      }
       if (url.pathname === '/v1/session') return Response.json({});
       if (url.pathname === '/v1/bindings/challenge')
         return Response.json({
@@ -242,6 +248,32 @@ describe('browser writes and native Git coordination', () => {
 });
 
 describe('definitive rejection versus lost operation response', () => {
+  it.each(['incompatible', 'unreachable'])(
+    'allows saving after a %s health rejection before execution',
+    async (reason) => {
+      const f = await fixture();
+      const original = f.behavior.health;
+      f.behavior.health =
+        reason === 'incompatible'
+          ? async () =>
+              Response.json({
+                product: 'Agile Project UI Git Connector',
+                version: '9.0.0',
+                protocol: 2,
+              })
+          : async () => {
+              throw new Error('Simulated health transport failure');
+            };
+      await expect(f.client.execute('reviewed-plan', context)).rejects.toMatchObject({
+        code: reason === 'incompatible' ? 'CONNECTOR_PROTOCOL' : 'CONNECTOR_PREFLIGHT',
+      });
+      expect(f.requests).toHaveLength(0);
+      f.behavior.health = original;
+      await f.store.save('docs/a.md', 'Still editable', await contentHash('Original A'));
+      expect(f.fs.files.get('docs/a.md')).toBe('Still editable');
+    },
+  );
+
   it.each([
     'STALE_PLAN',
     'PLAN_EXPIRED',
