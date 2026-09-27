@@ -35,14 +35,30 @@ jobs:
           retention-days: 30
 
   published-container:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            arch: amd64
+          - os: ubuntu-24.04-arm
+            arch: arm64
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     steps:
       - name: Resolve the published image and record its exact digest
+        env:
+          IMAGE: ghcr.io/${{ github.repository }}
+          ARCH: ${{ matrix.arch }}
         run: |
-          docker pull ghcr.io/${{ github.repository }}:latest
-          docker image inspect ghcr.io/${{ github.repository }}:latest --format '{{index .RepoDigests 0}}' > scanned-image.txt
-          echo "AGILE_SCAN_IMAGE=$(cat scanned-image.txt)" >> "$GITHUB_ENV"
+          set -euo pipefail
+          docker buildx imagetools inspect "$IMAGE:latest" --raw > published-index.json
+          digest=$(jq -er --arg arch "$ARCH" '[.manifests[] | select(.platform.os == "linux" and .platform.architecture == $arch)] | if length == 1 then .[0].digest else error("Expected one platform digest") end' published-index.json)
+          echo "$digest" | grep -Eq '^sha256:[0-9a-f]{64}$'
+          echo "$IMAGE@$digest" > scanned-image.txt
+          docker pull --platform "linux/$ARCH" "$IMAGE@$digest"
+          test "$(docker image inspect "$IMAGE@$digest" --format '{{.Architecture}}')" = "$ARCH"
+          echo "AGILE_SCAN_IMAGE=$IMAGE@$digest" >> "$GITHUB_ENV"
       - uses: aquasecurity/trivy-action@d2a0b60797ff03db6132bd4e2b293f9b37081297
         with:
           version: v0.74.0
@@ -54,14 +70,18 @@ jobs:
           exit-code: '0'
           timeout: 10m
       - name: Fail on actionable high or critical findings
+        env:
+          ARCH: ${{ matrix.arch }}
         run: |
+          jq -e --arg arch "$ARCH" '.Metadata.ImageConfig.architecture == $arch' container-vulnerabilities.json
           jq -e '.Metadata.OS.Family == "debian" and ([.Results[]? | select(.Class == "os-pkgs")] | length > 0)' container-vulnerabilities.json
           jq -e '[.Results[]?.Vulnerabilities[]? | select((.Severity == "HIGH" or .Severity == "CRITICAL") and (.FixedVersion // "") != "")] | length == 0' container-vulnerabilities.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
-          name: container-security
+          name: container-security-${{ matrix.arch }}
           path: |
             scanned-image.txt
+            published-index.json
             container-vulnerabilities.json
           retention-days: 30

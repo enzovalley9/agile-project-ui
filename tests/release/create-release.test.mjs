@@ -1,12 +1,18 @@
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { chmod, mkdir, mkdtemp, readFile, rm, unlink, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, readFile, readdir, rm, unlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { delimiter, dirname, join } from 'node:path';
 import { describe, it } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
+
+import { nativeTargets, requiredJobs } from '../../scripts/release-contract.mjs';
+import { createPackageArchive } from '../../scripts/package-archive.mjs';
+import { sourceSbom, sourceSbomName } from '../../scripts/release-sbom.mjs';
+import './release-contract.test.mjs';
+import './package-archive.test.mjs';
 
 const exec = promisify(execFile);
 const releaseScript = fileURLToPath(new URL('../../scripts/create-release.mjs', import.meta.url));
@@ -16,11 +22,22 @@ const nodeVersion = '24.21.0';
 const license = 'MIT License\n\nPermission is hereby granted to this synthetic test fixture.\n';
 const notices = 'Synthetic notices. Permission is hereby granted for test data.\n';
 const hash = (bytes) => createHash('sha256').update(bytes).digest('hex');
-const targets = [
-  ['connectors-Linux-X64', 'linux', 'x64'],
-  ['connectors-macOS-ARM64', 'darwin', 'arm64'],
-  ['connectors-Windows-X64', 'win32', 'x64'],
-];
+const targets = nativeTargets.map(({ artifact, platform, arch }) => [artifact, platform, arch]);
+const assetCount = targets.length * 2 + 2;
+const metadata = { name: 'synthetic-project', version: '0.1.0', license: 'MIT' };
+const sourceDate = '2026-09-27T00:00:00Z';
+const lockfile = JSON.stringify({
+  lockfileVersion: 3,
+  packages: {
+    '': metadata,
+    'node_modules/synthetic-package': {
+      version: '1.2.3',
+      license: 'MIT',
+      resolved: 'https://registry.npmjs.org/synthetic-package/-/synthetic-package-1.2.3.tgz',
+      integrity: 'sha512-' + Buffer.alloc(64, 1).toString('base64'),
+    },
+  },
+});
 
 async function createArchive(root, [artifact, platform, arch], scenario) {
   const name = `agile-project-ui-connectors-${platform}-${arch}`;
@@ -83,7 +100,21 @@ async function createArchive(root, [artifact, platform, arch], scenario) {
     await writeFile(join(directory, 'connectors/git.mjs'), 'Tampered content.');
   if (scenario === 'missing-license') await unlink(join(directory, 'LICENSE'));
   const archive = join(destination, `${name}.tar.gz`);
-  await exec('tar', ['-czf', archive, '-C', root, name], { timeout: 10000 });
+  // Missing-file scenarios remain valid archives so the release allowlist rejects them.
+  const archiveFiles = files.filter(
+    (file) => scenario !== 'missing-license' || file.path !== 'LICENSE',
+  );
+  await createPackageArchive({
+    root,
+    name,
+    files:
+      scenario === 'archive-mode-drift'
+        ? archiveFiles.map((file) =>
+            file.path === 'connectors/git.mjs' ? { ...file, mode: 0o755 } : file,
+          )
+        : archiveFiles,
+    output: archive,
+  });
   const digest = scenario === 'archive-tamper' ? '0'.repeat(64) : hash(await readFile(archive));
   await writeFile(archive + '.sha256', `${digest}  ${name}.tar.gz\n`);
 }
@@ -99,11 +130,8 @@ async function runScenario(scenario) {
     for (const program of ['gh', 'git'])
       await writeFile(join(bin, program), '#!/usr/bin/env node\n' + mockCli, { mode: 0o755 });
     for (const [file, value] of Object.entries({
-      'package.json': JSON.stringify({
-        name: 'synthetic-project',
-        version: '0.1.0',
-        license: 'MIT',
-      }),
+      'package.json': JSON.stringify(metadata),
+      'package-lock.json': lockfile,
       '.node-version': nodeVersion + '\n',
       LICENSE: license,
       'THIRD_PARTY_NOTICES.md': notices,
@@ -111,7 +139,25 @@ async function runScenario(scenario) {
     }))
       await writeFile(join(checkout, file), value);
     await writeFile(join(root, 'state.json'), JSON.stringify({ mutations: [] }));
+    await writeFile(
+      join(root, 'contract.json'),
+      JSON.stringify({ targets: nativeTargets, jobs: requiredJobs }),
+    );
     for (const target of targets) await createArchive(root, target, scenario);
+    await mkdir(join(root, 'sbom'));
+    const sbom = sourceSbom({
+      lockfile,
+      metadata,
+      revision,
+      repository: 'test-owner/test-project',
+      nodeVersion,
+      created: sourceDate,
+    });
+    await writeFile(join(root, 'sbom', sourceSbomName), sbom);
+    await writeFile(
+      join(root, 'sbom', sourceSbomName + '.sha256'),
+      `${hash(sbom)}  ${sourceSbomName}\n`,
+    );
     let result;
     try {
       result = {
@@ -119,7 +165,22 @@ async function runScenario(scenario) {
           process.execPath,
           [
             releaseScript,
-            ...(['check', 'resume-check'].includes(scenario) ? ['--check'] : []),
+            ...(['check', 'resume-check', 'public-check', 'public-export'].includes(scenario)
+              ? ['--check']
+              : []),
+            ...(scenario === 'public-export' || scenario === 'export-without-check'
+              ? ['--export-verified-assets', join(root, 'exported')]
+              : []),
+            ...(scenario === 'missing-visibility'
+              ? []
+              : [
+                  '--expected-visibility',
+                  scenario.startsWith('public-')
+                    ? 'public'
+                    : scenario === 'invalid-visibility'
+                      ? 'internal'
+                      : 'private',
+                ]),
             ...(scenario.startsWith('resume-')
               ? ['--resume-draft-id', scenario === 'resume-invalid-id' ? '9/x' : '9']
               : []),
@@ -148,7 +209,14 @@ async function runScenario(scenario) {
     } catch (error) {
       result = { code: error.code, stdout: error.stdout, stderr: error.stderr };
     }
-    return { ...result, state: JSON.parse(await readFile(join(root, 'state.json'), 'utf8')) };
+    return {
+      ...result,
+      state: JSON.parse(await readFile(join(root, 'state.json'), 'utf8')),
+      exported: await readdir(join(root, 'exported')).catch((error) => {
+        if (error.code === 'ENOENT') return [];
+        throw error;
+      }),
+    };
   } finally {
     await rm(root, { recursive: true, force: true });
   }
@@ -275,7 +343,7 @@ const cases = [
   ['check', 'validates all packages without creating a release', [], null],
   [
     'success',
-    'publishes only after all six uploads are verified',
+    'publishes only after every native archive and checksum are verified',
     ['create', 'upload', 'publish'],
     null,
   ],
@@ -285,7 +353,55 @@ const cases = [
     ['create', 'upload', 'publish'],
     null,
   ],
-  ['public', 'rejects a public repository', [], 'must remain in a private GitHub repository'],
+  [
+    'public',
+    'rejects public visibility when private was selected',
+    [],
+    'Repository visibility must remain private',
+  ],
+  [
+    'public-success',
+    'publishes a public release only when public visibility was explicitly selected',
+    ['create', 'upload', 'publish'],
+    null,
+  ],
+  ['public-check', 'validates public distribution without mutating it', [], null],
+  [
+    'public-visibility-drift',
+    'stops a public release if repository access becomes private',
+    ['create', 'upload'],
+    'Repository visibility must remain public',
+  ],
+  [
+    'missing-visibility',
+    'requires an explicit visibility policy before release work',
+    [],
+    'Select --expected-visibility',
+  ],
+  [
+    'invalid-visibility',
+    'rejects unsupported visibility policies',
+    [],
+    'Select --expected-visibility',
+  ],
+  [
+    'public-export',
+    'exports verified bytes for attestation without claiming signed provenance or publishing',
+    [],
+    null,
+  ],
+  [
+    'export-without-check',
+    'forbids an attestation preparation bypass during publication',
+    [],
+    'Export requires --check',
+  ],
+  [
+    'public-bad-attestation',
+    'stops before draft creation when public provenance verification fails',
+    [],
+    'gh failed',
+  ],
   ['dirty', 'rejects a dirty checkout', [], 'Release checkout must be clean'],
   ['ci-failed', 'rejects a failed exact-commit CI run', [], 'Exact-commit CI did not pass'],
   [
@@ -312,7 +428,27 @@ const cases = [
     [],
     'skipped Run npm run test:release',
   ],
-  ['missing-job', 'requires every one of the six CI jobs', [], 'All six required CI jobs'],
+  ['missing-job', 'requires every CI job including Docker', [], 'All required CI jobs'],
+  [
+    'unexpected-job',
+    'rejects an unreviewed new CI job until the contract is updated',
+    [],
+    'All required CI jobs',
+  ],
+  ['duplicate-job', 'rejects duplicate CI job identities', [], 'All required CI jobs'],
+  [
+    'failed-docker',
+    'rejects failed Docker acceptance even when CI summary claims success',
+    [],
+    'docker did not pass',
+  ],
+  ['skipped-docker', 'rejects skipped Docker acceptance', [], 'skipped Run npm run test:docker'],
+  [
+    'archive-mode-drift',
+    'rejects archive permissions that differ from the verified manifest',
+    [],
+    'Archive header permissions differ',
+  ],
   ['existing', 'preserves an existing release or draft', [], 'already has a release or draft'],
   [
     'tag-drift',
@@ -356,7 +492,7 @@ const cases = [
     'visibility-drift',
     'stops publication if repository visibility changes',
     ['create', 'upload'],
-    'must remain in a private GitHub repository',
+    'Repository visibility must remain private',
   ],
   [
     'uncertain-create',
@@ -373,7 +509,7 @@ const cases = [
 ];
 
 describe(
-  'private release workflow gates',
+  'explicit-visibility release workflow gates',
   {
     // The release workflow runs on Ubuntu; PATH shims also support local macOS verification.
     skip:
@@ -391,13 +527,25 @@ describe(
         else
           assert(
             result.stdout.includes(
-              ['check', 'resume-check'].includes(scenario)
+              ['check', 'resume-check', 'public-check', 'public-export'].includes(scenario)
                 ? 'Read-only release validation passed'
                 : 'Verified release:',
             ),
             result.stdout,
           );
-        if (scenario === 'created-hidden') assert.equal(result.state.uploads, 6);
+        if (scenario === 'created-hidden') assert.equal(result.state.uploads, assetCount);
+        if (scenario === 'public-export') {
+          assert.equal(result.state.attestationChecks, undefined);
+          assert.equal(result.exported.length, assetCount);
+          assert(result.exported.includes(sourceSbomName));
+        }
+        if (scenario === 'public-check' || scenario === 'public-success')
+          assert.equal(result.state.attestationChecks, assetCount);
+        if (scenario === 'success') assert.equal(result.state.attestationChecks, undefined);
+        if (scenario === 'public-success')
+          assert.match(result.state.release.body, /publicly accessible/);
+        if (scenario === 'success')
+          assert.match(result.state.release.body, /inherits private repository access/);
         if (scenario === 'resume-complete') assert.equal(result.state.uploads, undefined);
         assert.equal(Boolean(result.state.published), mutations.includes('publish'));
         if (mutations.includes('create') && !mutations.includes('publish'))

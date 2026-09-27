@@ -1,26 +1,19 @@
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { createReadStream } from 'node:fs';
-import { mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
+import { createReadStream, constants } from 'node:fs';
+import { copyFile, mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { basename, join } from 'node:path';
+import { basename, isAbsolute, join } from 'node:path';
 import { parseArgs, promisify } from 'node:util';
 
+import { nativeTargets, requiredJobs } from './release-contract.mjs';
+import { packageArchiveHeaders } from './package-archive.mjs';
+import { sourceSbom, sourceSbomName } from './release-sbom.mjs';
+
 const exec = promisify(execFile);
-const targets = [
-  { artifact: 'connectors-Linux-X64', platform: 'linux', arch: 'x64' },
-  { artifact: 'connectors-macOS-ARM64', platform: 'darwin', arch: 'arm64' },
-  { artifact: 'connectors-Windows-X64', platform: 'win32', arch: 'x64' },
-];
-const expectedJobs = [
-  'verify (ubuntu-latest)',
-  'verify (macos-latest)',
-  'verify (windows-latest)',
-  'browser (chromium)',
-  'browser (msedge)',
-  'repository-hygiene',
-];
+const targets = nativeTargets;
+const expectedJobs = Object.keys(requiredJobs);
 const sha256 = (bytes) => createHash('sha256').update(bytes).digest('hex');
 async function fileHash(file) {
   const hash = createHash('sha256');
@@ -97,6 +90,7 @@ async function verifyArchive(
     'Archive checksum mismatch.',
   );
 
+  const headers = packageArchiveHeaders(await readFile(archive));
   const runtimeName = target.platform === 'win32' ? 'node.exe' : 'node';
   const launcher = target.platform === 'win32' ? 'agile-connectors.cmd' : 'agile-connectors';
   const installer =
@@ -119,7 +113,16 @@ async function verifyArchive(
     installer,
     'README.txt',
   ];
-  const entries = (await command('tar', ['-tzf', archive])).trim().split('\n');
+  const entries = headers.map((entry) => entry.path);
+  assert(
+    headers.filter((entry) => entry.directory).every((entry) => entry.mode === 0o755),
+    'Unexpected archive directory permissions.',
+  );
+  assert.equal(
+    headers.find((entry) => entry.path === `${name}/manifest.json`)?.mode,
+    0o644,
+    'Unexpected manifest permissions.',
+  );
   const allowed = new Set([
     `${name}/`,
     `${name}/runtime/`,
@@ -167,6 +170,11 @@ async function verifyArchive(
       [launcher, installer, `runtime/${runtimeName}`].includes(file.path);
     assert.equal(file.mode, executable ? 0o755 : 0o644, 'Unexpected package file permissions.');
     assert.equal(
+      headers.find((entry) => entry.path === `${name}/${file.path}`)?.mode,
+      file.mode,
+      'Archive header permissions differ from the manifest.',
+    );
+    assert.equal(
       sha256(await member(file.path)),
       file.sha256,
       `Package checksum failed: ${file.path}`,
@@ -207,10 +215,26 @@ async function verifyArchive(
 
 async function main() {
   const { values } = parseArgs({
-    options: { check: { type: 'boolean' }, 'resume-draft-id': { type: 'string' } },
+    options: {
+      check: { type: 'boolean' },
+      'resume-draft-id': { type: 'string' },
+      'expected-visibility': { type: 'string' },
+      'export-verified-assets': { type: 'string' },
+    },
     allowPositionals: false,
   });
   const checkOnly = values.check === true;
+  const exportDirectory = values['export-verified-assets'];
+  if (exportDirectory !== undefined)
+    assert(
+      checkOnly && isAbsolute(exportDirectory),
+      'Export requires --check and an absolute new directory.',
+    );
+  const expectedVisibility = values['expected-visibility'];
+  assert(
+    ['private', 'public'].includes(expectedVisibility),
+    'Select --expected-visibility private or public explicitly.',
+  );
   const resumeValue = values['resume-draft-id'];
   if (resumeValue !== undefined)
     assert(
@@ -261,9 +285,13 @@ async function main() {
   assert.match(notices, /Permission is hereby granted/, 'Third-party license texts are required.');
   const nodeVersion = (await readFile('.node-version', 'utf8')).trim();
   const base = `repos/${repository}`;
-  const privateMain = async () => {
+  const verifiedMain = async () => {
     const repo = await api(base);
-    assert.equal(repo.private, true, 'This release must remain in a private GitHub repository.');
+    assert.equal(
+      repo.private,
+      expectedVisibility === 'private',
+      `Repository visibility must remain ${expectedVisibility} throughout this release.`,
+    );
     assert.equal(
       repo.full_name.toLowerCase(),
       repository.toLowerCase(),
@@ -277,7 +305,7 @@ async function main() {
     );
     return repo;
   };
-  const repo = await privateMain();
+  const repo = await verifiedMain();
   const tagCommit = async () => {
     const ref = await api(`${base}/git/ref/tags/${tag}`, { optional: true });
     if (!ref) return undefined;
@@ -347,38 +375,14 @@ async function main() {
   assert.deepEqual(
     jobs.map((job) => job.name).sort(),
     [...expectedJobs].sort(),
-    'All six required CI jobs must exist exactly once.',
+    'All required CI jobs must exist exactly once; update the reviewed release contract when CI changes.',
   );
   for (const job of jobs) {
     assert.equal(job.run_id, run.id);
     assert.equal(job.head_sha, revision);
     assert.equal(job.status, 'completed', `${job.name} did not complete.`);
     assert.equal(job.conclusion, 'success', `${job.name} did not pass.`);
-    const requiredSteps = job.name.startsWith('verify ')
-      ? [
-          'Run npm ci',
-          'Run npm run typecheck',
-          'Run npm test',
-          'Run npm run build',
-          'Package bundled runtime',
-          'Install and verify the packaged runtime',
-        ]
-      : job.name.startsWith('browser ')
-        ? [
-            'Run npm ci',
-            'Run npm run test:e2e',
-            ...(job.name === 'browser (chromium)'
-              ? ['Verify static deployment and local connector boundary']
-              : []),
-          ]
-        : [
-            'Run npm ci',
-            'Run npm run test:release',
-            'Run npm run format:check',
-            'Run npm run notices:check',
-            'Run npm run audit:dependencies',
-            'Scan reachable history for secrets',
-          ];
+    const requiredSteps = requiredJobs[job.name];
     for (const requiredStep of requiredSteps)
       assert(
         job.steps.some(
@@ -434,6 +438,47 @@ async function main() {
         })),
       );
     }
+    const sbomPath = join(temp, sourceSbomName);
+    await writeFile(
+      sbomPath,
+      sourceSbom({
+        lockfile: await readFile('package-lock.json', 'utf8'),
+        metadata,
+        revision,
+        repository,
+        nodeVersion,
+        created: (await command('git', ['show', '-s', '--format=%cI', 'HEAD'])).trim(),
+      }),
+    );
+    await writeFile(sbomPath + '.sha256', `${await fileHash(sbomPath)}  ${sourceSbomName}\n`);
+    for (const path of [sbomPath, sbomPath + '.sha256'])
+      assets.push({
+        path,
+        name: basename(path),
+        digest: 'sha256:' + (await fileHash(path)),
+        size: (await stat(path)).size,
+      });
+    if (expectedVisibility === 'public' && exportDirectory === undefined) {
+      for (const asset of assets)
+        await command('gh', [
+          'attestation',
+          'verify',
+          asset.path,
+          '--repo',
+          repository,
+          '--signer-workflow',
+          `${repository}/.github/workflows/release.yml`,
+          '--source-ref',
+          'refs/heads/main',
+          '--source-digest',
+          revision,
+          '--signer-digest',
+          revision,
+          '--deny-self-hosted-runners',
+          '--format',
+          'json',
+        ]);
+    }
     const changelog = await readFile('CHANGELOG.md', 'utf8');
     const heading = `## ${metadata.version}`;
     const lines = changelog.split(/\r?\n/);
@@ -446,7 +491,7 @@ async function main() {
       .trim();
     assert(body.length > 0, 'The release changelog is empty.');
     const ciUrl = `https://github.com/${repository}/actions/runs/${run.id}`;
-    const notes = `${body}\n\n### Verification and distribution\n\n- Source commit: \`${revision}\`. [All six CI jobs passed](${ciUrl}).\n- Connector packages: Linux x64, macOS arm64 and Windows x64, with bundled Node ${nodeVersion}; Git is installed separately.\n- The MIT license, third-party notices and Node.js license are included in every archive. Verify the accompanying SHA-256 checksum before installing.\n- Packages are unsigned and not notarized. Checksums detect corruption; they do not establish publisher identity.\n- Jira and Confluence production remote writes remain blocked. Provider acceptance uses mocks; no live tenant verification is claimed.\n- This release inherits the repository's private access. Only authorized repository users can view or download GitHub release assets; publishing this release does not make the repository public.\n`;
+    const notes = `${body}\n\n### Verification and distribution\n\n- Source commit: \`${revision}\`. [All ${expectedJobs.length} required CI jobs passed](${ciUrl}).\n- Connector packages: Linux, macOS and Windows, each for x64 and arm64, with bundled Node ${nodeVersion}; Git is installed separately.\n- The MIT license, third-party notices and Node.js license are included in every archive. Verify the accompanying SHA-256 checksum before installing.\n- A source SPDX SBOM and checksum describe the committed npm lockfile and pinned Node runtime; the inventory includes development and optional dependencies and is not a container OS SBOM.\n- ${expectedVisibility === 'public' ? 'Every release asset has verified GitHub release-workflow provenance at this exact source commit.' : 'GitHub artifact attestations are not issued for this private-repository release on the current plan; archive manifests and exact CI provenance remain available.'}\n- Packages are unsigned and not notarized. Checksums detect corruption; they do not establish publisher identity.\n- Jira and Confluence production remote writes remain blocked. Provider acceptance uses mocks; no live tenant verification is claimed.\n- ${expectedVisibility === 'private' ? 'This release inherits private repository access. Only authorized repository users can download these assets.' : 'These release assets are publicly accessible under the included license terms.'} Publishing this release never changes repository visibility.\n`;
     let draft;
     const readAssets = async (id) =>
       (await api(`${base}/releases/${id}/assets?per_page=100`, { paginate: true })).flat();
@@ -474,16 +519,24 @@ async function main() {
       }
     }
     if (checkOnly) {
+      if (exportDirectory !== undefined) {
+        await mkdir(exportDirectory);
+        for (const asset of assets)
+          await copyFile(asset.path, join(exportDirectory, asset.name), constants.COPYFILE_EXCL);
+        console.log(
+          'Exported verified assets for attestation. This preparation step does not establish signed provenance.',
+        );
+      }
       console.log(
         `Read-only release validation passed: ${tag}, ${assets.length} assets, ${ciUrl}. No release was created or changed.`,
       );
       return;
     }
-    await privateMain();
+    await verifiedMain();
     await noConflictingRelease(resumeDraftId);
     await tagCommit();
     if (resumeDraftId === undefined) {
-      console.log(`Creating a private-repository draft for ${tag}.`);
+      console.log(`Creating a ${expectedVisibility}-repository draft for ${tag}.`);
       const createPath = join(temp, 'create-release.json');
       await writeFile(
         createPath,
@@ -525,10 +578,10 @@ async function main() {
       }
     }
     await verifyAssets();
-    await privateMain();
+    await verifiedMain();
     await tagCommit();
     await readDraft(draft.id);
-    console.log(`Publishing ${tag} after all six asset digests match.`);
+    console.log(`Publishing ${tag} after all ${assets.length} asset digests match.`);
     const publishPath = join(temp, 'publish-release.json');
     await writeFile(
       publishPath,
@@ -555,9 +608,9 @@ async function main() {
     assert.equal(release.body, notes, 'Published release notes do not match verified provenance.');
     assert.equal(await tagCommit(), revision, 'Published tag does not match the verified source.');
     await verifyAssets();
-    await privateMain();
+    await verifiedMain();
     console.log(
-      `Verified release: https://github.com/${repository}/releases/tag/${tag}. Repository remains private.`,
+      `Verified release: https://github.com/${repository}/releases/tag/${tag}. Repository remains ${expectedVisibility}.`,
     );
   } catch (error) {
     if (draftAttempted && !draftCreated)

@@ -3,6 +3,12 @@ name: Release verified connector packages
 on:
   workflow_dispatch:
     inputs:
+      expected_visibility:
+        description: 'Required repository visibility; never changes visibility'
+        required: true
+        default: private
+        type: choice
+        options: [private, public]
       resume_draft_id:
         description: 'Optional inspected draft ID to resume at this exact tested commit'
         required: false
@@ -20,10 +26,12 @@ jobs:
   release:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     permissions:
       contents: write
       actions: read
+      id-token: write
+      attestations: write
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -32,13 +40,31 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version-file: .node-version
-      - name: Validate CI artifacts and publish the private repository release
+      - name: Prepare exact verified public release assets
+        if: inputs.expected_visibility == 'public'
         run: |
-          args=()
+          args=(--expected-visibility "$EXPECTED_VISIBILITY" --check --export-verified-assets "$RUNNER_TEMP/release-assets")
           if [[ -n "$RESUME_DRAFT_ID" ]]; then
             args+=(--resume-draft-id "$RESUME_DRAFT_ID")
           fi
           node scripts/create-release.mjs "${args[@]}"
         env:
+          EXPECTED_VISIBILITY: ${{ inputs.expected_visibility }}
+          RESUME_DRAFT_ID: ${{ inputs.resume_draft_id }}
+          GH_TOKEN: ${{ github.token }}
+      - name: Attest verified public release assets
+        if: inputs.expected_visibility == 'public'
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
+        with:
+          subject-path: ${{ runner.temp }}/release-assets/*
+      - name: Validate CI artifacts and publish the verified release
+        run: |
+          args=(--expected-visibility "$EXPECTED_VISIBILITY")
+          if [[ -n "$RESUME_DRAFT_ID" ]]; then
+            args+=(--resume-draft-id "$RESUME_DRAFT_ID")
+          fi
+          node scripts/create-release.mjs "${args[@]}"
+        env:
+          EXPECTED_VISIBILITY: ${{ inputs.expected_visibility }}
           GH_TOKEN: ${{ github.token }}
           RESUME_DRAFT_ID: ${{ inputs.resume_draft_id }}

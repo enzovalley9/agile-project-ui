@@ -58,6 +58,9 @@ if (scenario.startsWith('resume-') && !state.release) {
         assetFor(join(root, 'artifacts', directory, file)),
       ),
     );
+    state.assets.push(
+      ...readdirSync(join(root, 'sbom')).map((file) => assetFor(join(root, 'sbom', file))),
+    );
     if (scenario === 'resume-partial') state.assets.pop();
     if (scenario === 'resume-bad-digest') state.assets[0].digest = 'sha256:' + '0'.repeat(64);
     if (scenario === 'resume-bad-size') state.assets[0].size++;
@@ -72,56 +75,37 @@ const missing = () => {
 };
 const releaseStep = 'Run npm run test:release';
 const hostedStep = 'Verify static deployment and local connector boundary';
-const jobNames = [
-  'verify (ubuntu-latest)',
-  'verify (macos-latest)',
-  'verify (windows-latest)',
-  'browser (chromium)',
-  'browser (msedge)',
-  'repository-hygiene',
-];
-const artifactNames = ['connectors-Linux-X64', 'connectors-macOS-ARM64', 'connectors-Windows-X64'];
+const contract = JSON.parse(readFileSync(join(root, 'contract.json'), 'utf8'));
+const artifactNames = contract.targets.map((target) => target.artifact);
+const assetCount = artifactNames.length * 2 + 2;
 
 function jobs() {
-  return jobNames.map((name) => {
-    const steps = name.startsWith('verify ')
-      ? [
-          'Run npm ci',
-          'Run npm run typecheck',
-          'Run npm test',
-          'Run npm run build',
-          'Package bundled runtime',
-          'Install and verify the packaged runtime',
-        ]
-      : name.startsWith('browser ')
-        ? ['Run npm ci', 'Run npm run test:e2e']
-        : [
-            'Run npm ci',
-            releaseStep,
-            'Run npm run format:check',
-            'Run npm run notices:check',
-            'Run npm run audit:dependencies',
-            'Scan reachable history for secrets',
-          ];
-    if (name === 'browser (chromium)' && scenario !== 'missing-hosted') steps.push(hostedStep);
+  const result = Object.entries(contract.jobs).map(([name, requiredSteps]) => {
+    const steps = requiredSteps.filter(
+      (step) => !(scenario === 'missing-hosted' && step === hostedStep),
+    );
     return {
       name,
       run_id: 7,
       head_sha: revision,
       status: 'completed',
-      conclusion: 'success',
+      conclusion: scenario === 'failed-docker' && name === 'docker' ? 'failure' : 'success',
       steps: steps.map((step) => ({
         name: step,
         status: 'completed',
         conclusion:
           (scenario === 'skipped-unit' && step === 'Run npm test') ||
           (scenario === 'skipped-hosted' && step === hostedStep) ||
-          (scenario === 'skipped-release-tests' && step === releaseStep)
+          (scenario === 'skipped-release-tests' && step === releaseStep) ||
+          (scenario === 'skipped-docker' && step === 'Run npm run test:docker')
             ? 'skipped'
             : 'success',
       })),
     };
   });
+  if (scenario === 'unexpected-job') result.push({ ...result[0], name: 'unreviewed-job' });
+  if (scenario === 'duplicate-job') result.push(result[0]);
+  return result;
 }
 
 if (basename(process.argv[1]) === 'git') {
@@ -129,17 +113,50 @@ if (basename(process.argv[1]) === 'git') {
     console.log(revision);
     process.exit(0);
   }
+  if (args.join(' ') === 'show -s --format=%cI HEAD') {
+    console.log('2026-09-27T00:00:00Z');
+    process.exit(0);
+  }
   if (args.join(' ') === 'status --porcelain') {
     process.stdout.write(scenario === 'dirty' ? ' M changed.txt\n' : '');
     process.exit(0);
   }
+} else if (args[0] === 'attestation' && args[1] === 'verify') {
+  const expected = [
+    '--repo',
+    'test-owner/test-project',
+    '--signer-workflow',
+    'test-owner/test-project/.github/workflows/release.yml',
+    '--source-ref',
+    'refs/heads/main',
+    '--source-digest',
+    revision,
+    '--signer-digest',
+    revision,
+    '--deny-self-hosted-runners',
+    '--format',
+    'json',
+  ];
+  if (JSON.stringify(args.slice(3)) !== JSON.stringify(expected)) process.exit(2);
+  if (scenario === 'public-bad-attestation') process.exit(1);
+  state.attestationChecks = (state.attestationChecks ?? 0) + 1;
+  save();
+  output([
+    {
+      verificationResult: {
+        statement: { subject: [{ digest: { sha256: assetFor(args[2]).digest.slice(7) } }] },
+      },
+    },
+  ]);
 } else if (args[0] === 'api') {
   const endpoint = args[1];
   const method = args[args.indexOf('--method') + 1];
   const input = args.includes('--input') ? args[args.indexOf('--input') + 1] : undefined;
   if (endpoint === base)
     output({
-      private: scenario !== 'public' && !(scenario === 'visibility-drift' && state.assets),
+      private: !(scenario === 'public' || scenario.startsWith('public-'))
+        ? !(scenario === 'visibility-drift' && state.assets)
+        : Boolean(scenario === 'public-visibility-drift' && state.assets),
       full_name: 'test-owner/test-project',
       default_branch: 'main',
       id: 1,
@@ -175,7 +192,7 @@ if (basename(process.argv[1]) === 'git') {
     ]);
   }
   if (endpoint === `${base}/releases/9`) {
-    if (scenario === 'resume-drift-before-publish' && state.assets.length === 6)
+    if (scenario === 'resume-drift-before-publish' && state.assets.length === assetCount)
       state.release.target_commitish = 'b'.repeat(40);
     if (scenario === 'resume-missing') missing();
     if (method === 'PATCH') {
@@ -222,7 +239,7 @@ if (basename(process.argv[1]) === 'git') {
     )
       process.exit(2);
     if (scenario === 'bad-upload-digest') asset.digest = 'sha256:' + '0'.repeat(64);
-    if (!(scenario === 'partial-upload' && state.uploads === 6)) state.assets.push(asset);
+    if (!(scenario === 'partial-upload' && state.uploads === assetCount)) state.assets.push(asset);
     save();
     output(asset);
   }

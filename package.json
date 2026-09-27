@@ -1,6 +1,6 @@
 {
   "name": "agile-project-ui",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -28,7 +28,9 @@
     "test:hosted": "playwright test --config playwright.hosted.config.ts",
     "test:release": "node --test tests/release/create-release.test.mjs",
     "test:docker": "node tests/docker/compose-smoke.mjs && playwright test --config playwright.docker.config.ts",
-    "test:docker:runtime": "node --test docker/*.test.mjs"
+    "test:docker:runtime": "node --test docker/*.test.mjs",
+    "test:maintenance": "node --test tests/maintenance/*.test.mjs",
+    "test:beta": "playwright test --config playwright.beta.config.ts"
   },
   "dependencies": {
     "@codemirror/commands": "^6.11.1",
