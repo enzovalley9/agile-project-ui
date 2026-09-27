@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
 export type ThemePreference = 'system' | 'light' | 'dark';
+// Historical preference key: retain it so the product rename preserves the selected theme.
 const key = 'bmad-project-ui.theme';
 const valid = (value: string | null): ThemePreference =>
   value === 'light' || value === 'dark' ? value : 'system';

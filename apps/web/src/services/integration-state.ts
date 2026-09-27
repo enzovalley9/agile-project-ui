@@ -71,6 +71,7 @@ function validBase(value: unknown, binding: IntegrationBinding): value is Compar
 }
 async function baseDirectory(create: boolean) {
   const root = await navigator.storage.getDirectory();
+  // Historical private namespace: preserve comparison history across the product rename.
   return root.getDirectoryHandle('bmad-project-ui-comparison-bases', { create });
 }
 export async function getComparisonBase(

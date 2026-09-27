@@ -1,4 +1,8 @@
-# Host the application on Cloudflare
+# Host Agile Project UI on Cloudflare
+
+Agile Project UI is a local-first workspace for documents, stories and sprints. Compatible with BMAD Method, it is an independent application; hosting it does not imply endorsement by BMad Code, LLC.
+
+The selected deployment target is `agile-project-ui.enzovalley9.workers.dev`. This guide describes how to deploy and verify that target; configuration alone does not establish that the website is live.
 
 The frontend can be served as a static website. The included Cloudflare configuration publishes only `dist/web` using Workers Static Assets. There is no Worker entry point, application database, server-side rendering or uploaded project storage.
 
@@ -75,7 +79,7 @@ The automated acceptance suite can target the deployed origin after building the
 
 ```sh
 npm run build:connectors
-BMAD_HOSTED_URL='https://YOUR_WORKER_NAME.YOUR_SUBDOMAIN.workers.dev' npm run test:hosted
+AGILE_PROJECT_UI_HOSTED_URL='https://YOUR_WORKER_NAME.YOUR_SUBDOMAIN.workers.dev' npm run test:hosted
 ```
 
 Run from the same source revision as the deployment: the suite requires `/version.json` to match the local package version and exact Git HEAD. It uses real disposable files through an automated picker boundary and the actual local Git CLI. It checks headers, private-path rejection, public help, saving, a reviewed commit, story movement and theme persistence. The browser context grants local-network permission for the test. A separate native browser run must still verify the real folder picker and permission prompts.

@@ -15,7 +15,7 @@ const roots: string[] = [];
 let configurationRoot: string;
 let emptyGlobalConfig: string;
 beforeAll(async () => {
-  configurationRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'bmad-git-test-config-'));
+  configurationRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'agile-git-test-config-'));
   emptyGlobalConfig = path.join(configurationRoot, 'empty.gitconfig');
   // Git for Windows cannot read Node's device path (\\.\nul) as a config file.
   // A real empty file isolates every native invocation on all three platforms.
@@ -41,7 +41,7 @@ async function git(repo: string, args: string[]) {
   ).stdout.trimEnd();
 }
 async function fixture(options: Partial<GitOptions> = {}, initialCommit = true) {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'bmad-git-test-'));
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'agile-git-test-'));
   roots.push(root);
   const repo = path.join(root, 'project');
   await fs.mkdir(repo);
@@ -124,6 +124,10 @@ describe('Git connector capability and repository binding', () => {
   it('requires exact Host, Origin, local capability and a live binding', async () => {
     const f = await fixture();
     expect((await f.request('health')).status).toBe(200);
+    expect(await (await f.request('health')).json()).toMatchObject({
+      product: 'Agile Project UI Git Connector',
+      protocol: 1,
+    });
     expect((await f.request('health')).headers.get('Access-Control-Allow-Origin')).toBe(origin);
     expect(
       (await f.request('session', 'POST', { trustRepository: true, padding: 'a'.repeat(70_000) }))

@@ -93,7 +93,7 @@ export function RecoveryDialog({
     );
     const link = document.createElement('a');
     link.href = url;
-    link.download = `bmad-recovery-${reviewed.id}.json`;
+    link.download = `agile-recovery-${reviewed.id}.json`;
     link.click();
     setExported(true);
     setTimeout(() => URL.revokeObjectURL(url), 1000);

@@ -1,5 +1,5 @@
 {
-  "name": "bmad-project-ui",
+  "name": "agile-project-ui",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -66,14 +66,14 @@
     "vitest": "^5.0.2",
     "wrangler": "4.141.0"
   },
-  "description": "A file-based browser workspace for BMAD Method documents, stories, comments and reviewed Git changes.",
+  "description": "A local-first workspace for documents, stories and sprints. Compatible with BMAD Method.",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/enzovalley9/bmad-project-ui.git"
+    "url": "git+https://github.com/enzovalley9/agile-project-ui.git"
   },
-  "homepage": "https://github.com/enzovalley9/bmad-project-ui#readme",
+  "homepage": "https://agile-project-ui.enzovalley9.workers.dev",
   "bugs": {
-    "url": "https://github.com/enzovalley9/bmad-project-ui/issues"
+    "url": "https://github.com/enzovalley9/agile-project-ui/issues"
   },
   "license": "MIT"
 }

@@ -1,9 +1,10 @@
 import { defineConfig, devices } from '@playwright/test';
 
-const baseURL = process.env.BMAD_HOSTED_URL;
-if (!baseURL) throw new Error('Set BMAD_HOSTED_URL to the deployed HTTPS application origin.');
+const baseURL = process.env.AGILE_PROJECT_UI_HOSTED_URL;
+if (!baseURL)
+  throw new Error('Set AGILE_PROJECT_UI_HOSTED_URL to the deployed HTTPS application origin.');
 const target = new URL(baseURL);
-const localPreview = process.env.BMAD_HOSTED_PREVIEW === '1';
+const localPreview = process.env.AGILE_PROJECT_UI_HOSTED_PREVIEW === '1';
 if (
   localPreview &&
   (target.protocol !== 'http:' || target.hostname !== '127.0.0.1' || !target.port)

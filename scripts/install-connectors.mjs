@@ -30,14 +30,14 @@ const defaultDirectory =
   process.platform === 'win32'
     ? path.join(
         process.env.LOCALAPPDATA || path.join(homedir(), 'AppData', 'Local'),
-        'BMAD Project UI',
+        'Agile Project UI',
         'connectors',
       )
     : process.platform === 'darwin'
-      ? path.join(homedir(), 'Library', 'Application Support', 'BMAD Project UI', 'connectors')
+      ? path.join(homedir(), 'Library', 'Application Support', 'Agile Project UI', 'connectors')
       : path.join(
           process.env.XDG_DATA_HOME || path.join(homedir(), '.local', 'share'),
-          'bmad-project-ui',
+          'agile-project-ui',
           'connectors',
         );
 const destination = path.resolve(args[1] || defaultDirectory);
@@ -56,7 +56,7 @@ async function install() {
     throw new Error(
       'This package does not match the running bundled runtime, platform or architecture.',
     );
-  const launcher = process.platform === 'win32' ? 'bmad-connectors.cmd' : 'bmad-connectors';
+  const launcher = process.platform === 'win32' ? 'agile-connectors.cmd' : 'agile-connectors';
   const installer =
     process.platform === 'win32'
       ? 'install.cmd'
@@ -136,7 +136,7 @@ async function install() {
     await fs.rename(staging, destination);
     staging = undefined;
     process.stdout.write(
-      `Installed at ${destination}\nNo login item, service, or network listener was started.\nRun ${process.platform === 'win32' ? '.\\bmad-connectors.cmd' : './bmad-connectors'} --help in that folder.\nSetup: https://github.com/enzovalley9/bmad-project-ui/blob/main/docs/connector-setup.md\n`,
+      `Installed at ${destination}\nNo login item, service, or network listener was started.\nRun ${process.platform === 'win32' ? '.\\agile-connectors.cmd' : './agile-connectors'} --help in that folder.\nSetup: https://github.com/enzovalley9/agile-project-ui/blob/main/docs/connector-setup.md\n`,
     );
   } finally {
     if (staging) await fs.rm(staging, { recursive: true, force: true });

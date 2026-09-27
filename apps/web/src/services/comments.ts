@@ -87,6 +87,7 @@ export async function mutateThread(
   await store.save(stored.path, serializeThread(thread), stored.revision);
   return thread;
 }
+// Retain the historical preference key so existing authors keep their identity.
 export function getActor(): Actor {
   const saved = localStorage.getItem('bmad-ui:actor');
   if (saved) {

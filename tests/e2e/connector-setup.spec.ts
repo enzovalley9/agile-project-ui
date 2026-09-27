@@ -25,7 +25,7 @@ for (const [provider, name, port] of [
     await expect(guide).toBeVisible();
     await expect(
       guide.getByRole('link', { name: 'Download connectors', exact: true }),
-    ).toHaveAttribute('href', 'https://github.com/enzovalley9/bmad-project-ui/releases');
+    ).toHaveAttribute('href', 'https://github.com/enzovalley9/agile-project-ui/releases');
     await expect(guide).not.toContainText(/private artifacts|private packages/i);
     await expect(guide.getByRole('heading', { name: 'Prepare the local files' })).toBeVisible();
     const start = guide.getByRole('region', { name: `Start the ${name} connector`, exact: true });
@@ -37,7 +37,7 @@ for (const [provider, name, port] of [
         os === 'windows' ? '.\\install.cmd' : os === 'macos' ? './install.command' : './install.sh',
       );
       await expect(start).toContainText(
-        os === 'windows' ? '.\\bmad-connectors.cmd' : './bmad-connectors',
+        os === 'windows' ? '.\\agile-connectors.cmd' : './agile-connectors',
       );
       await expect(start).toContainText("--origin 'http://127.0.0.1:5173'");
       await expect(start).toContainText(`${provider}-session`);

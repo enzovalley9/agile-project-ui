@@ -4,7 +4,7 @@ Changes are grouped by release. This project is in its early 0.x series; review 
 
 ## 0.1.0
 
-Initial release.
+Initial release of Agile Project UI, a local-first workspace for documents, stories and sprints. Compatible with BMAD Method.
 
 ### Added
 

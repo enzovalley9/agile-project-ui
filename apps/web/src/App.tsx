@@ -369,7 +369,7 @@ export default function App() {
         <i />
         <i />
       </span>
-      BMAD Project UI
+      Agile Project UI
     </div>
   );
   return (
@@ -382,7 +382,7 @@ export default function App() {
             href={
               import.meta.env.PROD
                 ? '/help/'
-                : 'https://github.com/enzovalley9/bmad-project-ui#readme'
+                : 'https://github.com/enzovalley9/agile-project-ui#readme'
             }
             target="_blank"
             rel="noopener noreferrer"
@@ -532,7 +532,7 @@ export default function App() {
         <main className={styles.welcome}>
           <p className={styles.eyebrow}>Your project, from its files</p>
           <h1>
-            Your BMAD context,
+            Your project context,
             <br />
             in one place.
           </h1>
@@ -545,7 +545,8 @@ export default function App() {
             Choose project folder
           </button>
           <p className={styles.muted}>
-            Desktop Chrome or Edge. Your documents stay on your computer.
+            Compatible with BMAD Method. An independent project, not affiliated with or endorsed by
+            BMAD. Desktop Chrome or Edge. Your documents stay on your computer.
           </p>
           <div className={styles.welcomeFeatures}>
             <section>

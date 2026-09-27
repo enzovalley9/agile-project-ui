@@ -12,7 +12,9 @@ export default defineConfig({
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     ...devices['Desktop Chrome'],
-    ...(process.env.BMAD_E2E_CHANNEL ? { channel: process.env.BMAD_E2E_CHANNEL } : {}),
+    ...(process.env.AGILE_PROJECT_UI_E2E_CHANNEL
+      ? { channel: process.env.AGILE_PROJECT_UI_E2E_CHANNEL }
+      : {}),
   },
   webServer: {
     command: 'npm run dev',

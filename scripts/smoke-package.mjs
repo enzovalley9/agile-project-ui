@@ -9,9 +9,9 @@ import path from 'node:path';
 import assert from 'node:assert/strict';
 
 const exec = promisify(execFile);
-const name = `bmad-project-ui-connectors-${process.platform}-${process.arch}`;
+const name = `agile-project-ui-connectors-${process.platform}-${process.arch}`;
 const archive = path.resolve(process.argv[2] || `dist/artifacts/${name}.tar.gz`);
-const root = await fs.mkdtemp(path.join(tmpdir(), 'bmad-package-smoke-'));
+const root = await fs.mkdtemp(path.join(tmpdir(), 'agile-project-ui-package-smoke-'));
 const source = path.join(root, name),
   destination = path.join(root, 'user install', 'connectors');
 const runtime = path.join(source, 'runtime', process.platform === 'win32' ? 'node.exe' : 'node');
@@ -272,7 +272,7 @@ try {
 
   const launcher = path.join(
     destination,
-    process.platform === 'win32' ? 'bmad-connectors.cmd' : 'bmad-connectors',
+    process.platform === 'win32' ? 'agile-connectors.cmd' : 'agile-connectors',
   );
   assert.match((await invoke(launcher, ['--help'])).stdout, /Usage:/);
   assert.match((await invoke(launcher, ['git', '--help'])).stdout, /--token-file/);

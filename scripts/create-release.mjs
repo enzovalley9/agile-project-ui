@@ -60,7 +60,7 @@ async function verifyArchive(
   target,
   { version, revision, nodeVersion, license, notices },
 ) {
-  const name = `bmad-project-ui-connectors-${target.platform}-${target.arch}`;
+  const name = `agile-project-ui-connectors-${target.platform}-${target.arch}`;
   const archive = join(directory, name + '.tar.gz');
   const checksum = archive + '.sha256';
   assert.deepEqual(
@@ -76,7 +76,7 @@ async function verifyArchive(
   );
 
   const runtimeName = target.platform === 'win32' ? 'node.exe' : 'node';
-  const launcher = target.platform === 'win32' ? 'bmad-connectors.cmd' : 'bmad-connectors';
+  const launcher = target.platform === 'win32' ? 'agile-connectors.cmd' : 'agile-connectors';
   const installer =
     target.platform === 'win32'
       ? 'install.cmd'

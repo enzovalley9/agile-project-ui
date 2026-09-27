@@ -14,6 +14,10 @@ test('opens an actual fixture tree in read mode without modifying files', async 
   });
   const before = await readFile(join(project, 'docs/notes/meeting.md'), 'utf8');
   await page.goto('/');
+  await expect(page).toHaveTitle('Agile Project UI');
+  await expect(page.getByRole('banner')).toContainText('Agile Project UI');
+  await expect(page.getByRole('main')).toContainText('Compatible with BMAD Method.');
+  await expect(page.getByRole('main')).toContainText('not affiliated with or endorsed by BMAD');
   await expect(page.getByRole('button', { name: 'Choose project folder' })).toBeVisible();
   await page.getByRole('button', { name: 'Choose project folder' }).click();
   await expect(page.getByRole('button', { name: 'Stories', exact: true })).toBeVisible();

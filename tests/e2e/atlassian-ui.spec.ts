@@ -23,12 +23,12 @@ async function mockAtlassian(provider: 'jira' | 'confluence' = 'confluence') {
   const remote: RemoteResource = {
     provider,
     deployment: 'cloud',
-    instance: 'https://bmad-e2e.example.test',
+    instance: 'https://agile-e2e.example.test',
     id: '101',
     ...(isJira ? { key: 'GARDEN-17' } : {}),
     url: isJira
-      ? 'https://bmad-e2e.example.test/browse/GARDEN-17'
-      : 'https://bmad-e2e.example.test/wiki/pages/101',
+      ? 'https://agile-e2e.example.test/browse/GARDEN-17'
+      : 'https://agile-e2e.example.test/wiki/pages/101',
     scopeId: '7',
     scopeName: 'Garden',
     title,
@@ -118,7 +118,7 @@ async function mockAtlassian(provider: 'jira' | 'confluence' = 'confluence') {
     origin: 'http://127.0.0.1:5173',
     port,
     launcherToken: token,
-    journalDirectory: await mkdtemp(join(tmpdir(), 'bmad-atlassian-ui-')),
+    journalDirectory: await mkdtemp(join(tmpdir(), 'agile-atlassian-ui-')),
   });
   return {
     token,

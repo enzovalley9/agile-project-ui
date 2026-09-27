@@ -106,7 +106,7 @@ export function createGitApp(options: GitOptions): Hono & { service: GitService 
     await next();
   });
   app.get('/v1/health', (c) =>
-    c.json({ product: 'BMAD Project UI Git Connector', protocol: 1, version: '0.1.0' }),
+    c.json({ product: 'Agile Project UI Git Connector', protocol: 1, version: '0.1.0' }),
   );
   app.post('/v1/session', async (c) => {
     const body = await c.req.json<{ trustRepository: boolean }>();

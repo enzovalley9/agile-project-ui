@@ -17,10 +17,10 @@ To run the Edge browser locally after installing it for Playwright:
 
 ```sh
 npx playwright install msedge
-BMAD_E2E_CHANNEL=msedge npm run test:e2e
+AGILE_PROJECT_UI_E2E_CHANNEL=msedge npm run test:e2e
 ```
 
-That environment assignment is POSIX shell syntax. In PowerShell, set `$env:BMAD_E2E_CHANNEL='msedge'`, run the command, then remove the variable if it should not affect later runs. Browser installation can require system dependencies; CI uses Playwright's `--with-deps` option.
+That environment assignment is POSIX shell syntax. In PowerShell, set `$env:AGILE_PROJECT_UI_E2E_CHANNEL='msedge'`, run the command, then remove the variable if it should not affect later runs. Browser installation can require system dependencies; CI uses Playwright's `--with-deps` option.
 
 The repository-hygiene CI job also verifies deterministic notices, formatting, dependency vulnerability reports and reachable-history secret scanning. These are checks of known patterns and reported vulnerabilities, not proof of the absence of all security defects.
 

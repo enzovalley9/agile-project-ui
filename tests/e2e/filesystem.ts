@@ -139,7 +139,7 @@ export async function installDiskPicker(page: Page, root: string) {
 }
 export const test = base.extend<{ project: string }>({
   project: async ({ page }, use) => {
-    const temp = await mkdtemp(join(tmpdir(), 'bmad-ui-e2e-'));
+    const temp = await mkdtemp(join(tmpdir(), 'agile-project-ui-e2e-'));
     const root = await realpath(temp);
     await cp(resolve('tests/fixtures/community-garden'), root, { recursive: true });
     await mkdir(join(root, '.git'));

@@ -11,14 +11,14 @@ const exec = promisify(execFile);
 const command = async (root: string, ...args: string[]) =>
   (await exec('git', args, { cwd: root })).stdout.trim();
 async function setup(root: string, port: number) {
-  const state = await mkdtemp(join(tmpdir(), 'bmad-git-e2e-')),
+  const state = await mkdtemp(join(tmpdir(), 'agile-git-e2e-')),
     remote = join(state, 'remote.git'),
     tokenFile = join(state, 'session');
   await mkdir(remote);
   await command(remote, 'init', '--bare');
   await command(root, 'init', '-b', 'main');
-  await command(root, 'config', 'user.name', 'BMAD E2E');
-  await command(root, 'config', 'user.email', 'bmad-e2e@example.invalid');
+  await command(root, 'config', 'user.name', 'Agile Project UI E2E');
+  await command(root, 'config', 'user.email', 'agile-project-ui-e2e@example.invalid');
   await writeFile(join(root, '.gitignore'), '.bmad-project-ui/local/\n');
   await command(root, 'add', '.');
   await command(root, 'commit', '-m', 'Original fixture');

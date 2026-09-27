@@ -35,6 +35,8 @@ export interface RecoveryStatus {
   backupsAvailable: boolean;
   backupsPersistent: boolean;
 }
+// Historical data-format namespace, retained across the Agile Project UI rename.
+// Changing it would hide pending recovery records and split existing project state.
 const recoveryPath = '.bmad-project-ui/local/write-recovery.json';
 export class ProjectError extends Error {
   constructor(

@@ -27,11 +27,11 @@ if (!response.ok) throw new Error('Node runtime download failed');
 const bytes = Buffer.from(await response.arrayBuffer());
 const actual = createHash('sha256').update(bytes).digest('hex');
 if (actual !== checksumLine.split(' ')[0]) throw new Error('Node archive checksum mismatch');
-const temp = await mkdtemp(join(tmpdir(), 'bmad-package-'));
+const temp = await mkdtemp(join(tmpdir(), 'agile-project-ui-package-'));
 await writeFile(join(temp, archive), bytes);
 if (platform === 'win32') execFileSync('tar', ['-xf', join(temp, archive), '-C', temp]);
 else execFileSync('tar', ['-xzf', join(temp, archive), '-C', temp]);
-const name = `bmad-project-ui-connectors-${platform}-${arch}`;
+const name = `agile-project-ui-connectors-${platform}-${arch}`;
 const packageRoot = await mkdtemp(resolve('dist/packages-'));
 const out = join(packageRoot, name);
 await mkdir(join(out, 'runtime'), { recursive: true });
@@ -55,16 +55,16 @@ await writeFile(
 for (const file of ['launch-connectors.mjs', 'install-connectors.mjs'])
   await copyFile(join('scripts', file), join(out, file));
 const unixLauncher =
-  '#!/bin/sh\nset -eu\nBMAD_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"\nexec "$BMAD_DIR/runtime/node" "$BMAD_DIR/launch-connectors.mjs" "$@"\n';
+  '#!/bin/sh\nset -eu\nAGILE_PROJECT_UI_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"\nexec "$AGILE_PROJECT_UI_DIR/runtime/node" "$AGILE_PROJECT_UI_DIR/launch-connectors.mjs" "$@"\n';
 const windowsLauncher =
   '@echo off\r\nsetlocal DisableDelayedExpansion\r\n"%~dp0runtime\\node.exe" "%~dp0launch-connectors.mjs" %*\r\nexit /b %errorlevel%\r\n';
 await writeFile(
-  join(out, platform === 'win32' ? 'bmad-connectors.cmd' : 'bmad-connectors'),
+  join(out, platform === 'win32' ? 'agile-connectors.cmd' : 'agile-connectors'),
   platform === 'win32' ? windowsLauncher : unixLauncher,
 );
-if (platform !== 'win32') await chmod(join(out, 'bmad-connectors'), 0o755);
+if (platform !== 'win32') await chmod(join(out, 'agile-connectors'), 0o755);
 const unixInstall =
-  '#!/bin/sh\nset -eu\nBMAD_SOURCE="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"\nexec "$BMAD_SOURCE/runtime/node" "$BMAD_SOURCE/install-connectors.mjs" "$@"\n';
+  '#!/bin/sh\nset -eu\nAGILE_PROJECT_UI_SOURCE="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"\nexec "$AGILE_PROJECT_UI_SOURCE/runtime/node" "$AGILE_PROJECT_UI_SOURCE/install-connectors.mjs" "$@"\n';
 const windowsInstall =
   '@echo off\r\nsetlocal DisableDelayedExpansion\r\n"%~dp0runtime\\node.exe" "%~dp0install-connectors.mjs" %*\r\nexit /b %errorlevel%\r\n';
 const installer =
@@ -72,10 +72,10 @@ const installer =
 await writeFile(join(out, installer), platform === 'win32' ? windowsInstall : unixInstall);
 if (platform !== 'win32') await chmod(join(out, installer), 0o755);
 const commandPrefix = platform === 'win32' ? '.\\' : './';
-const launcherName = platform === 'win32' ? 'bmad-connectors.cmd' : 'bmad-connectors';
+const launcherName = platform === 'win32' ? 'agile-connectors.cmd' : 'agile-connectors';
 await writeFile(
   join(out, 'README.txt'),
-  `BMAD Project UI optional connectors\n\nIncludes Node ${nodeVersion} for ${platform}/${arch}. Install Git separately only if you use the Git connector.\nRun ${commandPrefix}${installer} from the extracted folder, or use that folder directly. The installer also accepts --destination ABSOLUTE_DIRECTORY.\nThe installer verifies package checksums and the copied runtime in a staging folder, then renames it into place. Existing installations are preserved.\nAn interrupted process may leave a hidden staging folder or .connectors.install-lock beside the destination. Ensure no installer is running before removing only these installer leftovers and retrying.\nNo elevated privileges, auto-start, system changes, or listening process on install.\nSetup for Git, Jira and Confluence (requirements, credentials, platform-specific commands and browser steps):\nhttps://github.com/enzovalley9/bmad-project-ui/blob/main/docs/connector-setup.md\nThe web app also provides an Install connector guide with commands for its current origin.\nAfter installation, open a terminal in the printed destination. No command is added to PATH.\nCommand reference: ${commandPrefix}${launcherName} --help\nGit accesses the exact repository supplied with --repo. Jira and Confluence run separately and do not read the repository; the browser reads and saves project files.\nKeep provider credentials outside the project. Load only the generated connector session file in the browser, never the provider credentials JSON.\nStop: Ctrl+C. Uninstall: stop processes and move the installed folder to Trash. Project files are never deleted.\nThird-party terms are included in THIRD_PARTY_NOTICES.md and runtime/LICENSE. First-party redistribution requires the root LICENSE.\nThese packages are unsigned. Checksums detect corruption but do not establish publisher identity. Do not bypass OS security prompts; inspect/run from a trusted developer environment.\n`,
+  `Agile Project UI optional connectors\nCompatible with BMAD Method. Independent project; not affiliated with or endorsed by BMad Code, LLC.\n\nIncludes Node ${nodeVersion} for ${platform}/${arch}. Install Git separately only if you use the Git connector.\nRun ${commandPrefix}${installer} from the extracted folder, or use that folder directly. The installer also accepts --destination ABSOLUTE_DIRECTORY.\nThe installer verifies package checksums and the copied runtime in a staging folder, then renames it into place. Existing installations are preserved.\nAn interrupted process may leave a hidden staging folder or .connectors.install-lock beside the destination. Ensure no installer is running before removing only these installer leftovers and retrying.\nNo elevated privileges, auto-start, system changes, or listening process on install.\nSetup for Git, Jira and Confluence (requirements, credentials, platform-specific commands and browser steps):\nhttps://github.com/enzovalley9/agile-project-ui/blob/main/docs/connector-setup.md\nThe web app also provides an Install connector guide with commands for its current origin.\nAfter installation, open a terminal in the printed destination. No command is added to PATH.\nCommand reference: ${commandPrefix}${launcherName} --help\nGit accesses the exact repository supplied with --repo. Jira and Confluence run separately and do not read the repository; the browser reads and saves project files.\nKeep provider credentials outside the project. Load only the generated connector session file in the browser, never the provider credentials JSON.\nStop: Ctrl+C. Uninstall: stop processes and move the installed folder to Trash. Project files are never deleted.\nThird-party terms are included in THIRD_PARTY_NOTICES.md and runtime/LICENSE. First-party redistribution requires the root LICENSE.\nThese packages are unsigned. Checksums detect corruption but do not establish publisher identity. Do not bypass OS security prompts; inspect/run from a trusted developer environment.\n`,
 );
 const packageFiles = [
   'THIRD_PARTY_NOTICES.md',
@@ -87,7 +87,7 @@ const packageFiles = [
   'runtime-checksum.json',
   'launch-connectors.mjs',
   'install-connectors.mjs',
-  platform === 'win32' ? 'bmad-connectors.cmd' : 'bmad-connectors',
+  platform === 'win32' ? 'agile-connectors.cmd' : 'agile-connectors',
   installer,
   'README.txt',
 ];
@@ -100,7 +100,7 @@ for (const file of packageFiles)
       .digest('hex'),
     mode:
       platform !== 'win32' &&
-      [installer, 'bmad-connectors', `runtime/${runtimeName}`].includes(file)
+      [installer, 'agile-connectors', `runtime/${runtimeName}`].includes(file)
         ? 0o755
         : 0o644,
   });

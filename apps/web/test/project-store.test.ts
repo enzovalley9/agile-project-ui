@@ -4,7 +4,7 @@ import { memoryDirectory } from '../../../tests/support/memory-handles';
 import { addThread, loadThreads, mutateThread, makeAnchor } from '../src/services/comments';
 const initial = {
   '_bmad/config.toml': '[core]\nproject_name="Fixture"\noutput_folder="_bmad-output"\n',
-  'docs/a.md': '# Documento\n\nContenido original.\n',
+  'docs/a.md': '# Document\n\nOriginal content.\n',
   '.env': 'SECRET=not-read',
   '.git/config': 'not-read',
   'node_modules/a.md': 'not-read',

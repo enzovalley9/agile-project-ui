@@ -217,7 +217,7 @@ export function StoryBoard({
             event.preventDefault();
             return;
           }
-          event.dataTransfer.setData('application/x-bmad-work-item', item.id);
+          event.dataTransfer.setData('application/x-agile-project-ui-work-item', item.id);
           event.dataTransfer.effectAllowed = 'move';
           setDragging(item.id);
           setAnnouncement(`Moving ${item.title}. Drop in a declared state to review the change.`);
@@ -360,7 +360,8 @@ export function StoryBoard({
                 event.preventDefault();
                 if (
                   dragged &&
-                  event.dataTransfer.getData('application/x-bmad-work-item') === dragged.id
+                  event.dataTransfer.getData('application/x-agile-project-ui-work-item') ===
+                    dragged.id
                 )
                   reviewMove(dragged, status);
                 setDragging(null);

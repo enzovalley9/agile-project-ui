@@ -16,7 +16,7 @@ export function parseArguments(args: string[]) {
         !args[index + 1].startsWith('--') &&
         !values.has(args[index]),
       'ARGUMENTS',
-      'Usage: bmad-git --repo PATH --origin URL --token-file PRIVATE_PATH [--port 43120]',
+      'Usage: agile-git --repo PATH --origin URL --token-file PRIVATE_PATH [--port 43120]',
       400,
     );
     values.set(args[index], args[index + 1]);
@@ -41,7 +41,7 @@ export function parseArguments(args: string[]) {
 export async function startGitConnector(args = process.argv.slice(2)) {
   if (args.length === 1 && args[0] === '--help') {
     process.stdout.write(
-      'Usage: bmad-connectors git --repo PATH --origin URL --token-file PRIVATE_PATH [--port 43120]\n',
+      'Usage: agile-connectors git --repo PATH --origin URL --token-file PRIVATE_PATH [--port 43120]\n',
     );
     return;
   }

@@ -9,7 +9,7 @@ The web app reads and saves project documents with browser directory permissions
 Use Node 24 and the Git already installed on the computer for development:
 
 ```sh
-npm run connector:git -- --repo /absolute/project/root --origin http://127.0.0.1:5173 --token-file /private/directory/bmad-git-capability
+npm run connector:git -- --repo /absolute/project/root --origin http://127.0.0.1:5173 --token-file /private/directory/agile-git-capability
 ```
 
 The token file's parent directory must already exist and must be outside the repository. The connector creates the file privately if absent, or reads an existing private regular file. It never prints the capability. Default address is `127.0.0.1:43120`; `--port` can select another unprivileged port. The exact web origin must match, including scheme and port. Runtime-included distribution uses the same arguments and native Git configuration.

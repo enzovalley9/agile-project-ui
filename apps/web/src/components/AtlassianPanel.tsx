@@ -729,7 +729,7 @@ export function AtlassianPanel({
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `bmad-${provider}-plan-${plan.id}.json`;
+    link.download = `agile-${provider}-plan-${plan.id}.json`;
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }

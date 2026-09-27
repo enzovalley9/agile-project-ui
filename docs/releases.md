@@ -2,7 +2,7 @@
 
 ## Access
 
-[GitHub Releases](https://github.com/enzovalley9/bmad-project-ui/releases) contains versioned connector packages and release notes. The repository and its releases are currently private: sign in to an account with repository access to download them. A public frontend URL does not grant GitHub repository or release access. A 404 from GitHub can indicate missing access as well as a missing release.
+[GitHub Releases](https://github.com/enzovalley9/agile-project-ui/releases) contains versioned connector packages and release notes. The repository and its releases are currently private: sign in to an account with repository access to download them. A public frontend URL does not grant GitHub repository or release access. A 404 from GitHub can indicate missing access as well as a missing release.
 
 The MIT license applies to first-party copies you receive. Repository visibility and license permissions are separate decisions. Do not publish private planning documents, credentials, local session files or user projects with a release.
 
@@ -10,7 +10,7 @@ The MIT license applies to first-party copies you receive. Repository visibility
 
 Choose the published archive matching your operating system and processor. Available native build targets are listed in each release; a source-supported architecture is not necessarily a published or verified package.
 
-The archive name follows `bmad-project-ui-connectors-SYSTEM-ARCH.tar.gz`. `darwin`, `win32` and `linux` identify macOS, Windows and Linux; `arm64` and `x64` identify the processor architecture. All archives use `.tar.gz`, including Windows.
+The archive name follows `agile-project-ui-connectors-SYSTEM-ARCH.tar.gz`. `darwin`, `win32` and `linux` identify macOS, Windows and Linux; `arm64` and `x64` identify the processor architecture. All archives use `.tar.gz`, including Windows.
 
 Extract the complete archive, verify its checksum against the release, then follow the [installation and connection guide](connector-setup.md). The package includes Node.js, the launcher, verified installer, project license and third-party notices. Git is not bundled.
 
@@ -22,14 +22,14 @@ Use the exact downloaded filename below and compare the complete value with the 
 
 ```sh
 # macOS
-shasum -a 256 bmad-project-ui-connectors-darwin-arm64.tar.gz
+shasum -a 256 agile-project-ui-connectors-darwin-arm64.tar.gz
 # Linux
-sha256sum bmad-project-ui-connectors-linux-x64.tar.gz
+sha256sum agile-project-ui-connectors-linux-x64.tar.gz
 ```
 
 ```powershell
 # Windows
-Get-FileHash .\bmad-project-ui-connectors-win32-x64.tar.gz -Algorithm SHA256
+Get-FileHash .\agile-project-ui-connectors-win32-x64.tar.gz -Algorithm SHA256
 ```
 
 The installer additionally validates packaged file hashes before completing installation. It preserves an existing installation and does not start a background service.

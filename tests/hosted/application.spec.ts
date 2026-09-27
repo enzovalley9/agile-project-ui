@@ -20,6 +20,10 @@ test('published assets expose help and licenses while private files stay unavail
   expect(headers['content-security-policy']).toContain("frame-ancestors 'none'");
   expect(headers['x-content-type-options']).toBe('nosniff');
   expect(headers['referrer-policy']).toBe('no-referrer');
+  await expect(page).toHaveTitle('Agile Project UI');
+  await expect(page.getByRole('banner')).toContainText('Agile Project UI');
+  await expect(page.getByRole('main')).toContainText('Compatible with BMAD Method.');
+  await expect(page.getByRole('main')).toContainText('not affiliated with or endorsed by BMAD');
   await expect(page.getByRole('button', { name: 'Choose project folder' })).toBeVisible();
   const license = await request.get('/LICENSE');
   expect(license.ok()).toBeTruthy();

@@ -10,6 +10,7 @@ export class RecoveryBackups {
     if (typeof navigator === 'undefined' || !navigator.storage?.getDirectory)
       throw new Error('Private browser storage unavailable');
     const root = await navigator.storage.getDirectory();
+    // Keep the original private namespace so pending saves remain recoverable after a rename.
     return root.getDirectoryHandle('bmad-project-ui-recovery', { create });
   }
   async save(id: string, copies: RecoveryCopy[]): Promise<boolean> {

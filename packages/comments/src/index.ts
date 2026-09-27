@@ -45,6 +45,7 @@ export interface AnchorResolution {
   startLine?: number;
   endLine?: number;
 }
+// Historical sidecar format, retained so the product rename never hides existing discussions.
 export const COMMENTS_ROOT = '.bmad-project-ui/comments/threads';
 export function threadPath(id: string) {
   if (!/^[\da-f-]{36}$/i.test(id)) throw new Error('Invalid thread identifier.');

@@ -31,8 +31,8 @@ npm run connector:atlassian -- \
   --deployment cloud \
   --instance https://example.atlassian.net \
   --origin http://127.0.0.1:5173 \
-  --token-file "$HOME/.bmad-project-ui/jira-capability" \
-  --credentials-file "$HOME/.bmad-project-ui/jira-credentials.json"
+  --token-file "$HOME/.agile-project-ui/jira-capability" \
+  --credentials-file "$HOME/.agile-project-ui/jira-credentials.json"
 ```
 
 For Confluence use `--provider confluence` with a different capability file and credential file. Default ports are Jira `43121` and Confluence `43122`; `--port` overrides the port. The listener binds only `127.0.0.1`. Configure the browser with that exact address; `localhost` is not an accepted HTTP Host alias.
@@ -53,7 +53,7 @@ A credentials file must be a private regular file (mode `0600` on POSIX), contai
 { "authorization": "REPLACE_WITH_A_PROVIDER_SUPPORTED_AUTHORIZATION_HEADER" }
 ```
 
-The connector can instead use `BMAD_ATLASSIAN_BEARER_TOKEN`, or the pair `BMAD_ATLASSIAN_EMAIL` and `BMAD_ATLASSIAN_API_TOKEN`. Their suitability depends on the selected provider, deployment and credential type. Provider authorization never appears in API responses, project metadata, operation journals or startup logs. This implementation does not provision credentials or manage provider MFA.
+The connector can instead use `AGILE_PROJECT_UI_ATLASSIAN_BEARER_TOKEN`, or the pair `AGILE_PROJECT_UI_ATLASSIAN_EMAIL` and `AGILE_PROJECT_UI_ATLASSIAN_API_TOKEN`. Their suitability depends on the selected provider, deployment and credential type. Provider authorization never appears in API responses, project metadata, operation journals or startup logs. This implementation does not provision credentials or manage provider MFA.
 
 On Windows, protect these files and their parent directory using the operator's account ACL; POSIX mode checks cannot prove Windows ACL isolation. The CI package smoke installs and starts the bundled service on macOS, Linux and Windows. Those checks exercise the local health/auth boundary, not live provider credentials, account permissions or Windows ACL isolation.
 

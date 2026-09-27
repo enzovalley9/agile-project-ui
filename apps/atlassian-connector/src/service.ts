@@ -268,7 +268,12 @@ export async function createAtlassianApp(options: ServiceOptions): Promise<Hono>
     await next();
   });
   app.get('/v1/health', (c) =>
-    c.json({ ok: true, provider: adapter.capabilities.provider, protocolVersion: 1 }),
+    c.json({
+      ok: true,
+      product: 'Agile Project UI Atlassian Connector',
+      provider: adapter.capabilities.provider,
+      protocolVersion: 1,
+    }),
   );
   app.post('/v1/session', async (c) => {
     if (!equal(sessionOf(c.req.header('authorization')), options.launcherToken))

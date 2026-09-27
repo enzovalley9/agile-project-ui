@@ -1,6 +1,8 @@
 # Architecture
 
-BMAD Project UI is a static browser application with optional local Node processes. Files in the selected project are authoritative. Provider data is authoritative on its provider; reviewed imports do not silently replace either side.
+Agile Project UI is a local-first workspace for documents, stories and sprints. Compatible with BMAD Method, it runs as a static browser application with optional local Node processes. Files in the selected project are authoritative. Provider data is authoritative on its provider; reviewed imports do not silently replace either side.
+
+The historical `.bmad-project-ui` sidecar namespace, private journal defaults and browser storage identifiers are retained for compatibility with existing project data. They are not the current product name. Changing them without migration would hide comments, integration links or recovery evidence. Do not rename these directories as part of updating the application.
 
 ## Components
 

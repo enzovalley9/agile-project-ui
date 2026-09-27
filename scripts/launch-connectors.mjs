@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url';
 
 const [connector, ...args] = process.argv.slice(2);
 if (!['git', 'atlassian'].includes(connector)) {
-  process.stdout.write('Usage: bmad-connectors <git|atlassian> [connector arguments]\n');
+  process.stdout.write('Usage: agile-connectors <git|atlassian> [connector arguments]\n');
   process.exitCode = connector === '--help' || !connector ? 0 : 1;
 } else {
   // CMD forwards its complete argument list once. Node removes the selector and

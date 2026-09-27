@@ -27,7 +27,7 @@ beforeEach(async () => {
   description = 'Original body';
   applyMode = 'ok';
   rateCount = 0;
-  directory = await mkdtemp(join(tmpdir(), 'bmad-atlassian-test-'));
+  directory = await mkdtemp(join(tmpdir(), 'agile-atlassian-test-'));
   server = createServer(async (req, res) => {
     let raw = '';
     for await (const chunk of req) raw += chunk;
@@ -534,7 +534,11 @@ describe('independent loopback capability, sessions and plan authorization', () 
       a = await app(jira(), { port });
       const response = await fetch(`http://127.0.0.1:${port}/v1/health`);
       expect(response.status).toBe(200);
-      expect(await response.json()).toMatchObject({ provider: 'jira', protocolVersion: 1 });
+      expect(await response.json()).toMatchObject({
+        product: 'Agile Project UI Atlassian Connector',
+        provider: 'jira',
+        protocolVersion: 1,
+      });
     } finally {
       await new Promise<void>((resolve) => local.close(() => resolve()));
     }

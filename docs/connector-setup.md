@@ -10,11 +10,15 @@ The web app reads and saves your project through the browser's folder permission
 
 Jira and Confluence processes do not read project files or run Git. They read their own credential files and maintain local operation journals. Each provider has its own process, credentials and browser session; connecting one does not connect the others.
 
+Agile Project UI is compatible with BMAD Method. Its optional connectors are local services for this independent application; they are not official BMAD Method services.
+
+These instructions use the current `agile-connectors` launcher and new application install directories. Existing project sidecars and default operation journals keep their historical `.bmad-project-ui` namespace for compatibility; do not move or delete them during an update. The session/credential paths below are configurable examples, not a migration requirement.
+
 ## 1. Download and install
 
-[Download connectors from Releases](https://github.com/enzovalley9/bmad-project-ui/releases). The GitHub repository and releases currently require repository access; sign in to an authorized account. A public web app URL does not grant that access. See [release access and verification](releases.md).
+[Download connectors from Releases](https://github.com/enzovalley9/agile-project-ui/releases). The GitHub repository and releases currently require repository access; sign in to an authorized account. A public web app URL does not grant that access. See [release access and verification](releases.md).
 
-Select an available `bmad-project-ui-connectors-SYSTEM-ARCH.tar.gz` asset for your computer:
+Select an available `agile-project-ui-connectors-SYSTEM-ARCH.tar.gz` asset for your computer:
 
 | System  | Package system | Processor suffix                           |
 | ------- | -------------- | ------------------------------------------ |
@@ -26,11 +30,11 @@ Choose a published asset matching both values. If your target has no package, us
 
 Extract the entire `.tar.gz`, including on Windows. Open a terminal in the extracted folder and run:
 
-| System  | Terminal   | Install command     | Default destination                                               |
-| ------- | ---------- | ------------------- | ----------------------------------------------------------------- |
-| macOS   | Terminal   | `./install.command` | `$HOME/Library/Application Support/BMAD Project UI/connectors`    |
-| Windows | PowerShell | `.\install.cmd`     | `$env:LOCALAPPDATA\BMAD Project UI\connectors`                    |
-| Linux   | Terminal   | `./install.sh`      | `${XDG_DATA_HOME:-$HOME/.local/share}/bmad-project-ui/connectors` |
+| System  | Terminal   | Install command     | Default destination                                                |
+| ------- | ---------- | ------------------- | ------------------------------------------------------------------ |
+| macOS   | Terminal   | `./install.command` | `$HOME/Library/Application Support/Agile Project UI/connectors`    |
+| Windows | PowerShell | `.\install.cmd`     | `$env:LOCALAPPDATA\Agile Project UI\connectors`                    |
+| Linux   | Terminal   | `./install.sh`      | `${XDG_DATA_HOME:-$HOME/.local/share}/agile-project-ui/connectors` |
 
 The installer prints its destination. It accepts `--destination ABSOLUTE_DIRECTORY`, verifies copied files and preserves an existing installation. It does not add the launcher to PATH, register auto-start or start a connector. Use the installed directory in the commands below; substitute the printed path for a custom installation.
 
@@ -43,14 +47,14 @@ Keep this directory outside your project. If your project contains the suggested
 macOS/Linux:
 
 ```sh
-mkdir -p "$HOME/.bmad-project-ui"
-chmod 700 "$HOME/.bmad-project-ui"
+mkdir -p "$HOME/.agile-project-ui"
+chmod 700 "$HOME/.agile-project-ui"
 ```
 
 Windows PowerShell:
 
 ```powershell
-New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.bmad-project-ui" | Out-Null
+New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.agile-project-ui" | Out-Null
 ```
 
 Restrict the Windows directory and credential files to your account through their Security properties. POSIX mode checks do not verify Windows ACLs.
@@ -87,8 +91,8 @@ The transport also accepts a single `authorization` field containing a provider-
 On macOS/Linux, after saving each credential file:
 
 ```sh
-chmod 600 "$HOME/.bmad-project-ui/jira-credentials.json"
-chmod 600 "$HOME/.bmad-project-ui/confluence-credentials.json"
+chmod 600 "$HOME/.agile-project-ui/jira-credentials.json"
+chmod 600 "$HOME/.agile-project-ui/confluence-credentials.json"
 ```
 
 Protect only the files you created. Never upload these JSON files to the app or put them in the project. The **generated session file**, described next, is the file to load in the browser.
@@ -101,14 +105,14 @@ Enter the installed directory first:
 
 ```sh
 # macOS
-cd "$HOME/Library/Application Support/BMAD Project UI/connectors"
+cd "$HOME/Library/Application Support/Agile Project UI/connectors"
 # Linux (run this instead on Linux)
-cd "${XDG_DATA_HOME:-$HOME/.local/share}/bmad-project-ui/connectors"
+cd "${XDG_DATA_HOME:-$HOME/.local/share}/agile-project-ui/connectors"
 ```
 
 ```powershell
 # Windows PowerShell
-Set-Location (Join-Path $env:LOCALAPPDATA 'BMAD Project UI\connectors')
+Set-Location (Join-Path $env:LOCALAPPDATA 'Agile Project UI\connectors')
 ```
 
 ### Git
@@ -116,11 +120,11 @@ Set-Location (Join-Path $env:LOCALAPPDATA 'BMAD Project UI\connectors')
 Replace the project path with the same repository root selected in the browser.
 
 ```sh
-./bmad-connectors git --repo '/absolute/path/to/your/project' --origin 'http://127.0.0.1:5173' --token-file "$HOME/.bmad-project-ui/git-session"
+./agile-connectors git --repo '/absolute/path/to/your/project' --origin 'http://127.0.0.1:5173' --token-file "$HOME/.agile-project-ui/git-session"
 ```
 
 ```powershell
-.\bmad-connectors.cmd git --repo 'C:\path\to\your\project' --origin 'http://127.0.0.1:5173' --token-file "$env:USERPROFILE\.bmad-project-ui\git-session"
+.\agile-connectors.cmd git --repo 'C:\path\to\your\project' --origin 'http://127.0.0.1:5173' --token-file "$env:USERPROFILE\.agile-project-ui\git-session"
 ```
 
 ### Jira
@@ -128,11 +132,11 @@ Replace the project path with the same repository root selected in the browser.
 Replace the example instance URL. For Data Center, change `--deployment cloud` to `--deployment data-center` and use your HTTPS base URL, including a deployment context path if needed.
 
 ```sh
-./bmad-connectors atlassian --provider jira --deployment cloud --instance 'https://your-team.atlassian.net' --origin 'http://127.0.0.1:5173' --token-file "$HOME/.bmad-project-ui/jira-session" --credentials-file "$HOME/.bmad-project-ui/jira-credentials.json"
+./agile-connectors atlassian --provider jira --deployment cloud --instance 'https://your-team.atlassian.net' --origin 'http://127.0.0.1:5173' --token-file "$HOME/.agile-project-ui/jira-session" --credentials-file "$HOME/.agile-project-ui/jira-credentials.json"
 ```
 
 ```powershell
-.\bmad-connectors.cmd atlassian --provider jira --deployment cloud --instance 'https://your-team.atlassian.net' --origin 'http://127.0.0.1:5173' --token-file "$env:USERPROFILE\.bmad-project-ui\jira-session" --credentials-file "$env:USERPROFILE\.bmad-project-ui\jira-credentials.json"
+.\agile-connectors.cmd atlassian --provider jira --deployment cloud --instance 'https://your-team.atlassian.net' --origin 'http://127.0.0.1:5173' --token-file "$env:USERPROFILE\.agile-project-ui\jira-session" --credentials-file "$env:USERPROFILE\.agile-project-ui\jira-credentials.json"
 ```
 
 ### Confluence
@@ -140,11 +144,11 @@ Replace the example instance URL. For Data Center, change `--deployment cloud` t
 For Cloud, supply the site origin **without `/wiki`**; the adapter appends it. For Data Center use `--deployment data-center` and the instance's full deployment base URL.
 
 ```sh
-./bmad-connectors atlassian --provider confluence --deployment cloud --instance 'https://your-team.atlassian.net' --origin 'http://127.0.0.1:5173' --token-file "$HOME/.bmad-project-ui/confluence-session" --credentials-file "$HOME/.bmad-project-ui/confluence-credentials.json"
+./agile-connectors atlassian --provider confluence --deployment cloud --instance 'https://your-team.atlassian.net' --origin 'http://127.0.0.1:5173' --token-file "$HOME/.agile-project-ui/confluence-session" --credentials-file "$HOME/.agile-project-ui/confluence-credentials.json"
 ```
 
 ```powershell
-.\bmad-connectors.cmd atlassian --provider confluence --deployment cloud --instance 'https://your-team.atlassian.net' --origin 'http://127.0.0.1:5173' --token-file "$env:USERPROFILE\.bmad-project-ui\confluence-session" --credentials-file "$env:USERPROFILE\.bmad-project-ui\confluence-credentials.json"
+.\agile-connectors.cmd atlassian --provider confluence --deployment cloud --instance 'https://your-team.atlassian.net' --origin 'http://127.0.0.1:5173' --token-file "$env:USERPROFILE\.agile-project-ui\confluence-session" --credentials-file "$env:USERPROFILE\.agile-project-ui\confluence-credentials.json"
 ```
 
 Start each connector in its own terminal and keep that terminal open. Startup reports `listening on 127.0.0.1:PORT` and creates or reuses its session file. Check for subsequent errors, such as an occupied port; the log line alone does not confirm a running listener. Verify the local connection and account access in the browser as described next.
@@ -189,9 +193,9 @@ After reopening a page, load its connector session file again. If the process st
 
 ## Alternative: run from source
 
-Download or clone the [application repository](https://github.com/enzovalley9/bmad-project-ui) and install Node.js 24. From that checkout, run `npm ci`. Prepare the same session/credential files above, then substitute:
+Download or clone the [application repository](https://github.com/enzovalley9/agile-project-ui) and install Node.js 24. From that checkout, run `npm ci`. Prepare the same session/credential files above, then substitute:
 
-- `npm run connector:git --` for `./bmad-connectors git`.
-- `npm run connector:atlassian --` for `./bmad-connectors atlassian`.
+- `npm run connector:git --` for `./agile-connectors git`.
+- `npm run connector:atlassian --` for `./agile-connectors atlassian`.
 
 Keep every following argument unchanged. The source commands run a connector, not the web server. Source development uses `npm run dev` separately; see [development](development.md).

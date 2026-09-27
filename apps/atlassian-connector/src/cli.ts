@@ -37,7 +37,7 @@ export async function main(args = process.argv.slice(2)) {
   });
   if (values.help) {
     console.log(
-      'BMAD Project UI independent Atlassian connector\n--provider jira|confluence --deployment cloud|data-center --instance https://example.atlassian.net --origin http://localhost:5173 --token-file /private/path/capability --credentials-file /private/path/credentials.json [--port 43121|43122]',
+      'Agile Project UI independent Atlassian connector\n--provider jira|confluence --deployment cloud|data-center --instance https://example.atlassian.net --origin http://localhost:5173 --token-file /private/path/capability --credentials-file /private/path/credentials.json [--port 43121|43122]',
     );
     return;
   }
@@ -81,9 +81,9 @@ export async function main(args = process.argv.slice(2)) {
       throw new Error('Unknown credential fields');
   } else
     credentials = {
-      bearerToken: process.env.BMAD_ATLASSIAN_BEARER_TOKEN,
-      email: process.env.BMAD_ATLASSIAN_EMAIL,
-      apiToken: process.env.BMAD_ATLASSIAN_API_TOKEN,
+      bearerToken: process.env.AGILE_PROJECT_UI_ATLASSIAN_BEARER_TOKEN,
+      email: process.env.AGILE_PROJECT_UI_ATLASSIAN_EMAIL,
+      apiToken: process.env.AGILE_PROJECT_UI_ATLASSIAN_API_TOKEN,
     };
   const modes =
     Number(!!credentials.authorization) +
@@ -112,6 +112,7 @@ export async function main(args = process.argv.slice(2)) {
     origin: values.origin,
     port,
     launcherToken: token,
+    // Preserve historical operation journals through the product rename.
     journalDirectory: values['journal-directory']
       ? resolve(values['journal-directory'])
       : join(homedir(), '.bmad-project-ui', 'atlassian', provider, instanceKey),

@@ -126,6 +126,7 @@ export class GitService {
     this.identity = hash(
       `${this.repo}\0${stat.dev}\0${stat.ino}\0${this.gitDir}\0${this.commonDir}`,
     );
+    // Preserve historical private journals; a branding change must not lose operation evidence.
     this.stateDir = path.resolve(
       this.options.stateDir ??
         path.join(os.homedir(), '.bmad-project-ui', 'git-connector', hash(this.commonDir)),

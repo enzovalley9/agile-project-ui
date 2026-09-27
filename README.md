@@ -1,10 +1,12 @@
-# BMAD Project UI
+# Agile Project UI
 
-Read, edit and discuss your BMAD Method project in a browser. Browse documents, move stories, inspect epic and sprint tasks, and keep every change in the project's files.
+A local-first workspace for documents, stories and sprints. Compatible with BMAD Method.
 
-[MIT license](LICENSE) · [Releases](https://github.com/enzovalley9/bmad-project-ui/releases) · [CI](https://github.com/enzovalley9/bmad-project-ui/actions/workflows/ci.yml) · [Contributing](CONTRIBUTING.md)
+Read, edit and discuss your project in a browser. Browse documents, move stories, inspect epic and sprint tasks, and keep every change in the project's files.
 
-The application is independent of BMad Code, LLC. It does not run BMAD agents or workflows. Its structured adapter targets **BMAD Method 6.12.0**; other versions retain generic reading with visible compatibility limits.
+[MIT license](LICENSE) · [Releases](https://github.com/enzovalley9/agile-project-ui/releases) · [CI](https://github.com/enzovalley9/agile-project-ui/actions/workflows/ci.yml) · [Contributing](CONTRIBUTING.md)
+
+Agile Project UI is an independent project and is not affiliated with, endorsed by, approved by or certified by BMad Code, LLC. It does not run BMAD agents or workflows. Its structured adapter targets **BMAD Method 6.12.0**; other versions retain generic reading with visible compatibility limits.
 
 ## Features
 
@@ -22,8 +24,8 @@ Use desktop **Chrome or Microsoft Edge**. The application needs the browser's di
 For local development, install **Node.js 24 LTS**, npm and Git. [`.node-version`](.node-version) pins the tested runtime.
 
 ```sh
-git clone https://github.com/enzovalley9/bmad-project-ui.git
-cd bmad-project-ui
+git clone https://github.com/enzovalley9/agile-project-ui.git
+cd agile-project-ui
 npm ci
 npm run dev
 ```
@@ -47,11 +49,17 @@ Rendered documents block active HTML and do not automatically load remote images
 
 Unsaved drafts live in the current tab. Export them before closing if needed. Clearing browser storage can remove recovery copies. Browser locks coordinate app tabs, not arbitrary external editors. Comment identity is locally declared; it is not team authentication.
 
+### Compatibility with existing project data
+
+Existing projects keep the historical `.bmad-project-ui` data namespace for comments, integration records and local recovery metadata. Private operation journals and browser storage identifiers also retain their existing names so the rename does not hide saved discussions or unresolved operations. These are compatibility identifiers, not the product name. Do not rename or delete those files to update Agile Project UI.
+
+New connector packages, installed application folders and launcher commands use the Agile Project UI name. The session and credential paths in the setup guide are explicit examples under `~/.agile-project-ui`; an existing private path remains valid when passed through the corresponding command-line option.
+
 See [architecture and data boundaries](docs/architecture.md) and the [security policy](SECURITY.md).
 
 ## Optional connectors
 
-[Download connector packages](https://github.com/enzovalley9/bmad-project-ui/releases) and follow the [step-by-step setup guide](docs/connector-setup.md). The same instructions are available from each connection panel. Packages bundle Node.js for supported macOS, Windows and Linux targets; Git must be installed separately.
+[Download connector packages](https://github.com/enzovalley9/agile-project-ui/releases) and follow the [step-by-step setup guide](docs/connector-setup.md). The same instructions are available from each connection panel. Packages bundle Node.js for supported macOS, Windows and Linux targets; Git must be installed separately.
 
 | Connector  | What it accesses                                                         | Current behavior                                                                                                                           |
 | ---------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |

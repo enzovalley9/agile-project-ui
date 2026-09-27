@@ -23,7 +23,7 @@ const targets = [
 ];
 
 async function createArchive(root, [artifact, platform, arch], scenario) {
-  const name = `bmad-project-ui-connectors-${platform}-${arch}`;
+  const name = `agile-project-ui-connectors-${platform}-${arch}`;
   const directory = join(root, name);
   const destination = join(root, 'artifacts', artifact);
   for (const folder of [
@@ -34,7 +34,7 @@ async function createArchive(root, [artifact, platform, arch], scenario) {
   ])
     await mkdir(folder, { recursive: true });
   const runtime = platform === 'win32' ? 'node.exe' : 'node';
-  const launcher = platform === 'win32' ? 'bmad-connectors.cmd' : 'bmad-connectors';
+  const launcher = platform === 'win32' ? 'agile-connectors.cmd' : 'agile-connectors';
   const installer =
     platform === 'win32' ? 'install.cmd' : platform === 'darwin' ? 'install.command' : 'install.sh';
   const runtimeArchive = `node-v${nodeVersion}-${platform === 'win32' ? 'win' : platform}-${arch}.${platform === 'win32' ? 'zip' : 'tar.gz'}`;

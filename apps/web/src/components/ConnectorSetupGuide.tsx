@@ -7,7 +7,7 @@ type Connector = 'git' | 'jira' | 'confluence';
 type Platform = 'macos' | 'windows' | 'linux';
 const names = { git: 'Git', jira: 'Jira', confluence: 'Confluence' };
 const ports = { git: 43120, jira: 43121, confluence: 43122 };
-const repository = 'https://github.com/enzovalley9/bmad-project-ui';
+const repository = 'https://github.com/enzovalley9/agile-project-ui';
 const quote = (value: string, windows: boolean) =>
   windows ? `'${value.replaceAll("'", "''")}'` : `'${value.replaceAll("'", "'\"'\"'")}'`;
 
@@ -46,7 +46,7 @@ export function ConnectorSetupGuide({
   const origin = window.location.origin;
   const session = `${provider}-session`;
   const credentials = `${provider}-credentials.json`;
-  const directory = windows ? '$env:USERPROFILE\\.bmad-project-ui' : '$HOME/.bmad-project-ui';
+  const directory = windows ? '$env:USERPROFILE\\.agile-project-ui' : '$HOME/.agile-project-ui';
   const separator = windows ? '\\' : '/';
   const installer = windows
     ? '.\\install.cmd'
@@ -54,10 +54,10 @@ export function ConnectorSetupGuide({
       ? './install.command'
       : './install.sh';
   const installed = windows
-    ? "Set-Location (Join-Path $env:LOCALAPPDATA 'BMAD Project UI\\connectors')"
+    ? "Set-Location (Join-Path $env:LOCALAPPDATA 'Agile Project UI\\connectors')"
     : platform === 'macos'
-      ? 'cd "$HOME/Library/Application Support/BMAD Project UI/connectors"'
-      : 'cd "${XDG_DATA_HOME:-$HOME/.local/share}/bmad-project-ui/connectors"';
+      ? 'cd "$HOME/Library/Application Support/Agile Project UI/connectors"'
+      : 'cd "${XDG_DATA_HOME:-$HOME/.local/share}/agile-project-ui/connectors"';
   const prepare = windows
     ? `New-Item -ItemType Directory -Force -Path "${directory}" | Out-Null`
     : `mkdir -p "${directory}"\nchmod 700 "${directory}"`;
@@ -66,7 +66,7 @@ export function ConnectorSetupGuide({
   const args = git
     ? `git --repo ${quote(windows ? 'C:\\path\\to\\your\\project' : '/absolute/path/to/your/project', windows)} --origin ${quote(origin, windows)} --token-file "${directory}${separator}${session}"`
     : `atlassian --provider ${provider} --deployment ${deployment} --instance ${quote(instance, windows)} --origin ${quote(origin, windows)} --token-file "${directory}${separator}${session}" --credentials-file "${directory}${separator}${credentials}"`;
-  const command = `${installed}\n${windows ? '.\\bmad-connectors.cmd' : './bmad-connectors'} ${args}`;
+  const command = `${installed}\n${windows ? '.\\agile-connectors.cmd' : './agile-connectors'} ${args}`;
   const sourceCommand = `npm ci\nnpm run connector:${git ? 'git' : 'atlassian'} -- ${args.slice(args.indexOf(' ') + 1)}`;
 
   return (
@@ -169,7 +169,7 @@ export function ConnectorSetupGuide({
             <p>
               Choose the{' '}
               <code>
-                bmad-project-ui-connectors-
+                agile-project-ui-connectors-
                 {platform === 'macos' ? 'darwin' : platform === 'windows' ? 'win32' : 'linux'}
                 -ARCH.tar.gz
               </code>{' '}
