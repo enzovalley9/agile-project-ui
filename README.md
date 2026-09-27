@@ -4,7 +4,7 @@ A local-first workspace for documents, stories and sprints. Compatible with BMAD
 
 Read, edit and discuss your project in a browser. Browse documents, move stories, inspect epic and sprint tasks, and keep every change in the project's files.
 
-[MIT license](LICENSE) · [Releases](https://github.com/enzovalley9/agile-project-ui/releases) · [CI](https://github.com/enzovalley9/agile-project-ui/actions/workflows/ci.yml) · [Contributing](CONTRIBUTING.md)
+[Open the app](https://agile-project-ui.enzovalley9.workers.dev) · [MIT license](LICENSE) · [Releases](https://github.com/enzovalley9/agile-project-ui/releases) · [CI](https://github.com/enzovalley9/agile-project-ui/actions/workflows/ci.yml) · [Contributing](CONTRIBUTING.md)
 
 Agile Project UI is an independent project and is not affiliated with, endorsed by, approved by or certified by BMad Code, LLC. It does not run BMAD agents or workflows. Its structured adapter targets **BMAD Method 6.12.0**; other versions retain generic reading with visible compatibility limits.
 
@@ -20,6 +20,8 @@ Agile Project UI is an independent project and is not affiliated with, endorsed 
 ## Quick start
 
 Use desktop **Chrome or Microsoft Edge**. The application needs the browser's directory-access API and a secure origin: HTTPS or localhost. Firefox, Safari and mobile browsers are not supported for the complete local-folder workflow.
+
+Open [Agile Project UI](https://agile-project-ui.enzovalley9.workers.dev), select your project root and start reading. Turn on edit mode to save changes; Chrome or Edge will request permission for that folder. The public app requires no account or local installation for reading, editing and comments. Git, Jira and Confluence use the optional local connectors described below.
 
 For local development, install **Node.js 24 LTS**, npm and Git. [`.node-version`](.node-version) pins the tested runtime.
 

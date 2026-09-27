@@ -2,6 +2,12 @@ name: Release verified connector packages
 
 on:
   workflow_dispatch:
+    inputs:
+      resume_draft_id:
+        description: 'Optional inspected draft ID to resume at this exact tested commit'
+        required: false
+        default: ''
+        type: string
 
 permissions:
   contents: read
@@ -27,6 +33,12 @@ jobs:
         with:
           node-version-file: .node-version
       - name: Validate CI artifacts and publish the private repository release
-        run: node scripts/create-release.mjs
+        run: |
+          args=()
+          if [[ -n "$RESUME_DRAFT_ID" ]]; then
+            args+=(--resume-draft-id "$RESUME_DRAFT_ID")
+          fi
+          node scripts/create-release.mjs "${args[@]}"
         env:
           GH_TOKEN: ${{ github.token }}
+          RESUME_DRAFT_ID: ${{ inputs.resume_draft_id }}

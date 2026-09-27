@@ -5,7 +5,7 @@ import { createReadStream } from 'node:fs';
 import { mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
-import { promisify } from 'node:util';
+import { parseArgs, promisify } from 'node:util';
 
 const exec = promisify(execFile);
 const targets = [
@@ -46,10 +46,32 @@ async function command(program, args, { binary = false, optional = false } = {})
     );
   }
 }
-async function api(endpoint, { optional = false, paginate = false } = {}) {
+async function api(
+  endpoint,
+  {
+    optional = false,
+    paginate = false,
+    method = 'GET',
+    input,
+    contentType = 'application/json',
+  } = {},
+) {
   const output = await command(
     'gh',
-    ['api', endpoint, '--hostname', 'github.com', ...(paginate ? ['--paginate', '--slurp'] : [])],
+    [
+      'api',
+      endpoint,
+      '--hostname',
+      'github.com',
+      '--method',
+      method,
+      '-H',
+      'Accept: application/vnd.github+json',
+      '-H',
+      'X-GitHub-Api-Version: 2022-11-28',
+      ...(input ? ['--input', input, '-H', `Content-Type: ${contentType}`] : []),
+      ...(paginate ? ['--paginate', '--slurp'] : []),
+    ],
     { optional },
   );
   return output === undefined ? undefined : JSON.parse(output);
@@ -184,12 +206,18 @@ async function verifyArchive(
 }
 
 async function main() {
-  const args = process.argv.slice(2);
-  assert(
-    args.length === 0 || (args.length === 1 && args[0] === '--check'),
-    'Usage: node scripts/create-release.mjs [--check]',
-  );
-  const checkOnly = args[0] === '--check';
+  const { values } = parseArgs({
+    options: { check: { type: 'boolean' }, 'resume-draft-id': { type: 'string' } },
+    allowPositionals: false,
+  });
+  const checkOnly = values.check === true;
+  const resumeValue = values['resume-draft-id'];
+  if (resumeValue !== undefined)
+    assert(
+      /^[1-9]\d*$/.test(resumeValue) && Number.isSafeInteger(Number(resumeValue)),
+      'Provide one positive numeric --resume-draft-id.',
+    );
+  const resumeDraftId = resumeValue === undefined ? undefined : Number(resumeValue);
   const repository = process.env.GITHUB_REPOSITORY;
   const revision = process.env.GITHUB_SHA;
   assert.match(
@@ -225,6 +253,7 @@ async function main() {
   assert.match(metadata.version, /^\d+\.\d+\.\d+$/, 'Release requires a stable semantic version.');
   assert.equal(metadata.license, 'MIT', 'This release requires the MIT license.');
   const tag = `v${metadata.version}`;
+  const title = `${metadata.displayName || metadata.name} ${tag}`;
   const license = await readFile('LICENSE', 'utf8');
   assert.match(license, /^MIT License\r?\n/);
   assert.match(license, /Permission is hereby granted/);
@@ -259,14 +288,41 @@ async function main() {
     assert.equal(object.sha, revision, 'Existing release tag points to another commit.');
     return object.sha;
   };
-  const noExistingRelease = async () => {
+  const validateDraft = (draft, id) => {
+    assert(Number.isSafeInteger(id) && id > 0, 'Invalid release identity.');
+    assert.equal(draft.id, id, 'Draft identity mismatch.');
+    assert.equal(
+      draft.url,
+      `https://api.github.com/${base}/releases/${id}`,
+      'Draft repository mismatch.',
+    );
+    assert.equal(draft.tag_name, tag, 'Draft tag mismatch.');
+    assert.equal(draft.draft, true, 'Expected an unpublished draft.');
+    assert.equal(draft.target_commitish, revision, 'Draft target commit mismatch.');
+    assert.equal(draft.name, title, 'Draft title mismatch.');
+    assert.equal(draft.prerelease, false, 'Expected a stable release draft.');
+    return draft;
+  };
+  const readDraft = async (id) => validateDraft(await api(`${base}/releases/${id}`), id);
+  const noConflictingRelease = async (allowedId) => {
     const pages = await api(`${base}/releases?per_page=100`, { paginate: true });
     assert(
-      !pages.flat().some((release) => release.tag_name === tag),
+      !pages
+        .flat()
+        .some(
+          (release) =>
+            release.tag_name === tag && (allowedId === undefined || release.id !== allowedId),
+        ),
       'This tag already has a release or draft. Inspect it before retrying; existing releases are never replaced.',
     );
+    assert.equal(
+      await api(`${base}/releases/tags/${tag}`, { optional: true }),
+      undefined,
+      'This tag already has a published release.',
+    );
   };
-  await noExistingRelease();
+  if (resumeDraftId !== undefined) await readDraft(resumeDraftId);
+  await noConflictingRelease(resumeDraftId);
   await tagCommit();
 
   console.log(`Checking completed CI for ${tag} at ${revision}.`);
@@ -391,53 +447,11 @@ async function main() {
     assert(body.length > 0, 'The release changelog is empty.');
     const ciUrl = `https://github.com/${repository}/actions/runs/${run.id}`;
     const notes = `${body}\n\n### Verification and distribution\n\n- Source commit: \`${revision}\`. [All six CI jobs passed](${ciUrl}).\n- Connector packages: Linux x64, macOS arm64 and Windows x64, with bundled Node ${nodeVersion}; Git is installed separately.\n- The MIT license, third-party notices and Node.js license are included in every archive. Verify the accompanying SHA-256 checksum before installing.\n- Packages are unsigned and not notarized. Checksums detect corruption; they do not establish publisher identity.\n- Jira and Confluence production remote writes remain blocked. Provider acceptance uses mocks; no live tenant verification is claimed.\n- This release inherits the repository's private access. Only authorized repository users can view or download GitHub release assets; publishing this release does not make the repository public.\n`;
-    if (checkOnly) {
-      console.log(
-        `Read-only release validation passed: ${tag}, ${assets.length} assets, ${ciUrl}. No release was created.`,
-      );
-      return;
-    }
-    const notesPath = join(temp, 'release-notes.md');
-    await writeFile(notesPath, notes);
-    await privateMain();
-    await noExistingRelease();
-    await tagCommit();
-    console.log(`Creating a private-repository draft for ${tag}.`);
-    draftAttempted = true;
-    await command('gh', [
-      'release',
-      'create',
-      tag,
-      '--repo',
-      repository,
-      '--target',
-      revision,
-      '--draft',
-      '--title',
-      `${metadata.displayName || metadata.name} ${tag}`,
-      '--notes-file',
-      notesPath,
-    ]);
-    draftCreated = true;
-    // The tag endpoint is for published releases; list drafts with the writer's token.
-    const draft = (await api(`${base}/releases?per_page=100`, { paginate: true }))
-      .flat()
-      .find((release) => release.tag_name === tag);
-    assert(draft, 'Draft creation could not be verified.');
-    assert.equal(draft.draft, true, 'Expected an unpublished draft.');
-    assert.equal(draft.target_commitish, revision, 'Draft target commit mismatch.');
-    await command('gh', [
-      'release',
-      'upload',
-      tag,
-      '--repo',
-      repository,
-      ...assets.map((asset) => asset.path),
-    ]);
-    const verifyAssets = async () => {
-      const uploaded = (
-        await api(`${base}/releases/${draft.id}/assets?per_page=100`, { paginate: true })
-      ).flat();
+    let draft;
+    const readAssets = async (id) =>
+      (await api(`${base}/releases/${id}/assets?per_page=100`, { paginate: true })).flat();
+    const verifyAssets = async (uploaded) => {
+      uploaded ??= await readAssets(draft.id);
       assert.deepEqual(
         uploaded.map((asset) => asset.name).sort(),
         assets.map((asset) => asset.name).sort(),
@@ -450,24 +464,85 @@ async function main() {
         assert.equal(actual.digest, expected.digest, 'GitHub release asset checksum mismatch.');
       }
     };
+    let alreadyUploaded = false;
+    if (resumeDraftId !== undefined) {
+      draft = await readDraft(resumeDraftId);
+      const existing = await readAssets(draft.id);
+      if (existing.length) {
+        await verifyAssets(existing);
+        alreadyUploaded = true;
+      }
+    }
+    if (checkOnly) {
+      console.log(
+        `Read-only release validation passed: ${tag}, ${assets.length} assets, ${ciUrl}. No release was created or changed.`,
+      );
+      return;
+    }
+    await privateMain();
+    await noConflictingRelease(resumeDraftId);
+    await tagCommit();
+    if (resumeDraftId === undefined) {
+      console.log(`Creating a private-repository draft for ${tag}.`);
+      const createPath = join(temp, 'create-release.json');
+      await writeFile(
+        createPath,
+        JSON.stringify({
+          tag_name: tag,
+          target_commitish: revision,
+          draft: true,
+          name: title,
+          body: notes,
+          prerelease: false,
+        }),
+      );
+      draftAttempted = true;
+      const created = await api(`${base}/releases`, { method: 'POST', input: createPath });
+      draftCreated = true;
+      // Keep the authoritative ID returned by creation. App-token list/tag endpoints
+      // can omit an unpublished draft; never rediscover it through those endpoints.
+      draft = validateDraft(created, created.id);
+    }
+    draft = await readDraft(draft.id);
+    draftCreated = true;
+    // Recheck assets just before mutation. A concurrent or partial upload must never
+    // become an implicit retry, overwrite, or reason to replace a draft.
+    const currentAssets = await readAssets(draft.id);
+    if (alreadyUploaded || currentAssets.length) {
+      await verifyAssets(currentAssets);
+      alreadyUploaded = true;
+    }
+    if (!alreadyUploaded) {
+      for (const asset of assets) {
+        await api(
+          `https://uploads.github.com/${base}/releases/${draft.id}/assets?name=${encodeURIComponent(asset.name)}`,
+          {
+            method: 'POST',
+            input: asset.path,
+            contentType: 'application/octet-stream',
+          },
+        );
+      }
+    }
     await verifyAssets();
     await privateMain();
     await tagCommit();
+    await readDraft(draft.id);
     console.log(`Publishing ${tag} after all six asset digests match.`);
+    const publishPath = join(temp, 'publish-release.json');
+    await writeFile(
+      publishPath,
+      JSON.stringify({ draft: false, make_latest: 'true', body: notes }),
+    );
     publishAttempted = true;
-    await command('gh', [
-      'release',
-      'edit',
-      tag,
-      '--repo',
-      repository,
-      '--draft=false',
-      '--latest',
-    ]);
+    await api(`${base}/releases/${draft.id}`, { method: 'PATCH', input: publishPath });
     published = true;
-    const release = await api(`${base}/releases/tags/${tag}`);
+    const release = await api(`${base}/releases/${draft.id}`);
     assert.equal(release.draft, false, 'Release publication is unconfirmed.');
     assert.equal(release.id, draft.id, 'Release identity changed.');
+    assert.equal(release.tag_name, tag, 'Published release tag changed.');
+    assert.equal(release.target_commitish, revision, 'Published release target changed.');
+    assert.equal(release.body, notes, 'Published release notes do not match verified provenance.');
     assert.equal(await tagCommit(), revision, 'Published tag does not match the verified source.');
     await verifyAssets();
     await privateMain();
@@ -481,7 +556,7 @@ async function main() {
       );
     if (draftCreated && !publishAttempted)
       console.error(
-        'Release failed after draft creation. The draft is preserved for inspection and no publish request was made. Do not delete or replace it blindly.',
+        'Release failed after selecting or creating a draft. The draft is preserved for inspection and no publish request was made. Do not delete or replace it blindly.',
       );
     if (publishAttempted && !published)
       console.error(

@@ -117,7 +117,13 @@ async function runScenario(scenario) {
       result = {
         ...(await exec(
           process.execPath,
-          [releaseScript, ...(scenario === 'check' ? ['--check'] : [])],
+          [
+            releaseScript,
+            ...(['check', 'resume-check'].includes(scenario) ? ['--check'] : []),
+            ...(scenario.startsWith('resume-')
+              ? ['--resume-draft-id', scenario === 'resume-invalid-id' ? '9/x' : '9']
+              : []),
+          ],
           {
             cwd: checkout,
             // Deliberately omit inherited credentials. Every gh/git call resolves to the shim.
@@ -149,6 +155,117 @@ async function runScenario(scenario) {
 }
 
 const cases = [
+  [
+    'resume-conflicting',
+    'does not resume while another draft claims the same tag',
+    [],
+    'already has a release or draft',
+  ],
+  [
+    'resume-drift-before-publish',
+    'stops if the selected draft target changes after asset upload',
+    ['upload'],
+    'Draft target commit mismatch',
+  ],
+  [
+    'resume-assets-race',
+    'preserves an unexpected concurrent upload before resume mutation',
+    [],
+    'Release assets are incomplete',
+  ],
+  [
+    'created-hidden',
+    'uses the creation response ID when release listings omit the new draft',
+    ['create', 'upload', 'publish'],
+    null,
+  ],
+  [
+    'resume-empty',
+    'resumes only the explicitly selected empty exact-revision draft',
+    ['upload', 'publish'],
+    null,
+  ],
+  [
+    'resume-complete',
+    'publishes an explicitly selected fully verified draft without reuploading assets',
+    ['publish'],
+    null,
+  ],
+  ['resume-check', 'checks a selected complete draft without mutating it', [], null],
+  [
+    'resume-invalid-id',
+    'rejects a nonnumeric explicit draft identifier',
+    [],
+    'positive numeric --resume-draft-id',
+  ],
+  [
+    'resume-missing',
+    'does not create another draft when the selected draft is missing',
+    [],
+    'gh failed',
+  ],
+  ['resume-wrong-id', 'rejects a changed selected draft identity', [], 'Draft identity mismatch'],
+  [
+    'resume-wrong-repository',
+    'rejects a draft from a different repository',
+    [],
+    'Draft repository mismatch',
+  ],
+  ['resume-wrong-tag', 'rejects a draft with a different version tag', [], 'Draft tag mismatch'],
+  [
+    'resume-published',
+    'never resumes an already published release',
+    [],
+    'Expected an unpublished draft',
+  ],
+  [
+    'resume-wrong-target',
+    'never retargets a draft from a different commit',
+    [],
+    'Draft target commit mismatch',
+  ],
+  [
+    'resume-wrong-title',
+    'does not replace a manually changed draft title',
+    [],
+    'Draft title mismatch',
+  ],
+  [
+    'resume-prerelease',
+    'rejects a prerelease draft for the stable release workflow',
+    [],
+    'Expected a stable release draft',
+  ],
+  [
+    'resume-partial',
+    'preserves a partially uploaded draft without uploading or publishing',
+    [],
+    'Release assets are incomplete',
+  ],
+  [
+    'resume-bad-digest',
+    'preserves a draft with a wrong existing digest',
+    [],
+    'GitHub release asset checksum mismatch',
+  ],
+  [
+    'resume-bad-size',
+    'preserves a draft with a wrong existing asset size',
+    [],
+    'Release asset size mismatch',
+  ],
+  [
+    'resume-unfinished',
+    'preserves a draft with unfinished existing uploads',
+    [],
+    'Release asset upload is incomplete',
+  ],
+  [
+    'resume-extra',
+    'preserves a draft with an unexpected asset',
+    [],
+    'Release assets are incomplete',
+  ],
   ['check', 'validates all packages without creating a release', [], null],
   [
     'success',
@@ -268,10 +385,14 @@ describe(
         else
           assert(
             result.stdout.includes(
-              scenario === 'check' ? 'Read-only release validation passed' : 'Verified release:',
+              ['check', 'resume-check'].includes(scenario)
+                ? 'Read-only release validation passed'
+                : 'Verified release:',
             ),
             result.stdout,
           );
+        if (scenario === 'created-hidden') assert.equal(result.state.uploads, 6);
+        if (scenario === 'resume-complete') assert.equal(result.state.uploads, undefined);
         assert.equal(Boolean(result.state.published), mutations.includes('publish'));
         if (mutations.includes('create') && !mutations.includes('publish'))
           assert.equal(result.state.release.draft, true);
