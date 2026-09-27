@@ -1,5 +1,5 @@
 import {RecoveryBackups,type RecoveryCopy} from './recovery-backups';
-import { indexProject, type ProjectIndex } from '../../../../packages/domain/src/index';
+import { indexProject, hasMergeConflict, type ProjectIndex } from '../../../../packages/domain/src/index';
 
 export interface StoreDiagnostic { code: string; message: string; path?: string }
 export interface ProjectSnapshot {
@@ -46,6 +46,10 @@ export class ProjectStore {
   get recoveryPending(){return this.recovery!==null||this.corruptRecovery;}
   setMutationGuard(guard?:()=>Promise<void>){this.mutationGuard=guard;}
   private async assertMutation(){if(this.recoveryPending)throw new ProjectError('recovery-pending','Revisa el guardado pendiente antes de volver a modificar archivos.');await this.mutationGuard?.();}
+  private async assertConflictFree(path:string,proposed:string){
+    let current='';try{current=await this.read(path);}catch(error){if(!(error instanceof DOMException&&error.name==='NotFoundError'))throw error;}
+    if(hasMergeConflict(current)||hasMergeConflict(proposed))throw new ProjectError('merge-conflict','El archivo contiene marcadores de conflicto. Resuélvelo con Git o tu editor y relee los archivos antes de guardar.',path);
+  }
   private async loadRecovery(){
     try{const text=await this.read(recoveryPath);const record=JSON.parse(text) as RecoveryRecord;
       if(record.schemaVersion!==1||typeof record.id!=='string'||!Array.isArray(record.entries)||!record.entries.length)throw new Error('invalid');
@@ -215,6 +219,7 @@ export class ProjectStore {
       if(await this.handle.queryPermission({mode:'readwrite'})!=='granted')throw new ProjectError('permission-denied','Se ha perdido el permiso de escritura. El borrador se conserva.');
       if(this.mode!=='edit')throw new ProjectError('read-only','Activa el modo editor antes de guardar.',path);
       if(await this.revision(path)!==expectedRevision)throw new ProjectError('stale-revision','El archivo cambió en disco. Tu borrador se conserva.',path);
+      await this.assertConflictFree(path,text);
       safePath(path);if(path===recoveryPath)throw new ProjectError('unsafe-path','El registro de recuperación es interno.');
       if(new TextEncoder().encode(text).byteLength>LIMITS.bytesPerFile)throw new ProjectError('file-too-large','El borrador supera el límite de 2 MiB.');
       await this.prepareRecovery([{path,before:expectedRevision,after:await contentHash(text)}],[{path,before:expectedRevision===null?null:await this.read(path),after:text}]);
@@ -238,6 +243,7 @@ export class ProjectStore {
     try {
       if (await this.handle.queryPermission({mode:'readwrite'}) !== 'granted') throw new ProjectError('permission-denied', 'Se ha perdido el permiso de escritura. El borrador se conserva.', path);
       if (await this.revision(path) !== expectedRevision) throw new ProjectError('stale-revision', 'El archivo cambió en disco. Revisa las diferencias antes de guardar; tu borrador se conserva.', path);
+      await this.assertConflictFree(path,text);
       await this.mutationGuard?.();
       const target = await this.file(path, expectedRevision === null);
       stream = await target.createWritable({keepExistingData: false});
@@ -261,7 +267,7 @@ export class ProjectStore {
       if(this.mode!=='edit')throw new ProjectError('read-only','Activa el modo editor antes de guardar.');
       if(new Set(changes.map(c=>c.path)).size!==changes.length)throw new ProjectError('duplicate-path','El plan repite un archivo.');
       for (const change of changes) if (await this.revision(change.path) !== change.expectedRevision || await this.read(change.path) !== change.before) throw new ProjectError('stale-revision', 'El plan ya no coincide con los archivos. Vuelve a revisar el cambio.', change.path);
-      for(const change of changes)safePath(change.path);
+      for(const change of changes){safePath(change.path);await this.assertConflictFree(change.path,change.after);}
       await this.prepareRecovery(await Promise.all(changes.map(async c=>({path:c.path,before:c.expectedRevision,after:await contentHash(c.after)}))),changes.map(c=>({path:c.path,before:c.before,after:c.after})));
       const saved: string[] = [];
       try {

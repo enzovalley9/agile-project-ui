@@ -28,6 +28,16 @@ describe('browser project boundary',()=>{
  it('does not apply a stale multi-file plan',async()=>{
   const fs=memoryDirectory(initial),store=new ProjectStore(fs.handle);await store.setMode('edit');await expect(store.applyChanges([{path:'docs/a.md',before:'wrong',after:'new',expectedRevision:await contentHash(initial['docs/a.md'])}])).rejects.toThrow('plan');expect(fs.state.writes).toBe(0);
  });
+ it('preserves unresolved conflict files and rejects introduced markers before any write',async()=>{
+  const conflict='# Story 1.1: Conflict\n<<<<<<< HEAD\nStatus: done\n=======\nStatus: review\n>>>>>>> branch\n';
+  const fs=memoryDirectory({...initial,'docs/conflict.md':conflict}),store=new ProjectStore(fs.handle);await store.setMode('edit');await store.refresh();
+  await expect(store.save('docs/conflict.md','Resolved',await contentHash(conflict))).rejects.toMatchObject({code:'merge-conflict'});
+  await expect(store.save('docs/a.md',conflict,await contentHash(initial['docs/a.md']))).rejects.toMatchObject({code:'merge-conflict'});
+  await expect(store.applyChanges([{path:'docs/a.md',before:initial['docs/a.md'],after:'Unrelated',expectedRevision:await contentHash(initial['docs/a.md'])},{path:'docs/conflict.md',before:conflict,after:'Resolved',expectedRevision:await contentHash(conflict)}])).rejects.toMatchObject({code:'merge-conflict'});
+  expect(fs.state.writes).toBe(0);expect(fs.files.get('docs/conflict.md')).toBe(conflict);expect(fs.files.get('docs/a.md')).toBe(initial['docs/a.md']);
+  fs.files.set('docs/conflict.md','# Resolved externally');await store.refresh();await store.save('docs/conflict.md','# Updated after resolution',await contentHash('# Resolved externally'));
+  expect(fs.files.get('docs/conflict.md')).toBe('# Updated after resolution');
+ });
  it('stores comments outside BMAD output, roundtrips them, rejects concurrent replies',async()=>{
   const fs=memoryDirectory(initial),store=new ProjectStore(fs.handle);const s=await store.refresh();await store.setMode('edit');const anchor=makeAnchor('docs/a.md',initial['docs/a.md'],s.revisions['docs/a.md'],3);const actor={id:'a',name:'Ana'};
   await addThread(store,anchor,actor,'Revisar riego');const loaded=loadThreads(await store.refresh());expect(loaded.threads).toHaveLength(1);expect(loaded.errors).toHaveLength(0);

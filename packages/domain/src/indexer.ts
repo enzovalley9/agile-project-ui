@@ -1,6 +1,7 @@
 import { parse as parseToml } from 'smol-toml';
 import { catalog } from './catalog';
 import { discoverConfiguration } from './configuration';
+import { hasMergeConflict } from './conflicts';
 import { frontmatter, isRecord, isSafePath, markdownChecks, markdownHeadings, markdownLinks, markdownTree, parseYaml, ref, resolveDocumentLink, safeRecord, section, textValue, yamlScalar, type ParsedYaml } from './source';
 import type { ChecklistItem, Diagnostic, DocumentKind, DocumentRecord, FieldTarget, FileSnapshot, IndexOptions, ProjectIndex, RevisionSnapshot, SourceRef, StatusValue, WorkItem, WorkItemKind } from './types';
 
@@ -60,11 +61,19 @@ export function indexProject(input:FileSnapshot,revisions:RevisionSnapshot={},op
     if(typeof text !== 'string' || text.includes('\0') || new TextEncoder().encode(text).length>2*1024*1024) { exclusions.push(path); diagnostics.push({code:'unreadable-text',severity:'warning',path,message:'Texto binario, codificación no admitida o archivo superior a 2 MiB.'}); continue; }
     files[path]=text;
   }
-  const config=discoverConfiguration(files,diagnostics,options);
+  const conflicted=new Set(Object.keys(files).filter(path=>hasMergeConflict(files[path])));
+  const interpretableFiles=Object.fromEntries(Object.entries(files).filter(([path])=>!conflicted.has(path)));
+  const config=discoverConfiguration(interpretableFiles,diagnostics,options);
   const documents:DocumentRecord[]=[], workItems:WorkItem[]=[];
   const parsedFiles=new Map<string,ParsedYaml>();
   for(const path of Object.keys(files).sort((a,b)=>a.localeCompare(b,'en'))) {
     const text=files[path], revision=revisions[path] || '';
+    if(conflicted.has(path)) {
+      const message='El archivo contiene marcadores de conflicto. Resuélvelo fuera de la aplicación y relee los archivos antes de editar.';
+      diagnostics.push({code:'merge-conflict',severity:'error',path,message});
+      documents.push({path,title:displayFile(path),kind:'text',revision,derived:false,capabilities:{read:true,comment:false,textEdit:false,structuredEdit:false},headings:[],links:[],metadata:{},warnings:[message],parseValid:false,lineCount:text.split('\n').length});
+      continue;
+    }
     if(path.startsWith('_bmad/') || path.startsWith('.bmad-project-ui/')) continue;
     if(!TEXT_EXTENSIONS.test(path)) { exclusions.push(path); continue; }
     if(/(^|\/)tickets\.toml$/i.test(path)) diagnostics.push({code:'ticketing-unsupported',severity:'warning',path,message:'El formato ticketing de main no forma parte del adaptador 6.12.0. Se ofrece lectura y edición textual.'});
@@ -113,7 +122,7 @@ export function indexProject(input:FileSnapshot,revisions:RevisionSnapshot={},op
       }
     }
   }
-  relate(workItems,documents,files,diagnostics);
+  relate(workItems,documents.filter(doc=>doc.parseValid),interpretableFiles,diagnostics);
   for(const doc of documents) {
     doc.capabilities.structuredEdit=workItems.some(item=>item.source.path===doc.path && Object.values(item.editable).some(Boolean));
     for(const link of doc.links) if(link.kind==='local' && !link.exists) diagnostics.push({code:'broken-link',severity:'info',path:doc.path,message:`Enlace local no encontrado: ${link.href}`,relatedPaths:link.target?[link.target]:undefined});
@@ -127,7 +136,7 @@ export function indexProject(input:FileSnapshot,revisions:RevisionSnapshot={},op
     }
   }
   if(!documents.some(doc=>doc.kind==='sprint')) diagnostics.push({code:'sprint-absent',severity:'info',message:'No se ha encontrado seguimiento de sprint; no equivale a ausencia de trabajo.'});
-  const result=catalog(files,config,diagnostics);
+  const result=catalog(interpretableFiles,config,diagnostics);
   return {name:config.name,declaredVersion:config.version,compatibility:config.version==='6.12.0'?'6.12.0':'unknown',roots:config.roots,documents,workItems,...result,diagnostics,coverage:{filesProvided:Object.keys(input).length,documents:documents.length,excluded:exclusions.length,partial:exclusions.length>0 || diagnostics.some(d=>d.severity==='error'),exclusions}};
 }
 

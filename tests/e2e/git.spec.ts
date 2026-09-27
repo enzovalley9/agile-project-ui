@@ -42,3 +42,24 @@ test('external branch switch with identical document bytes cannot receive the ol
  try{await open(page);await connect(page,43221,setupResult.tokenFile);const path=join(project,'docs/notas/reunion.md'),before=await readFile(path,'utf8');await edit(page,before+'\nBorrador de main.\n');await command(project,'switch','review-fixture');await page.getByRole('button',{name:'Guardar',exact:true}).click();await expect(page.getByText(/La rama o el commit cambió fuera/)).toBeVisible();expect(await readFile(path,'utf8')).toBe(before);await expect(page.getByLabel('Fuente Markdown')).toContainText('Borrador de main.');}
  finally{await setupResult.close();}
 });
+
+test('opens a preexisting merge safely and resumes editing only after external resolution and rebinding',async({page,project})=>{
+ const instance=await setup(project,43222),conflictPath=join(project,'docs/manual/riego.md'),notePath=join(project,'docs/notas/reunion.md');
+ try{
+  await command(project,'switch','review-fixture');await writeFile(conflictPath,'# Riego\n\nVersión de la rama.\n');await command(project,'add','docs/manual/riego.md');await command(project,'commit','-m','Review branch watering');
+  await command(project,'switch','main');await writeFile(conflictPath,'# Riego\n\nVersión de main.\n');await command(project,'add','docs/manual/riego.md');await command(project,'commit','-m','Main watering');
+  await expect(command(project,'merge','review-fixture')).rejects.toMatchObject({code:1});
+  const conflict=await readFile(conflictPath,'utf8'),before=await readFile(notePath,'utf8'),unmerged=await command(project,'ls-files','-u');expect(conflict).toContain('<<<<<<< HEAD');expect(unmerged).not.toBe('');
+  await open(page);await page.getByRole('button',{name:'riego.md',exact:true}).click();
+  await expect(page.getByRole('alert').filter({hasText:'marcadores de conflicto'})).toBeVisible();
+  await expect(page.getByLabel('Fuente Markdown')).toContainText('<<<<<<< HEAD');await expect(page.locator('.cm-content')).toHaveAttribute('contenteditable','false');await expect(page.getByRole('button',{name:'Guardar',exact:true})).toBeDisabled();
+  await connect(page,43222,instance.tokenFile);await expect(page.getByRole('alert').filter({hasText:'Hay conflictos'})).toBeVisible();await expect(page.getByRole('alert').filter({hasText:'MERGE_HEAD'})).toBeVisible();await expect(page.getByRole('button',{name:'Revisar push',exact:true})).toBeDisabled();
+  await edit(page,before+'\nBorrador conservado durante merge.\n');await page.getByRole('button',{name:'Guardar',exact:true}).click();await expect(page.getByText('Resuelve la operación o los conflictos de Git antes de guardar.',{exact:true})).toBeVisible();
+  expect(await readFile(notePath,'utf8')).toBe(before);expect(await readFile(conflictPath,'utf8')).toBe(conflict);expect(await command(project,'ls-files','-u')).toBe(unmerged);await expect(page.getByLabel('Fuente Markdown')).toContainText('Borrador conservado durante merge.');
+  await writeFile(conflictPath,'# Riego\n\nResolución externa revisada.\n');await command(project,'add','docs/manual/riego.md');await command(project,'commit','-m','Resolve watering externally');expect(await command(project,'ls-files','-u')).toBe('');
+  await page.getByRole('button',{name:/Conexión con Git/}).click();await page.getByRole('button',{name:'Descartar borradores y continuar'}).click();await page.getByRole('button',{name:'Comprobar',exact:true}).click();await expect(page.getByRole('alert').filter({hasText:'Hay conflictos'})).toHaveCount(0);
+  await page.getByRole('button',{name:'Desconectar',exact:true}).click();await connect(page,43222,instance.tokenFile);await page.getByRole('button',{name:'Releer archivos'}).click();
+  await page.getByRole('button',{name:'Documentos',exact:true}).click();await page.getByRole('button',{name:'riego.md',exact:true}).click();await expect(page.getByRole('alert').filter({hasText:'marcadores de conflicto'})).toHaveCount(0);await expect(page.getByRole('article',{name:'Contenido del documento'})).toContainText('Resolución externa revisada.');
+  const after=before+'\nGuardado después de resolver y vincular.\n';await edit(page,after);await page.getByRole('button',{name:'Guardar',exact:true}).click();await expect(page.getByText('Guardado localmente y verificado.')).toBeVisible();expect(await readFile(notePath,'utf8')).toBe(after);
+ }finally{await instance.close();}
+});

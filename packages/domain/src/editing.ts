@@ -1,6 +1,7 @@
 import { parseDocument } from 'yaml';
 import type { EditPlan, FieldTarget, FileSnapshot, ProjectIndex, WorkItemEdit } from './types';
 import { isSafePath } from './source';
+import { hasMergeConflict } from './conflicts';
 
 export class DomainEditError extends Error {
   constructor(public code:string,message:string) {super(message);this.name='DomainEditError';}
@@ -56,6 +57,7 @@ export function planWorkItemEdit(index:ProjectIndex,files:FileSnapshot,edit:Work
   const changes:EditPlan['changes']=[];
   for(const [path,parts] of byPath) {
     const before=files[path];let after=before;
+    if(hasMergeConflict(before))throw new DomainEditError('merge-conflict','La fuente contiene un conflicto. Resuélvelo fuera de la aplicación antes de editar.');
     const ordered=parts.sort((a,b)=>b.target.source.start-a.target.source.start);
     let previousStart=before.length+1;
     for(const {target,value} of ordered) {

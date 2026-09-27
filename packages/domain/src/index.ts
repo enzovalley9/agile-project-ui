@@ -4,3 +4,4 @@ export { planWorkItemEdit, DomainEditError } from './editing';
 export { mergeConfiguration } from './configuration';
 export { parseCsv } from './catalog';
 export { isSafePath, resolveDocumentLink, headingAnchor } from './source';
+export { hasMergeConflict } from './conflicts';

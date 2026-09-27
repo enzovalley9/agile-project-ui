@@ -63,7 +63,7 @@ npm run connector:git -- \
   --token-file /ruta/privada/fuera-del-proyecto/sesion-git
 ```
 
-Carga el archivo de sesión desde **Conexión con Git**. La aplicación comprueba que el navegador y el conector trabajan sobre la misma carpeta. Puedes revisar un commit de archivos concretos, cambiar a una rama local existente y revisar todos los commits salientes antes de hacer push a una rama remota existente. No hay force push ni resolución de conflictos dentro de la aplicación.
+Carga el archivo de sesión desde **Conexión con Git**. La aplicación comprueba que el navegador y el conector trabajan sobre la misma carpeta. Puedes revisar un commit de archivos concretos, cambiar a una rama local existente y revisar todos los commits salientes antes de hacer push a una rama remota existente. No hay force push ni resolución de conflictos dentro de la aplicación. Los archivos con marcadores de conflicto se muestran como fuente de solo lectura, sin convertirlos en tareas o estados; resuélvelos externamente y relee el proyecto antes de continuar.
 
 Consulta [la guía del conector Git](docs/git-connector.md).
 
