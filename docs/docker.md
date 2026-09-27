@@ -10,6 +10,10 @@ The image reference is `ghcr.io/enzovalley9/agile-project-ui:latest`; use a publ
 
 Pulling and running the image and extracting its Compose files require no source checkout. The image includes both AMD64 and ARM64 variants when published through the container workflow.
 
+## Licenses, sources and supply-chain verification
+
+Every image includes exact corresponding Debian and Node.js source archives, copyright notices and machine-readable inventories. They can be extracted without running a container or accessing GitHub. This source payload increases image size. See [distribution and verification](supply-chain.md) for `docker cp` instructions, checksum validation, signed provenance and security scan policy.
+
 ## Start the web app
 
 These commands use POSIX shell syntax. After publication, use the public image below or replace `latest` with a published version or digest:

@@ -27,6 +27,17 @@
 !docs/hosting.md
 !docs/releases.md
 !docs/docker.md
+!docs/supply-chain.md
+!docs/compatibility.md
+!docs/privacy.md
+!docs/roadmap.md
+!docs/first-use.md
+!docs/maintaining.md
+!docs/signing.md
+!docs/screenshots/
+!docs/screenshots/*.png
+!examples/
+!examples/community-garden.json
 !apps/
 !apps/web/
 !apps/web/index.html
@@ -47,6 +58,7 @@
 !packages/*/src/**
 !scripts/
 !scripts/build-connectors.mjs
+!scripts/build-example.mjs
 !scripts/build-public-help.mjs
 !scripts/build-revision.mjs
 !scripts/check-public-assets.mjs
@@ -55,6 +67,9 @@
 !docker/runtime.mjs
 !docker/web-server.mjs
 !docker/healthcheck.mjs
+!docker/collect-sources.mjs
+!docker/container-sbom.mjs
+!docker/verify-distribution.mjs
 **/.env
 **/.env.*
 !.env.docker.example

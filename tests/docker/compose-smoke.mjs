@@ -7,6 +7,23 @@ import { join, resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
 
 const exec = promisify(execFile);
+const distribution = await exec(
+  'docker',
+  [
+    'run',
+    '--rm',
+    '--read-only',
+    '--network',
+    'none',
+    '--cap-drop=ALL',
+    '--entrypoint',
+    'node',
+    process.env.AGILE_DOCKER_IMAGE ?? 'agile-project-ui:local',
+    'docker/verify-distribution.mjs',
+  ],
+  { timeout: 120_000 },
+);
+console.log(distribution.stdout.trim());
 const root = await realpath(await mkdtemp(join(tmpdir(), 'agile-compose-')));
 const project = join(root, 'project');
 await mkdir(project, { mode: 0o700 });

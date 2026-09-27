@@ -22,10 +22,11 @@ jobs:
           - os: ubuntu-24.04-arm
             arch: arm64
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 25
+    timeout-minutes: 40
     permissions:
       contents: read
       actions: read
+      packages: write
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -43,16 +44,58 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium
-      - run: docker build --build-arg AGILE_PROJECT_UI_BUILD_REVISION="$GITHUB_SHA" --tag agile-project-ui:local .
+      - run: docker build --provenance=false --build-arg AGILE_PROJECT_UI_BUILD_REVISION="$GITHUB_SHA" --tag agile-project-ui:local .
       - run: npm run test:docker
-      - name: Export the exact tested image
-        run: docker save --output "$RUNNER_TEMP/image.tar" agile-project-ui:local
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - name: Extract inventories from the exact tested image
+        run: |
+          mkdir distribution-metadata
+          container=$(docker create agile-project-ui:local)
+          for file in source-manifest.json container.cdx.json npm-build.cdx.json SHA256SUMS; do
+            docker cp "$container:/opt/agile-project-ui/licenses/$file" "distribution-metadata/$file"
+          done
+          docker rm "$container"
+      - uses: aquasecurity/trivy-action@d2a0b60797ff03db6132bd4e2b293f9b37081297
         with:
-          name: tested-image-${{ matrix.arch }}
-          path: ${{ runner.temp }}/image.tar
-          compression-level: 0
-          retention-days: 2
+          version: v0.74.0
+          image-ref: agile-project-ui:local
+          scanners: vuln
+          format: json
+          output: distribution-metadata/vulnerabilities.json
+          exit-code: '0'
+          timeout: 10m
+      - name: Require no fixable high or critical vulnerabilities
+        run: |
+          jq -e '.Metadata.OS.Family == "debian" and ([.Results[]? | select(.Class == "os-pkgs")] | length > 0)' distribution-metadata/vulnerabilities.json
+          jq -e '[.Results[]?.Vulnerabilities[]? | select((.Severity == "HIGH" or .Severity == "CRITICAL") and (.FixedVersion // "") != "")] | length == 0' distribution-metadata/vulnerabilities.json
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Store the tested image by immutable digest
+        env:
+          ARCH: ${{ matrix.arch }}
+        run: |
+          set -euo pipefail
+          test "$(docker image inspect agile-project-ui:local --format '{{.Architecture}}')" = "$ARCH"
+          tested_id=$(docker image inspect agile-project-ui:local --format '{{.Id}}')
+          candidate="ghcr.io/$GITHUB_REPOSITORY:candidate-$GITHUB_SHA-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT-$ARCH"
+          docker tag agile-project-ui:local "$candidate"
+          docker push "$candidate"
+          digest=$(docker buildx imagetools inspect "$candidate" --format '{{json .Manifest}}' | jq -r .digest)
+          echo "$digest" | grep -Eq '^sha256:[0-9a-f]{64}$'
+          docker pull --platform "linux/$ARCH" "ghcr.io/$GITHUB_REPOSITORY@$digest"
+          test "$(docker image inspect "ghcr.io/$GITHUB_REPOSITORY@$digest" --format '{{.Id}}')" = "$tested_id"
+          test "$(docker image inspect "ghcr.io/$GITHUB_REPOSITORY@$digest" --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')" = "$GITHUB_SHA"
+          jq -e --arg revision "$GITHUB_SHA" '.revision == $revision' distribution-metadata/source-manifest.json
+          jq -n --arg digest "$digest" --arg revision "$GITHUB_SHA" --arg arch "$ARCH" --arg run "$GITHUB_RUN_ID" \
+            '{digest: $digest, revision: $revision, architecture: $arch, run: $run}' > distribution-metadata/tested-image.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: distribution-metadata-${{ matrix.arch }}
+          path: distribution-metadata/
+          retention-days: 30
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
@@ -68,15 +111,19 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
       - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - uses: sigstore/cosign-installer@828df1e55de306ba29db814d6057ddae71883cda
+        with:
+          cosign-release: v3.1.3
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          pattern: tested-image-*
-          path: tested-images
+          pattern: distribution-metadata-*
+          path: distribution-metadata
       - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
           registry: ghcr.io
@@ -87,13 +134,39 @@ jobs:
           set -euo pipefail
           image="ghcr.io/$GITHUB_REPOSITORY"
           for arch in amd64 arm64; do
-            docker load --input "tested-images/tested-image-$arch/image.tar"
-            test "$(docker image inspect agile-project-ui:local --format '{{.Architecture}}')" = "$arch"
-            test "$(docker image inspect agile-project-ui:local --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')" = "$GITHUB_SHA"
-            docker tag agile-project-ui:local "$image:sha-$GITHUB_SHA-$arch"
-            docker push "$image:sha-$GITHUB_SHA-$arch"
+            metadata="distribution-metadata/distribution-metadata-$arch"
+            jq -e --arg revision "$GITHUB_SHA" --arg arch "$arch" --arg run "$GITHUB_RUN_ID" \
+              '.revision == $revision and .architecture == $arch and .run == $run' "$metadata/tested-image.json"
+            jq -e --arg revision "$GITHUB_SHA" '.revision == $revision' "$metadata/source-manifest.json"
+            digest=$(jq -r .digest "$metadata/tested-image.json")
+            echo "$digest" | grep -Eq '^sha256:[0-9a-f]{64}$'
+            docker buildx imagetools create --prefer-index=false --tag "$image:sha-$GITHUB_SHA-$arch" "$image@$digest"
+            cosign attest --yes --type cyclonedx \
+              --predicate "distribution-metadata/distribution-metadata-$arch/container.cdx.json" "$image@$digest"
           done
-          docker buildx imagetools create --tag "$image:sha-$GITHUB_SHA" --tag "$image:latest" \
-            "$image:sha-$GITHUB_SHA-amd64" "$image:sha-$GITHUB_SHA-arm64"
+          docker buildx imagetools create --tag "$image:sha-$GITHUB_SHA" \
+            "$image@$(jq -r .digest distribution-metadata/distribution-metadata-amd64/tested-image.json)" \
+            "$image@$(jq -r .digest distribution-metadata/distribution-metadata-arm64/tested-image.json)"
+          digest=$(docker buildx imagetools inspect "$image:sha-$GITHUB_SHA" --format '{{json .Manifest}}' | jq -r .digest)
+          test "${digest#sha256:}" != "$digest"
+          jq -n --arg revision "$GITHUB_SHA" --arg repository "$GITHUB_REPOSITORY" \
+            --arg run "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+            '{buildDefinition: {buildType: "https://github.com/enzovalley9/agile-project-ui/.github/workflows/container.yml", externalParameters: {revision: $revision, platforms: ["linux/amd64", "linux/arm64"]}, resolvedDependencies: [{uri: ("git+https://github.com/" + $repository), digest: {gitCommit: $revision}}]}, runDetails: {builder: {id: "https://github.com/enzovalley9/agile-project-ui/.github/workflows/container.yml@refs/heads/main"}, metadata: {invocationId: $run}}}' > provenance.json
+          cosign sign --yes "$image@$digest"
+          cosign attest --yes --type slsaprovenance1 --predicate provenance.json "$image@$digest"
+          identity="https://github.com/$GITHUB_REPOSITORY/.github/workflows/container.yml@refs/heads/main"
+          cosign verify "$image@$digest" --certificate-identity "$identity" --certificate-oidc-issuer https://token.actions.githubusercontent.com > signature-verification.json
+          cosign verify-attestation "$image@$digest" --type slsaprovenance1 --certificate-identity "$identity" --certificate-oidc-issuer https://token.actions.githubusercontent.com > provenance-verification.json
+          # Only advance the convenience tag after signing and verification succeed.
+          docker buildx imagetools create --tag "$image:latest" "$image@$digest"
           docker buildx imagetools inspect "$image:sha-$GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
           echo 'Package visibility is independent of repository visibility. Verify anonymous pull before announcing public availability.' >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: container-provenance-verification
+          path: |
+            provenance.json
+            signature-verification.json
+            provenance-verification.json
+          retention-days: 90
