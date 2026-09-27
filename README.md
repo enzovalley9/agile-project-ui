@@ -110,9 +110,11 @@ Start with [CONTRIBUTING.md](CONTRIBUTING.md), the [development guide](docs/deve
 
 Use [SUPPORT.md](SUPPORT.md) for troubleshooting and sanitized bug reports. Report vulnerabilities through the route described in [SECURITY.md](SECURITY.md), not a public issue. Release changes are recorded in [CHANGELOG.md](CHANGELOG.md).
 
+For questions, suggestions or help, contact **Enzo Valley** at [enzovalley9@gmail.com](mailto:enzovalley9@gmail.com).
+
 ## License and attribution
 
-First-party code, documentation and synthetic examples are available under the **[MIT License](LICENSE)**, copyright 2026 Victor del Valle. Preserve the copyright and permission notice when redistributing copies or substantial portions.
+First-party code, documentation and synthetic examples are available under the **[MIT License](LICENSE)**, copyright 2026 Enzo Valley. Preserve the copyright and permission notice when redistributing copies or substantial portions.
 
 Dependencies retain their own licenses. [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) contains the locked dependency notices, including Lucide/Feather attribution. Web builds and connector archives include the project license and these notices; connector packages also retain Node's license at `runtime/LICENSE`.
 

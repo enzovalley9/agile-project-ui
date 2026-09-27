@@ -4,11 +4,9 @@
 
 Do not post exploit details, capabilities, provider credentials or private project content in a public issue or pull request.
 
-Repository collaborators should contact the maintainer through the private channel used to arrange their access. Do not use a general issue for sensitive details, even when the repository itself is private.
+Email **Enzo Valley** at [enzovalley9@gmail.com](mailto:enzovalley9@gmail.com) with a subject beginning with `Security report`. This contact is available regardless of GitHub repository access. Do not use a general issue for sensitive details, even when the repository itself is private.
 
-A public confidential reporting address has not yet been established. If you do not already have a private contact route, share only a request for one through an available maintainer contact; do not disclose the vulnerability there. GitHub issue and advisory URLs for this repository are not anonymous reporting channels while repository access is restricted.
-
-Once a verified public contact is available, it will be listed here. This policy does not enable a reporting service or promise that GitHub's **Report a vulnerability** form is available.
+GitHub issue and advisory URLs for this repository are not anonymous reporting channels while repository access is restricted. This policy does not promise that GitHub's **Report a vulnerability** form is available.
 
 Include the affected commit/version, component, OS/browser, a minimal synthetic reproduction, observed impact and any proposed mitigation. Remove tokens, personal data and real project documents. Report only systems you are authorized to test.
 

@@ -8,6 +8,6 @@ Harassment, threats, discriminatory abuse, sexualized attention, impersonation, 
 
 Maintainers may ask for changes, remove content, limit participation or close a discussion when behavior violates this policy. Decisions should consider the behavior and context, rather than technical status or popularity.
 
-For a concern visible in a project discussion, ask a maintainer to review it without repeating abusive or private material. For confidential details, use an existing private channel with the repository owner. If none is available, request a private contact route without posting the details. No dedicated confidential community-reporting service or response deadline is currently promised.
+Report community concerns privately to **Enzo Valley** at [enzovalley9@gmail.com](mailto:enzovalley9@gmail.com). Include links and only the details needed to understand the concern; do not repeat abusive or private material in a public discussion. No response deadline is currently promised.
 
 This is an original project policy, not a claim of adoption or endorsement of an external code-of-conduct program.

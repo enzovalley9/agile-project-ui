@@ -2,9 +2,11 @@
 
 Start with the [README](README.md), [connector setup guide](docs/connector-setup.md), [development guide](docs/development.md), [Git reference](docs/git-connector.md) or [Atlassian reference](docs/atlassian-connectors.md). No hosted support service, paid support agreement or response-time guarantee is currently provided.
 
+For questions, suggestions or help, contact **Enzo Valley** at [enzovalley9@gmail.com](mailto:enzovalley9@gmail.com). You do not need GitHub repository access to email the maintainer.
+
 If you have repository access, open a reproducible bug using the issue template. For a question or proposed feature, use the relevant issue template. Include your exact version/commit, desktop browser/version, OS and whether a connector is involved. Supply a minimal synthetic file rather than an export of a private BMAD project.
 
-GitHub issues and release downloads currently require repository access. A public frontend does not grant that access, and no separate public support inbox is currently configured. See [release access](docs/releases.md) if a download link returns 404.
+GitHub issues and release downloads currently require repository access. A public frontend does not grant that access. See [release access](docs/releases.md) if a download link returns 404.
 
 Use [the security policy](SECURITY.md) for sensitive reports. Never attach a local session file, API token, unredacted browser storage export or connector credentials.
 

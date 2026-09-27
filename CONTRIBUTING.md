@@ -8,7 +8,7 @@ The repository currently accepts issues and pull requests from people with repos
 
 For a substantial feature, explain the problem and intended behavior in an issue before implementation. Include a small synthetic example instead of a real project's files. Use English for issues, documentation, code comments and interface text. Preserve users' document language and deliberate Unicode/format regression coverage. Protocol keys and third-party legal notices retain their original spelling and terms.
 
-Bug reports should include the source commit/version, OS, browser/version, steps, expected/actual behavior and sanitized evidence. Follow [SECURITY.md](SECURITY.md) for vulnerabilities. General questions belong in an issue while no separate discussion/support channel is configured.
+Bug reports should include the source commit/version, OS, browser/version, steps, expected/actual behavior and sanitized evidence. Follow [SECURITY.md](SECURITY.md) for vulnerabilities. General questions and suggestions can also be emailed to Enzo Valley at [enzovalley9@gmail.com](mailto:enzovalley9@gmail.com); see [SUPPORT.md](SUPPORT.md).
 
 ## Work locally
 
