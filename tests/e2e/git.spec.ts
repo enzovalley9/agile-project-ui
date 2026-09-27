@@ -104,7 +104,9 @@ test('native Git roundtrip from browser: save, exact review, commit, push and ex
     expect(await command(project, 'show', 'HEAD:docs/notas/reunion.md')).toContain(
       'Cambio Git E2E revisado.',
     );
-    expect(await command(project, 'status', '--porcelain')).toBe('');
+    // This assertion can overlap the UI's post-commit repository refresh. Avoid
+    // optional index writes so the observer does not introduce an external lock.
+    expect(await command(project, '--no-optional-locks', 'status', '--porcelain')).toBe('');
     await page.getByRole('button', { name: 'Review push', exact: true }).click();
     await expect(page.getByRole('dialog')).toContainText('Verify original fixture update');
     await expect(page.getByRole('dialog')).toContainText('Cambio Git E2E revisado.');
