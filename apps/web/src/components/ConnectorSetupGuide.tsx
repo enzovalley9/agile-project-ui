@@ -364,8 +364,9 @@ export function ConnectorSetupGuide({
           <p>
             Rollback restores the previous installation and retains the replaced version in a
             separate folder. The web app supports protocol 1 and checks compatibility before
-            authorization and mutations. A version mismatch requires a compatible package;
-            refreshing the website does not update local software.
+            authorization and requests. Compatible software versions can differ. A wrong product,
+            unsupported protocol or malformed version requires a compatible package; refreshing the
+            website does not update local software.
           </p>
           <a
             href="https://agile-project-ui.enzovalley9.workers.dev/help/connector-setup/#updates-and-rollback"

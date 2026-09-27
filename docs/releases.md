@@ -36,7 +36,7 @@ The installer additionally validates packaged file hashes before completing inst
 
 ## Update or remove
 
-Stop every running connector before updating. Preserve its private session/credential directory and any unresolved operation journals. Extract the new release separately and follow its installation instructions; the installer does not overwrite an existing installation automatically. Use `--destination ABSOLUTE_DIRECTORY` for a separate installation, verify it, and only then remove an obsolete installed folder you no longer need.
+Stop every running connector before updating. Preserve its private session/credential directory and any unresolved operation journals. Extract the new release separately and follow the [verified update and rollback procedure](connector-setup.md#updates-and-rollback). An explicit `--update --confirm-stopped` verifies both packages, stages the new installation and retains the previous version; `--rollback --confirm-stopped` restores it. An ordinary installation never replaces an existing destination. Use `--destination ABSOLUTE_DIRECTORY` if you prefer a separate installation.
 
 To uninstall, stop the connector processes and remove the specific installed package folder. Project documents and separately stored credentials/journals are not part of that folder. Removing an application package does not resolve an uncertain Git or provider operation.
 
