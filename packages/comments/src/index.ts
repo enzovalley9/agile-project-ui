@@ -1,6 +1,6 @@
 export type ReactionKind = 'like' | 'dislike' | 'approve' | 'disapprove' | string;
 export interface Actor { id: string; name: string }
-export interface Reaction { kind: ReactionKind; actorId: string }
+export interface Reaction { kind: ReactionKind; actorId: string; actorName?:string }
 export interface Message { id: string; author: Actor; text: string; createdAt: string; editedAt?: string; reactions: Reaction[]; revisions?: {text:string; editedAt:string; actor:Actor}[] }
 export interface Anchor { path: string; revision: string; startLine: number; endLine: number; quote: string; prefix: string; suffix: string; startOffset?:number; endOffset?:number }
 export interface Thread { schemaVersion: 1; id: string; anchor: Anchor; status: 'open'|'resolved'; messages: Message[]; createdAt: string; updatedAt: string; resolvedBy?: Actor; resolvedAt?: string; events?: {type:string; at:string; actor:Actor; previousAnchor?:Anchor}[] }
@@ -77,7 +77,7 @@ export function updateThread(thread: Thread, actor: Actor, action: ThreadAction,
     const existing = target.reactions.some(r=>r.actorId === actor.id && r.kind === action.kind);
     const pair: Record<string,string> = {like:'dislike',dislike:'like',approve:'disapprove',disapprove:'approve'};
     target.reactions = target.reactions.filter(r => !(r.actorId === actor.id && (r.kind === action.kind || r.kind === pair[action.kind])));
-    if(!existing) target.reactions.push({kind:action.kind,actorId:actor.id});
+    if(!existing) target.reactions.push({kind:action.kind,actorId:actor.id,actorName:actor.name});
   }
   if(action.type === 'resolve') { next.status='resolved'; next.resolvedBy={...actor}; next.resolvedAt=now; (next.events ??= []).push({type:'resolved',at:now,actor:{...actor}}); }
   if(action.type === 'reopen') { next.status='open'; delete next.resolvedBy; delete next.resolvedAt; (next.events ??= []).push({type:'reopened',at:now,actor:{...actor}}); }
@@ -86,16 +86,23 @@ export function updateThread(thread: Thread, actor: Actor, action: ThreadAction,
 }
 export function parseThread(text: string): Thread {
   const value: unknown = JSON.parse(text);
-  if (!value || typeof value !== 'object') throw new Error('Hilo inválido.');
-  const t=value as Thread;
-  if (t.schemaVersion !== 1 || !['open','resolved'].includes(t.status) || !t.anchor || typeof t.anchor.path !== 'string' || typeof t.anchor.quote !== 'string' || !Number.isInteger(t.anchor.startLine) || !Number.isInteger(t.anchor.endLine) || !Array.isArray(t.messages) || !t.messages.length) throw new Error('Esquema de comentarios desconocido o inválido; se conserva el archivo.');
-  threadPath(t.id);
-  if (typeof t.anchor.prefix !== 'string' || typeof t.anchor.suffix !== 'string' || typeof t.anchor.revision !== 'string') throw new Error('Anclaje inválido.');
-  for (const m of t.messages) {
-    if (typeof m.id !== 'string' || !m.author || typeof m.author.id !== 'string' || typeof m.author.name !== 'string' || typeof m.text !== 'string' || !Array.isArray(m.reactions) || !m.reactions.every(r=>typeof r.kind==='string'&&typeof r.actorId==='string')) throw new Error('Mensaje inválido.');
-    verifyActor(m.author); verifyMessage(m.text);
-    if (!Number.isFinite(Date.parse(m.createdAt))) throw new Error('Fecha de mensaje inválida.');
+  const fail=():never=>{throw new Error('Esquema de comentarios desconocido o inválido; se conserva el archivo.');};
+  const object=(v:unknown):v is Record<string,unknown>=>!!v&&typeof v==='object'&&!Array.isArray(v);
+  const date=(v:unknown)=>typeof v==='string'&&/^\d{4}-\d{2}-\d{2}T/.test(v)&&Number.isFinite(Date.parse(v));
+  const actor=(v:unknown)=>{if(!object(v)||typeof v.id!=='string'||typeof v.name!=='string')fail();verifyActor(v as unknown as Actor);};
+  const anchor=(input:unknown)=>{if(!object(input))return fail();const a=input;if(typeof a.path!=='string'||!a.path||a.path.startsWith('/')||a.path.includes('\\')||a.path.split('/').some(p=>!p||p==='.'||p==='..')||typeof a.quote!=='string'||!a.quote.trim()||typeof a.revision!=='string'||typeof a.prefix!=='string'||typeof a.suffix!=='string'||!Number.isInteger(a.startLine)||!Number.isInteger(a.endLine)||Number(a.startLine)<1||Number(a.endLine)<Number(a.startLine))fail();if(a.startOffset!==undefined||a.endOffset!==undefined){if(!Number.isInteger(a.startOffset)||!Number.isInteger(a.endOffset)||Number(a.startOffset)<0||Number(a.endOffset)<=Number(a.startOffset))fail();}};
+  if(!object(value))fail();const t=value as unknown as Thread;
+  if(t.schemaVersion!==1||!['open','resolved'].includes(t.status)||!date(t.createdAt)||!date(t.updatedAt)||!Array.isArray(t.messages)||!t.messages.length)fail();
+  threadPath(t.id);anchor(t.anchor);
+  const ids=new Set<string>();
+  for(const m of t.messages){
+    if(!object(m)||typeof m.id!=='string'||!m.id||ids.has(m.id)||typeof m.text!=='string'||!date(m.createdAt)||!Array.isArray(m.reactions))fail();ids.add(m.id);actor(m.author);verifyMessage(m.text);
+    if(m.editedAt!==undefined&&!date(m.editedAt))fail();
+    for(const r of m.reactions)if(!object(r)||typeof r.kind!=='string'||!r.kind.trim()||r.kind.length>32||typeof r.actorId!=='string'||!r.actorId||r.actorName!==undefined&&typeof r.actorName!=='string')fail();
+    if(m.revisions!==undefined){if(!Array.isArray(m.revisions))fail();for(const r of m.revisions){if(!object(r)||typeof r.text!=='string'||!date(r.editedAt))fail();verifyMessage(r.text);actor(r.actor);}}
   }
+  if(t.resolvedBy!==undefined)actor(t.resolvedBy);if(t.resolvedAt!==undefined&&!date(t.resolvedAt))fail();
+  if(t.events!==undefined){if(!Array.isArray(t.events))fail();for(const e of t.events){if(!object(e)||!['resolved','reopened','reanchored'].includes(e.type)||!date(e.at))fail();actor(e.actor);if(e.previousAnchor!==undefined)anchor(e.previousAnchor);}}
   return t;
 }
 export function serializeThread(thread: Thread) { return JSON.stringify(thread,null,2)+'\n'; }

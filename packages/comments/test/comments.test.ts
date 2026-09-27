@@ -36,7 +36,7 @@ describe('persistent comments',()=>{
   thread=updateThread(thread,other,{type:'react',messageId:id,kind:'like'});
   thread=updateThread(thread,me,{type:'react',messageId:id,kind:'dislike'});
   thread=updateThread(thread,me,{type:'react',messageId:id,kind:'approve'});
-  expect(thread.messages[0].reactions).toEqual([{actorId:other.id,kind:'like'},{actorId:me.id,kind:'dislike'},{actorId:me.id,kind:'approve'}]);
+  expect(thread.messages[0].reactions).toEqual([{actorId:other.id,actorName:other.name,kind:'like'},{actorId:me.id,actorName:me.name,kind:'dislike'},{actorId:me.id,actorName:me.name,kind:'approve'}]);
   thread=updateThread(thread,me,{type:'react',messageId:id,kind:'dislike'});
   expect(thread.messages[0].reactions).toHaveLength(2);
  });

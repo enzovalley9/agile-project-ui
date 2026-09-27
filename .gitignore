@@ -163,3 +163,6 @@ $RECYCLE.BIN/
 *.bak
 *.orig
 *.rej
+
+# Isolated concurrent browser-test evidence
+test-results-*/
