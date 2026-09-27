@@ -76,8 +76,8 @@ export class GitService {
     }
   }
 
-  private async git(args: string[], allowFailure = false) {
-    const result = await (this.options.runner ?? nativeGitRunner)([...baseArgs, ...args], { cwd: this.repo || path.resolve(this.options.repo), timeoutMs: this.options.commandTimeoutMs ?? 30_000 });
+  private async git(args: string[], allowFailure = false, env?: Record<string, string>) {
+    const result = await (this.options.runner ?? nativeGitRunner)([...baseArgs, ...args], { cwd: this.repo || path.resolve(this.options.repo), timeoutMs: this.options.commandTimeoutMs ?? 30_000, ...(env ? { env } : {}) });
     if (result.exitCode !== 0 && !allowFailure) {
       const code = /Authentication failed|could not read Username|Permission denied|publickey|terminal prompts disabled/i.test(result.stderr) ? 'AUTHENTICATION'
         : /index\.lock|cannot lock ref|another git process/i.test(result.stderr) ? 'GIT_LOCKED'
@@ -230,6 +230,9 @@ export class GitService {
     requireCondition(typeof input.message === 'string' && input.message.trim().length > 0 && input.message.length <= 10_000 && !input.message.includes('\0'), 'INVALID_MESSAGE', 'Enter a commit message of at most 10,000 characters.', 400);
     const paths = [...new Set(input.paths)].sort();
     requireCondition(paths.length === input.paths.length, 'DUPLICATE_PATH', 'Select each file once.', 400);
+    for (const file of paths) requireCondition(!sensitivePath(file), 'PRIVATE_FILE', 'Secret files, local recovery data and integration journals cannot be reviewed or committed through this connector.', 403);
+    const reviewedSnapshot = await this.snapshot(paths);
+    requireCondition(reviewedSnapshot.head === repository.head && reviewedSnapshot.branch === repository.branch && JSON.stringify(this.parseStatus(reviewedSnapshot.status)) === JSON.stringify(repository.changes), 'STALE_PLAN', 'The repository changed while preparing this review. Refresh and review again.');
     const files: ReviewFile[] = [];
     for (const file of paths) {
       requireCondition(!sensitivePath(file), 'PRIVATE_FILE', 'Secret files, local recovery data and integration journals cannot be reviewed or committed through this connector.', 403);
@@ -247,7 +250,8 @@ export class GitService {
       files.push({ path: file, status: change.index + change.workingTree, diff });
       requireCondition(Buffer.byteLength(JSON.stringify(files)) <= 4 * 1024 * 1024, 'REVIEW_TOO_LARGE', 'This review exceeds 4 MiB. Select a smaller set of changes.');
     }
-    return this.storePlan({ kind: 'commit', summary: input.message.trim(), head: repository.head, paths, message: input.message.trim(), files, snapshot: await this.snapshot(paths) });
+    requireCondition(JSON.stringify(await this.snapshot(paths)) === JSON.stringify(reviewedSnapshot), 'STALE_PLAN', 'The repository changed while rendering the review. Refresh and review again.');
+    return this.storePlan({ kind: 'commit', summary: input.message.trim(), head: repository.head, paths, message: input.message.trim(), files, snapshot: reviewedSnapshot });
   }
   async planBranch(input: MutationContext & { branch: string }) {
     const repository = await this.mutationGate('branch', input);
@@ -272,10 +276,16 @@ export class GitService {
       const parsed = new URL(url);
       requireCondition((!https || !parsed.username) && !parsed.password && !parsed.search && !parsed.hash, 'EMBEDDED_CREDENTIALS', 'Use native Git credential helpers instead of credentials or query parameters in the remote URL.', 403);
     }
+    if (ssh) requireCondition(!/[?#]/.test(url), 'EMBEDDED_CREDENTIALS', 'SSH remote destinations cannot contain query or fragment data.', 403);
     // get-url has already expanded native rewrite rules. Feeding that URL back to
     // Git must not apply a second rewrite to a destination absent from the review.
     const transportUrl = (await this.git(['ls-remote', '--get-url', '--', url])).trim();
-    requireCondition(transportUrl === url, 'REMOTE_REWRITE', 'The effective destination is rewritten again by Git configuration. Use an unambiguous remote URL before reviewing a push.');
+    // get-url requires a repository-defined remote, so an ephemeral -c remote is
+    // insufficient as a probe. Any push alias still matching this already-expanded
+    // URL would be applied again when push receives the explicit URL as its target.
+    const pushRules = splitNull(await this.git(['config', '--null', '--get-regexp', '^url\\..*\\.pushinsteadof$'], true));
+    const rewrittenPush = pushRules.some(rule => { const separator = rule.indexOf('\n'); return separator >= 0 && url.startsWith(rule.slice(separator + 1)); });
+    requireCondition(transportUrl === url && !rewrittenPush, 'REMOTE_REWRITE', 'The effective destination is rewritten again by Git configuration. Use an unambiguous remote URL before reviewing a push.');
     return url;
   }
   private async remoteSha(url: string, branch: string) {
@@ -329,6 +339,48 @@ export class GitService {
     }
     return true;
   }
+  private async commitReviewed(entry: RecordEntry) {
+    const { plan, operation } = entry;
+    const indexPath = path.join(this.gitDir, 'index'), lockPath = `${indexPath}.lock`;
+    const privateIndex = path.join(this.stateDir, `${operation.id}.index`);
+    let indexLock;
+    try { indexLock = await fs.open(lockPath, 'wx', 0o600); }
+    catch (error) { if ((error as NodeJS.ErrnoException).code === 'EEXIST') throw new GitError('GIT_LOCKED', 'The native Git index is locked. Its existing lock has been preserved.'); throw error; }
+    let ownLock = true, published = false;
+    const env = { GIT_INDEX_FILE: privateIndex };
+    try {
+      // The owned native lock prevents another Git process from staging into the
+      // real index while this isolated copy is committed. Never use --only: that
+      // option recaptures mutable working-tree bytes after the final review check.
+      requireCondition(JSON.stringify(await this.snapshot(plan.paths)) === JSON.stringify(plan.snapshot), 'STALE_PLAN', 'The repository changed before its index was locked. Review again.');
+      try { await fs.copyFile(indexPath, privateIndex, fs.constants.COPYFILE_EXCL); }
+      catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; await this.git(['read-tree', '--empty'], false, env); }
+      await fs.chmod(privateIndex, 0o600);
+      await this.git(['add', '--', ...plan.paths], false, env);
+      const staged = splitNull(await this.git(['diff', '--cached', '--name-only', '--no-renames', '-z'], false, env));
+      requireCondition(staged.every(file => plan.paths.includes(file)), 'FOREIGN_INDEX', 'The isolated index contains unreviewed paths. No commit has been created.');
+      for (const file of plan.paths) requireCondition(await this.contentHash(file) === plan.snapshot.files[file], 'STALE_PLAN', 'A selected file changed while staging. No commit has been created.');
+      plan.expectedBlobs = {};
+      for (const file of plan.paths) plan.expectedBlobs[file] = (await this.git(['rev-parse', '--verify', `:${file}`], true, env)).trim() || null;
+      await this.persist(entry);
+      try { await this.git(['commit', '-m', plan.message!], false, env); }
+      finally {
+        if (await this.verifyCommit(plan, await this.head())) {
+          let currentIndex = 'absent';
+          try { currentIndex = hash(await fs.readFile(indexPath)); } catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; }
+          requireCondition(currentIndex === plan.snapshot.index, 'FOREIGN_INDEX', 'A program changed the real index despite its lock. Its contents were preserved; inspect the verified commit and index with Git.');
+          await indexLock.writeFile(await fs.readFile(privateIndex)); await indexLock.sync(); await indexLock.close();
+          await fs.rename(lockPath, indexPath); ownLock = false; published = true;
+        }
+      }
+    } finally {
+      await indexLock.close();
+      if (ownLock) await fs.unlink(lockPath); // Only the lock created above, never an existing native lock.
+      if (published) await fs.unlink(privateIndex);
+      // Preserve an unverified private index as recovery evidence; it is not an
+      // executable plan, and neither it nor its contents are returned to the web.
+    }
+  }
   async execute(planId: string, context: MutationContext): Promise<GitOperation> {
     await this.ready; this.assertSession();
     const existing = this.executed.get(planId); if (existing) return this.records.get(existing)!.operation;
@@ -362,14 +414,7 @@ export class GitService {
       requireCondition(JSON.stringify(finalSnapshot) === JSON.stringify(plan.snapshot), 'STALE_PLAN', 'The repository changed while preparing this operation.');
       if (plan.kind === 'commit') {
         started = true;
-        await this.git(['add', '--', ...plan.paths]);
-        const staged = (await this.repository()).staged;
-        requireCondition(staged.every((file) => plan.paths.includes(file)), 'FOREIGN_INDEX', 'Another process staged unrelated changes. Nothing has been committed. Review the index with your Git client.');
-        for (const file of plan.paths) requireCondition(await this.contentHash(file) === plan.snapshot.files[file], 'STALE_PLAN', 'A selected file changed while staging. Review the index before committing.');
-        plan.expectedBlobs = {};
-        for (const file of plan.paths) plan.expectedBlobs[file] = (await this.git(['rev-parse', '--verify', `:${file}`], true)).trim() || null;
-        await this.persist(entry);
-        await this.git(['commit', '--only', '-m', plan.message!, '--', ...plan.paths]);
+        await this.commitReviewed(entry);
       } else if (plan.kind === 'branch') { started = true; await this.git(['switch', '--no-guess', '--', plan.branch!]); }
       else {
         started = true;

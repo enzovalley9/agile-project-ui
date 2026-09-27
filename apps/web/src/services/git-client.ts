@@ -3,7 +3,7 @@ import type {ProjectStore} from './project-store';
 export type {GitRepository,GitPlan,GitOperation,MutationContext,PlanKind};
 export interface GitBranch {name:string;current:boolean;worktree?:string}
 export class ConnectorError extends Error {constructor(public code:string,message:string){super(message);}}
-const rejectedBeforeExecution=new Set(['PLAN_EXPIRED','STALE_PLAN','TRUST_REQUIRED','BINDING_REQUIRED','INVALID_BINDING','AUTHENTICATION_REQUIRED','UNAUTHORIZED','FORBIDDEN','ORIGIN','INVALID_ORIGIN','INVALID_HOST','BUSY','CONTEXT_REQUIRED','SAVE_IN_PROGRESS','UNSAVED_DRAFTS','INVALID_CONTEXT','DETACHED_HEAD','GIT_LOCKED','CONFLICTS','OPERATION_IN_PROGRESS','FOREIGN_INDEX','CORRUPT_JOURNAL','RECOVERY_REQUIRED']);
+const rejectedBeforeExecution=new Set(['PLAN_EXPIRED','STALE_PLAN','TRUST_REQUIRED','BINDING_REQUIRED','INVALID_BINDING','SESSION_REQUIRED','AUTH_REQUIRED','HOST_DENIED','ORIGIN_DENIED','GIT_CONFLICT','REPOSITORY_CHANGED','AUTHENTICATION_REQUIRED','UNAUTHORIZED','FORBIDDEN','ORIGIN','INVALID_ORIGIN','INVALID_HOST','BUSY','CONTEXT_REQUIRED','SAVE_IN_PROGRESS','UNSAVED_DRAFTS','INVALID_CONTEXT','DETACHED_HEAD','GIT_LOCKED','CONFLICTS','OPERATION_IN_PROGRESS','FOREIGN_INDEX','CORRUPT_JOURNAL','RECOVERY_REQUIRED']);
 export function definitiveRejection(error:unknown){return error instanceof ConnectorError&&rejectedBeforeExecution.has(error.code);}
 /** Session capability is deliberately memory-only and never part of project files. */
 export class GitClient {

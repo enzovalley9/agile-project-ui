@@ -108,6 +108,48 @@ describe('Git connector capability and repository binding', () => {
 });
 
 describe('reviewed commits and concurrent changes', () => {
+  it('rejects a file changed after its rendered diff instead of approving a newer snapshot', async () => {
+    let changed = false;
+    const runner: GitRunner = async (args, options) => {
+      const result = await nativeGitRunner(args, options);
+      if (!changed && args.includes('diff') && args.includes('--no-ext-diff')) { changed = true; await fs.writeFile(path.join(options.cwd, 'prd.md'), 'UNREVIEWED edit after rendered diff\n'); }
+      return result;
+    };
+    const f = await fixture({runner}); await fs.writeFile(path.join(f.repo, 'prd.md'), 'Reviewed edit\n');
+    const response = await f.request('plans/commit', 'POST', {...context, paths:['prd.md'], message:'Must be reviewed again'});
+    expect((await response.json() as {error:{code:string}}).error.code).toBe('STALE_PLAN');
+    expect(await git(f.repo, ['rev-list', '--count', 'HEAD'])).toBe('1');
+    expect(await git(f.repo, ['show', 'HEAD:prd.md'])).toBe('# Test project');
+    expect(await fs.readFile(path.join(f.repo, 'prd.md'), 'utf8')).toBe('UNREVIEWED edit after rendered diff\n');
+  });
+  it('commits the isolated reviewed index when working bytes change immediately before native commit', async () => {
+    const runner: GitRunner = async (args, options) => {
+      if (args.includes('commit')) await fs.writeFile(path.join(options.cwd, 'prd.md'), 'UNREVIEWED edit before commit\n');
+      return nativeGitRunner(args, options);
+    };
+    const f = await fixture({runner}); await fs.writeFile(path.join(f.repo, 'prd.md'), 'Reviewed edit\n');
+    const plan = await f.planCommit(); expect(plan.files[0].diff).toContain('Reviewed edit'); expect(plan.files[0].diff).not.toContain('UNREVIEWED');
+    const operation = await f.execute(plan); expect(operation.status).toBe('verified');
+    expect(await git(f.repo, ['show', 'HEAD:prd.md'])).toBe('Reviewed edit');
+    expect(await fs.readFile(path.join(f.repo, 'prd.md'), 'utf8')).toBe('UNREVIEWED edit before commit\n');
+    expect(await git(f.repo, ['diff', '--cached', '--name-only'])).toBe('');
+    expect(await git(f.repo, ['status', '--porcelain'])).toBe(' M prd.md');
+  });
+  it('blocks external staging during commit and preserves an unrelated working file', async () => {
+    let foreignWasLocked = false;
+    const runner: GitRunner = async (args, options) => {
+      if (args.includes('commit')) {
+        const attempted = await nativeGitRunner(['add', '--', 'foreign.md'], {...options, env:{...options.env, GIT_INDEX_FILE:path.join(options.cwd, '.git', 'index')}});
+        foreignWasLocked = attempted.exitCode !== 0 && attempted.stderr.includes('index.lock');
+      }
+      return nativeGitRunner(args, options);
+    };
+    const f = await fixture({runner}); await fs.writeFile(path.join(f.repo, 'prd.md'), 'Reviewed edit\n'); await fs.writeFile(path.join(f.repo, 'foreign.md'), 'Preserve foreign work');
+    const operation = await f.execute(await f.planCommit()); expect(operation.status).toBe('verified'); expect(foreignWasLocked).toBe(true);
+    expect(await git(f.repo, ['show', '--format=', '--name-only', 'HEAD'])).toBe('prd.md');
+    expect(await fs.readFile(path.join(f.repo, 'foreign.md'), 'utf8')).toBe('Preserve foreign work');
+    expect(await git(f.repo, ['status', '--porcelain'])).toBe('?? foreign.md');
+  });
   it('verifies the first commit in an unborn branch', async () => {
     const f = await fixture({}, false); const plan = await f.planCommit(['prd.md'], 'First project commit');
     expect(plan.head).toBeNull(); const result = await f.execute(plan); expect(result.status).toBe('verified');
@@ -228,6 +270,10 @@ describe('branch protections and native push verification', () => {
     await git(f.repo, ['config', 'url.https://third.invalid/.insteadOf', 'https://second.invalid/']);
     const response = await f.request('plans/push', 'POST', {...context, remote:'origin', branch:'main'});
     expect((await response.json() as {error:{code:string}}).error.code).toBe('REMOTE_REWRITE');
+    await git(f.repo, ['config', '--unset-all', 'url.https://second.invalid/.insteadOf']); await git(f.repo, ['config', '--unset-all', 'url.https://third.invalid/.insteadOf']);
+    await git(f.repo, ['config', 'url.https://second.invalid/.pushInsteadOf', 'https://first.invalid/']); await git(f.repo, ['config', 'url.https://third.invalid/.pushInsteadOf', 'https://second.invalid/']);
+    const pushRewrite = await f.request('plans/push', 'POST', {...context, remote:'origin', branch:'main'});
+    expect((await pushRewrite.json() as {error:{code:string}}).error.code).toBe('REMOTE_REWRITE');
   });
   it('invalidates a changed destination and never creates an unreviewed remote branch', async () => {
     const f = await fixture(); const remote = path.join(f.root, 'remote.git'); await git(f.root, ['init', '--bare', remote]); await git(f.repo, ['remote', 'add', 'origin', remote]); await git(f.repo, ['push', '-u', 'origin', 'main']);
