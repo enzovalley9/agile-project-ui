@@ -214,6 +214,40 @@ async function setup(provider) {
     prompt.close();
   }
 }
+function processQuery(file, args, options) {
+  return new Promise((resolve, reject) => {
+    // Terminal signals belong to the launcher. A metadata helper must not turn
+    // an intentional graceful stop into a failed-start fallback termination.
+    const query = spawn(file, args, {
+      detached: true,
+      windowsHide: true,
+      stdio: ['ignore', 'pipe', 'ignore'],
+      env: options.env ?? process.env,
+    });
+    let stdout = '';
+    const timeout = setTimeout(() => {
+      query.kill('SIGKILL');
+      reject(new Error('Process query timed out.'));
+    }, options.timeout);
+    query.stdout.setEncoding('utf8');
+    query.stdout.on('data', (chunk) => {
+      stdout += chunk;
+      if (stdout.length > 4096) {
+        query.kill('SIGKILL');
+        reject(new Error('Process query output is invalid.'));
+      }
+    });
+    query.once('error', (error) => {
+      clearTimeout(timeout);
+      reject(error);
+    });
+    query.once('close', (code) => {
+      clearTimeout(timeout);
+      if (code === 0) resolve({ stdout });
+      else reject(new Error('Process query failed.'));
+    });
+  });
+}
 /** A PID alone can be reused. Store birth identity without logging process arguments. */
 export async function processIdentity(pid) {
   if (!Number.isSafeInteger(pid) || pid <= 0) throw new Error('Invalid process identity.');
@@ -230,7 +264,7 @@ export async function processIdentity(pid) {
   try {
     const { stdout } =
       process.platform === 'win32'
-        ? await exec(
+        ? await processQuery(
             'powershell.exe',
             [
               '-NoProfile',
@@ -240,7 +274,7 @@ export async function processIdentity(pid) {
             ],
             { timeout: 10000, windowsHide: true, maxBuffer: 4096 },
           )
-        : await exec('ps', ['-p', String(pid), '-o', 'lstart=', '-o', 'comm='], {
+        : await processQuery('ps', ['-p', String(pid), '-o', 'lstart=', '-o', 'comm='], {
             timeout: 5000,
             maxBuffer: 4096,
             env: { ...process.env, LC_ALL: 'C', TZ: 'UTC' },
@@ -358,8 +392,11 @@ async function start(connector, args) {
     }
     if (shutdownRequested) shutdown();
   } catch (error) {
-    child?.kill();
-    throw error;
+    if (!(shutdownRequested && childReady)) {
+      child?.kill();
+      throw error;
+    }
+    // A graceful stop is already underway; do not send a second OS signal.
   } finally {
     await fs.rmdir(lock);
   }
@@ -406,7 +443,14 @@ async function main() {
   if (!['git', 'atlassian'].includes(command)) throw new Error(usage);
   return start(command, args);
 }
-if (process.argv[1] && (await fs.realpath(process.argv[1])) === fileURLToPath(import.meta.url)) {
+const entryPath = await fs.realpath(fileURLToPath(import.meta.url));
+const invokedPath = process.argv[1] ? await fs.realpath(process.argv[1]).catch(() => null) : null;
+const sameEntry =
+  invokedPath &&
+  (process.platform === 'win32'
+    ? invokedPath.toLowerCase() === entryPath.toLowerCase()
+    : invokedPath === entryPath);
+if (sameEntry) {
   main().catch((error) => {
     process.stderr.write(`${error.message}\n`);
     process.exitCode = 1;
