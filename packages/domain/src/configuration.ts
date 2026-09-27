@@ -47,6 +47,7 @@ export function discoverConfiguration(
   files: FileSnapshot,
   diagnostics: Diagnostic[],
   options: IndexOptions,
+  documentFiles: FileSnapshot = files,
 ): Configuration {
   const roots: DiscoveredRoot[] = [];
   const provenance: Record<string, string> = Object.create(null);
@@ -82,7 +83,16 @@ export function discoverConfiguration(
     ? safeRecord(parseYaml(files[manifestPath], manifestPath, diagnostics).data)
     : {};
   const version = textValue(safeRecord(manifest.installation).version);
-  if (!version)
+  if (
+    !options.localInstallationPresent &&
+    !Object.keys(files).some((path) => path.startsWith('_bmad/'))
+  )
+    diagnostics.push({
+      code: 'installation-absent',
+      severity: 'info',
+      message: 'No BMAD installation was detected. Available project documents are still indexed.',
+    });
+  else if (!version)
     diagnostics.push({
       code: 'version-unknown',
       severity: 'info',
@@ -170,17 +180,31 @@ export function discoverConfiguration(
       DiscoveredRoot['role'],
     ][]) {
       const raw = values[key];
-      const path = resolve(key);
+      const resolved = resolve(key);
+      const projectPath = options.sharedInstallation?.projectRelativePath;
+      const path =
+        resolved === undefined || !projectPath
+          ? resolved
+          : resolved === projectPath
+            ? ''
+            : resolved.startsWith(`${projectPath}/`)
+              ? resolved.slice(projectPath.length + 1)
+              : undefined;
       if (path === undefined) {
+        const outsideProject = resolved !== undefined && projectPath !== undefined;
         diagnostics.push({
-          code: 'unresolved-root',
+          code: outsideProject ? 'shared-root-outside-project' : 'unresolved-root',
           severity: 'warning',
           path: family.source,
-          message: `Path ${key} cannot be resolved within the project; it is retained as unsupported configuration.`,
+          message: outsideProject
+            ? `Path ${key} is outside the selected project; it is retained as unsupported configuration.`
+            : `Path ${key} cannot be resolved within the project; it is retained as unsupported configuration.`,
         });
         continue;
       }
-      const exists = Object.keys(files).some((file) => !path || file.startsWith(`${path}/`));
+      const exists = Object.keys(documentFiles).some(
+        (file) => !path || file.startsWith(`${path}/`),
+      );
       if (!roots.some((root) => root.path === path && root.role === role))
         roots.push({ path, role, source: family.source, raw, exists });
       const paths = byRole.get(role) || new Set();
@@ -212,7 +236,7 @@ export function discoverConfiguration(
         role: 'additional',
         source: 'explicit selection',
         raw: path,
-        exists: Object.keys(files).some((file) => file.startsWith(path + '/')),
+        exists: Object.keys(documentFiles).some((file) => file.startsWith(path + '/')),
       });
   }
   return { name, version, roots, effective, manifest, provenance, customizedAgents };

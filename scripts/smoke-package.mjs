@@ -448,5 +448,7 @@ try {
     `Package smoke passed on ${process.platform}/${process.arch}: interrupted copy, failed-activation restore, explicit update, rollback, external-journal preservation, live-process protection, diagnostics, verified install, installed Git session/root binding, installed Jira health/auth boundary, listener shutdown, complete launcher arguments, existing-install preservation, checksum rejection and disposable uninstall.\n`,
   );
 } finally {
-  await fs.rm(root, { recursive: true, force: true });
+  // Windows can keep the packaged runtime executable locked briefly after its
+  // listener has stopped. Retry cleanup instead of failing a passed smoke test.
+  await fs.rm(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
 }

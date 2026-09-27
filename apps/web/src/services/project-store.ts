@@ -17,6 +17,10 @@ export interface ProjectSnapshot {
   diagnostics: StoreDiagnostic[];
   index: ProjectIndex;
 }
+export interface SharedInstallationPreview {
+  name: string;
+  index: ProjectIndex;
+}
 export interface RecoveryEntry {
   path: string;
   before: string | null;
@@ -70,6 +74,20 @@ const excluded = new Set([
   '.vscode',
 ]);
 const textTypes = /\.(md|mdx|txt|yaml|yml|toml|json|csv|html|xml)$/i;
+// Read only the metadata already understood by the domain adapter. An explicitly
+// selected shared installation never grants a document scan of its parent tree.
+const installationMetadataPaths = [
+  '_bmad/_config/manifest.yaml',
+  '_bmad/_config/bmad-help.csv',
+  '_bmad/config.toml',
+  '_bmad/config.user.toml',
+  '_bmad/custom/config.toml',
+  '_bmad/custom/config.user.toml',
+  '_bmad/bmm/config.yaml',
+  '_bmad/bmm/config.user.yaml',
+  '_bmad/core/config.yaml',
+  '_bmad/core/config.user.yaml',
+];
 export function safePath(path: string): string[] {
   if (
     !path ||
@@ -113,6 +131,13 @@ export class ProjectStore {
   }
   private lastSnapshot?: ProjectSnapshot;
   private additionalRoots: string[] = [];
+  private sharedInstallation?: {
+    handle: FileSystemDirectoryHandle;
+    projectRelativePath: string;
+  };
+  get sharedInstallationName(): string | undefined {
+    return this.sharedInstallation?.handle.name;
+  }
   private recovery: RecoveryRecord | null = null;
   private backups = new RecoveryBackups();
   private corruptRecovery = false;
@@ -320,6 +345,73 @@ export class ProjectStore {
     const handle = await window.showDirectoryPicker({ mode: 'read', id: 'bmad-project' });
     return new ProjectStore(handle);
   }
+  static async pickInstallation(): Promise<ProjectStore> {
+    if (!('showDirectoryPicker' in window))
+      throw new ProjectError(
+        'unsupported-browser',
+        'Open the installation in desktop Chrome or Edge.',
+      );
+    const handle = await window.showDirectoryPicker({ mode: 'read', id: 'bmad-installation' });
+    try {
+      await handle.getDirectoryHandle('_bmad');
+    } catch (error) {
+      if (!(error instanceof DOMException && error.name === 'NotFoundError')) throw error;
+      throw new ProjectError(
+        'installation-absent',
+        'Select the parent folder that contains the _bmad installation.',
+      );
+    }
+    return new ProjectStore(handle);
+  }
+  private async installationFiles(): Promise<Record<string, string>> {
+    const files: Record<string, string> = Object.create(null);
+    for (const path of installationMetadataPaths) {
+      try {
+        files[path] = await this.read(path);
+      } catch (error) {
+        if (error instanceof DOMException && error.name === 'NotFoundError') continue;
+        throw error;
+      }
+    }
+    return files;
+  }
+  async previewInstallation(): Promise<SharedInstallationPreview> {
+    await this.handle.getDirectoryHandle('_bmad');
+    const index = indexProject(await this.installationFiles(), {}, { projectName: this.name });
+    return { name: this.name, index };
+  }
+  static async pickChildProject(installation: ProjectStore): Promise<ProjectStore> {
+    if (installation.readOnly)
+      throw new ProjectError('read-only', 'Select an original installation folder.');
+    const handle = await window.showDirectoryPicker({ mode: 'read', id: 'bmad-project-child' });
+    const relative = await installation.handle.resolve(handle);
+    if (!relative?.length)
+      throw new ProjectError(
+        'outside-installation',
+        'Select a project folder inside the chosen BMAD installation folder.',
+      );
+    const projectRelativePath = relative.join('/');
+    safePath(projectRelativePath);
+    const project = new ProjectStore(handle);
+    project.sharedInstallation = { handle: installation.handle, projectRelativePath };
+    return project;
+  }
+  async attachSharedInstallation(): Promise<void> {
+    if (this.readOnly)
+      throw new ProjectError('read-only', 'Open the original project folder first.');
+    const installation = await ProjectStore.pickInstallation();
+    const relative = await installation.handle.resolve(this.handle);
+    if (!relative?.length)
+      throw new ProjectError(
+        'outside-installation',
+        'Select an installation folder that contains this project folder.',
+      );
+    const projectRelativePath = relative.join('/');
+    safePath(projectRelativePath);
+    // Do not retain the shared handle until a valid metadata read has succeeded.
+    await installation.installationFiles();
+    this.sharedInstallation = { handle: installation.handle, projectRelativePath };
+  }
   async setMode(mode: 'read' | 'edit') {
     if (mode === 'edit' && this.readOnly)
       throw new ProjectError(
@@ -447,6 +539,13 @@ export class ProjectStore {
   }
   async refresh(): Promise<ProjectSnapshot> {
     await this.loadRecovery();
+    let localInstallationPresent = false;
+    try {
+      await this.handle.getDirectoryHandle('_bmad');
+      localInstallationPresent = true;
+    } catch (error) {
+      if (!(error instanceof DOMException && error.name === 'NotFoundError')) throw error;
+    }
     const files: Record<string, string> = Object.create(null),
       revisions: Record<string, string> = Object.create(null);
     const diagnostics: StoreDiagnostic[] = [];
@@ -561,9 +660,17 @@ export class ProjectStore {
     } catch (e) {
       throw new ProjectError('permission-lost', `Could not reload the folder: ${message(e)}`);
     }
+    const sharedInstallation = this.sharedInstallation
+      ? {
+          files: await new ProjectStore(this.sharedInstallation.handle).installationFiles(),
+          projectRelativePath: this.sharedInstallation.projectRelativePath,
+        }
+      : undefined;
     const index = indexProject(files, revisions, {
       projectName: this.name,
       additionalRoots: this.additionalRoots,
+      sharedInstallation,
+      localInstallationPresent,
     });
     if (unsupportedCount)
       diagnostics.push({
