@@ -22,3 +22,9 @@ The latest released 0.x version is the maintenance target. There is no long-term
 - Comment identity is self-declared local identity, not authentication or access control for a team.
 
 See [architecture](docs/architecture.md) and the [connector guides](docs/git-connector.md) for detailed boundaries. Known secret-path filtering is not a complete secret scanner. Checksums establish file integrity, not publisher identity; current packaged runtimes are unsigned.
+
+## Container vulnerability policy
+
+Publication and scheduled scans reject every unreviewed HIGH or CRITICAL finding, including vulnerabilities without a vendor fix. A reviewed disposition must match the exact CVE, package version, architecture and severity, cite primary evidence and expire within 30 days. Runtime checks enforce its prerequisites; raw findings remain in the retained report. The separately compiled OpenSSH client has an additional version, binary identity and time-limited upstream review requirement.
+
+A passing gate is not a claim of zero vulnerabilities. Dispositions apply to the supplied non-root image and supported application routes; arbitrary repository hooks or a modified/privileged container can invalidate them. See the [distribution security policy](docs/supply-chain.md#security-maintenance) for the checks and maintenance procedure.

@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "os": { "family": "debian", "major": "13" },
+  "opensshReview": {
+    "version": "10.5p1",
+    "reviewedOn": "2026-09-27",
+    "expiresOn": "2026-10-27",
+    "rationale": "The runtime pins the reviewed OpenSSH client release, verifies its source archive and actual client binary hashes, and removes legacy distro clients and servers. An upstream review is required because a package scanner may not recognize independently compiled clients.",
+    "sources": ["https://www.openssh.com/releasenotes.html"]
+  },
+  "dispositions": []
+}

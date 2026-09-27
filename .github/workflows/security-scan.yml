@@ -46,6 +46,12 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: .node-version
       - name: Resolve the published image and record its exact digest
         env:
           IMAGE: ghcr.io/${{ github.repository }}
@@ -59,6 +65,16 @@ jobs:
           docker pull --platform "linux/$ARCH" "$IMAGE@$digest"
           test "$(docker image inspect "$IMAGE@$digest" --format '{{.Architecture}}')" = "$ARCH"
           echo "AGILE_SCAN_IMAGE=$IMAGE@$digest" >> "$GITHUB_ENV"
+          docker image inspect "$IMAGE@$digest" > image-inspect.json
+          image_id=$(jq -er '.[0].Id' image-inspect.json)
+          revision=$(jq -er '.[0].Config.Labels["org.opencontainers.image.revision"]' image-inspect.json)
+          echo "$revision" | grep -Eq '^[0-9a-f]{40}$'
+          echo "AGILE_SCAN_REVISION=$revision" >> "$GITHUB_ENV"
+          docker run --rm --network none --read-only --cap-drop ALL --security-opt no-new-privileges \
+            --env AGILE_SCAN_IMAGE_ID="$image_id" \
+            --mount "type=bind,src=$PWD/scripts/container-security-evidence.mjs,dst=/security-evidence.mjs,readonly" \
+            --entrypoint node "$image_id" /security-evidence.mjs > runtime-security.json
+          : > no-vulnerabilities-ignored.txt
       - uses: aquasecurity/trivy-action@d2a0b60797ff03db6132bd4e2b293f9b37081297
         with:
           version: v0.74.0
@@ -67,15 +83,19 @@ jobs:
           format: json
           output: container-vulnerabilities.json
           severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
+          list-all-pkgs: 'true'
+          ignore-unfixed: 'false'
+          trivyignores: no-vulnerabilities-ignored.txt
           exit-code: '0'
           timeout: 10m
-      - name: Fail on actionable high or critical findings
+      - name: Enforce reviewed high and critical vulnerability policy
         env:
           ARCH: ${{ matrix.arch }}
         run: |
-          jq -e --arg arch "$ARCH" '.Metadata.ImageConfig.architecture == $arch' container-vulnerabilities.json
-          jq -e '.Metadata.OS.Family == "debian" and ([.Results[]? | select(.Class == "os-pkgs")] | length > 0)' container-vulnerabilities.json
-          jq -e '[.Results[]?.Vulnerabilities[]? | select((.Severity == "HIGH" or .Severity == "CRITICAL") and (.FixedVersion // "") != "")] | length == 0' container-vulnerabilities.json
+          node scripts/vulnerability-gate.mjs \
+            --report container-vulnerabilities.json --image-inspect image-inspect.json \
+            --runtime-evidence runtime-security.json --architecture "$ARCH" \
+            --revision "$AGILE_SCAN_REVISION" --summary vulnerability-gate.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
@@ -84,4 +104,7 @@ jobs:
             scanned-image.txt
             published-index.json
             container-vulnerabilities.json
+            image-inspect.json
+            runtime-security.json
+            vulnerability-gate.json
           retention-days: 30
