@@ -1,0 +1,19 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // Supply --name and CLOUDFLARE_ACCOUNT_ID for the intended deployment.
+  "compatibility_date": "2026-09-27",
+  "workers_dev": true,
+  "preview_urls": false,
+  // Pure static hosting: no Worker entry point, bindings or paid services.
+  "assets": {
+    "directory": "./dist/web",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "none",
+    "run_worker_first": false,
+  },
+  "observability": {
+    "enabled": true,
+    "redact_query_string": true,
+    "traces": { "enabled": true },
+  },
+}
