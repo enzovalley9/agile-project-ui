@@ -1,6 +1,9 @@
 {
   "schemaVersion": 1,
-  "os": { "family": "debian", "major": "13" },
+  "os": {
+    "family": "debian",
+    "major": "13"
+  },
   "opensshReview": {
     "version": "10.5p1",
     "reviewedOn": "2026-09-27",
@@ -8,5 +11,1998 @@
     "rationale": "The runtime pins the reviewed OpenSSH client release, verifies its source archive and actual client binary hashes, and removes legacy distro clients and servers. An upstream review is required because a package scanner may not recognize independently compiled clients.",
     "sources": ["https://www.openssh.com/releasenotes.html"]
   },
-  "dispositions": []
+  "dispositions": [
+    {
+      "id": "CVE-2026-76642",
+      "package": "bsdutils",
+      "version": "1:2.41.5-0+deb13u1",
+      "architecture": "amd64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The failed-mount post-hook issue requires privileged mount execution. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-m25x-3hj9-m26f"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-78408",
+      "package": "bsdutils",
+      "version": "1:2.41.5-0+deb13u1",
+      "architecture": "amd64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The nsenter cgroup issue requires a privileged operator to open the target cgroup before executing another program. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-55fx-f4gg-cfhj"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-78409",
+      "package": "bsdutils",
+      "version": "1:2.41.5-0+deb13u1",
+      "architecture": "amd64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The detached-tree subdirectory issue requires an authorized user-mount route and privileged mount execution. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-8f2p-47x3-43mv"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-78410",
+      "package": "bsdutils",
+      "version": "1:2.41.5-0+deb13u1",
+      "architecture": "amd64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The restricted bind-mount issue requires a privileged mount of a user-authorized fstab entry. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-rh77-686x-2f2m"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-54369",
+      "package": "libacl1",
+      "version": "2.3.2-2+b1",
+      "architecture": "amd64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The pathname race requires an ACL operation by a privileged caller. Supported application routes expose no privileged ACL-management operation. The image defaults to UID 1000, strips all SUID/SGID bits, and supported startup drops capabilities and enables no-new-privileges. This disposition does not cover arbitrary added hooks or privileged/modified images.",
+      "sources": ["https://security-tracker.debian.org/tracker/CVE-2026-54369"],
+      "evidence": {
+        "noPrivilegedFiles": true
+      }
+    },
+    {
+      "id": "CVE-2026-76642",
+      "package": "libblkid1",
+      "version": "2.41.5-0+deb13u1",
+      "architecture": "amd64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The failed-mount post-hook issue requires privileged mount execution. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-m25x-3hj9-m26f"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-78408",
+      "package": "libblkid1",
+      "version": "2.41.5-0+deb13u1",
+      "architecture": "amd64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The nsenter cgroup issue requires a privileged operator to open the target cgroup before executing another program. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-55fx-f4gg-cfhj"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-78409",
+      "package": "libblkid1",
+      "version": "2.41.5-0+deb13u1",
+      "architecture": "amd64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The detached-tree subdirectory issue requires an authorized user-mount route and privileged mount execution. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-8f2p-47x3-43mv"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-78410",
+      "package": "libblkid1",
+      "version": "2.41.5-0+deb13u1",
+      "architecture": "amd64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The restricted bind-mount issue requires a privileged mount of a user-authorized fstab entry. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-rh77-686x-2f2m"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-12064",
+      "package": "libcurl3t64-gnutls",
+      "version": "8.14.1-2+deb13u5",
+      "architecture": "amd64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "not_affected",
+      "rationale": "The upstream advisory limits this issue to the curl command-line tool rather than libcurl users. The supplied image contains the library used by Git but neither the curl package nor a curl executable in the supported system paths. Restoring the CLI invalidates this disposition.",
+      "sources": ["https://curl.se/docs/CVE-2026-12064.html"],
+      "evidence": {
+        "absentPackages": ["curl"],
+        "absentPaths": ["/usr/bin/curl", "/usr/local/bin/curl"]
+      }
+    },
+    {
+      "id": "CVE-2026-8286",
+      "package": "libcurl3t64-gnutls",
+      "version": "8.14.1-2+deb13u5",
+      "architecture": "amd64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The issue requires a cleartext protocol upgraded using STARTTLS. Production connector commands enforce GIT_ALLOW_PROTOCOL=https:ssh after other environment options, and installed Git checks that allowlist before repository transport configuration. Exact-image tests verify smart HTTPS/SSH operation and rejection of an HTTPS-to-FTP redirect; native regression tests reject rewrites and custom helpers. Added hooks and modified images are outside this reviewed route.",
+      "sources": [
+        "https://curl.se/docs/CVE-2026-8286.html",
+        "https://raw.githubusercontent.com/git/git/v2.47.3/transport.c",
+        "https://sources.debian.org/src/git/1%3A2.47.3-0%2Bdeb13u1/http.c/"
+      ],
+      "evidence": {
+        "packageVersions": {
+          "git": "1:2.47.3-0+deb13u1"
+        },
+        "absentPackages": ["curl"],
+        "absentPaths": ["/usr/bin/curl", "/usr/local/bin/curl"]
+      }
+    },
+    {
+      "id": "CVE-2026-8458",
+      "package": "libcurl3t64-gnutls",
+      "version": "8.14.1-2+deb13u5",
+      "architecture": "amd64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The issue requires changing the Negotiate service-name options while reusing a live connection. The pinned Git 2.47.3 HTTP implementation sets neither CURLOPT_SERVICE_NAME nor CURLOPT_PROXY_SERVICE_NAME, and the connector starts a separate native Git process per operation. The unmet prerequisite is scoped to the supported Git route, not all possible users of this affected library; arbitrary added hooks or a different Git version require another review.",
+      "sources": [
+        "https://curl.se/docs/CVE-2026-8458.html",
+        "https://sources.debian.org/src/git/1%3A2.47.3-0%2Bdeb13u1/http.c/"
+      ],
+      "evidence": {
+        "packageVersions": {
+          "git": "1:2.47.3-0+deb13u1"
+        },
+        "absentPackages": ["curl"],
+        "absentPaths": ["/usr/bin/curl", "/usr/local/bin/curl"]
+      }
+    },
+    {
+      "id": "CVE-2026-8927",
+      "package": "libcurl3t64-gnutls",
+      "version": "8.14.1-2+deb13u5",
+      "architecture": "amd64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The issue requires sequential transfers on a reused handle with a changed environment-selected proxy. The pinned Git 2.47.3 HTTP implementation resolves its proxy configuration once and supplies an explicit CURLOPT_PROXY value; connector operations launch separate processes with a fixed child environment. This disposition is scoped to that supported Git route and excludes arbitrary added hooks or other libcurl consumers.",
+      "sources": [
+        "https://curl.se/docs/CVE-2026-8927.html",
+        "https://sources.debian.org/src/git/1%3A2.47.3-0%2Bdeb13u1/http.c/"
+      ],
+      "evidence": {
+        "packageVersions": {
+          "git": "1:2.47.3-0+deb13u1"
+        },
+        "absentPackages": ["curl"],
+        "absentPaths": ["/usr/bin/curl", "/usr/local/bin/curl"]
+      }
+    },
+    {
+      "id": "CVE-2026-66046",
+      "package": "libexpat1",
+      "version": "2.8.3-1~deb13u1",
+      "architecture": "amd64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The installed Expat package remains affected. The supported Git XML-parsing path is its legacy WebDAV push helper, which the image removes. Exact-image HTTPS/SSH acceptance confirms supported clone/push operation and rejects legacy WebDAV before sending XML requests. The application does not invoke another Expat XML parser. Restoring the helper, adding parser consumers or arbitrary hooks, or changing the pinned Git version invalidates this route-specific mitigation.",
+      "sources": [
+        "https://github.com/libexpat/libexpat/pull/1321",
+        "https://security-tracker.debian.org/tracker/CVE-2026-66046",
+        "https://raw.githubusercontent.com/git/git/v2.47.3/Makefile"
+      ],
+      "evidence": {
+        "packageVersions": {
+          "git": "1:2.47.3-0+deb13u1"
+        },
+        "absentPaths": ["/usr/lib/git-core/git-http-push"]
+      }
+    },
+    {
+      "id": "CVE-2026-76956",
+      "package": "libexpat1",
+      "version": "2.8.3-1~deb13u1",
+      "architecture": "amd64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The installed Expat package remains affected. The supported Git XML-parsing path is its legacy WebDAV push helper, which the image removes. Exact-image HTTPS/SSH acceptance confirms supported clone/push operation and rejects legacy WebDAV before sending XML requests. The application does not invoke another Expat XML parser. Restoring the helper, adding parser consumers or arbitrary hooks, or changing the pinned Git version invalidates this route-specific mitigation.",
+      "sources": [
+        "https://github.com/libexpat/libexpat/pull/1326",
+        "https://security-tracker.debian.org/tracker/CVE-2026-76956",
+        "https://raw.githubusercontent.com/git/git/v2.47.3/Makefile"
+      ],
+      "evidence": {
+        "packageVersions": {
+          "git": "1:2.47.3-0+deb13u1"
+        },
+        "absentPaths": ["/usr/lib/git-core/git-http-push"]
+      }
+    },
+    {
+      "id": "CVE-2026-76957",
+      "package": "libexpat1",
+      "version": "2.8.3-1~deb13u1",
+      "architecture": "amd64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The installed Expat package remains affected. The supported Git XML-parsing path is its legacy WebDAV push helper, which the image removes. Exact-image HTTPS/SSH acceptance confirms supported clone/push operation and rejects legacy WebDAV before sending XML requests. The application does not invoke another Expat XML parser. Restoring the helper, adding parser consumers or arbitrary hooks, or changing the pinned Git version invalidates this route-specific mitigation.",
+      "sources": [
+        "https://github.com/libexpat/libexpat/pull/1322",
+        "https://security-tracker.debian.org/tracker/CVE-2026-76957",
+        "https://raw.githubusercontent.com/git/git/v2.47.3/Makefile"
+      ],
+      "evidence": {
+        "packageVersions": {
+          "git": "1:2.47.3-0+deb13u1"
+        },
+        "absentPaths": ["/usr/lib/git-core/git-http-push"]
+      }
+    },
+    {
+      "id": "CVE-2026-93990",
+      "package": "libexpat1",
+      "version": "2.8.3-1~deb13u1",
+      "architecture": "amd64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The installed Expat package remains affected. The supported Git XML-parsing path is its legacy WebDAV push helper, which the image removes. Exact-image HTTPS/SSH acceptance confirms supported clone/push operation and rejects legacy WebDAV before sending XML requests. The application does not invoke another Expat XML parser. Restoring the helper, adding parser consumers or arbitrary hooks, or changing the pinned Git version invalidates this route-specific mitigation.",
+      "sources": [
+        "https://github.com/libexpat/libexpat/pull/1282",
+        "https://security-tracker.debian.org/tracker/CVE-2026-93990",
+        "https://raw.githubusercontent.com/git/git/v2.47.3/Makefile"
+      ],
+      "evidence": {
+        "packageVersions": {
+          "git": "1:2.47.3-0+deb13u1"
+        },
+        "absentPaths": ["/usr/lib/git-core/git-http-push"]
+      }
+    },
+    {
+      "id": "CVE-2026-76642",
+      "package": "liblastlog2-2",
+      "version": "2.41.5-0+deb13u1",
+      "architecture": "amd64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The failed-mount post-hook issue requires privileged mount execution. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-m25x-3hj9-m26f"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-78408",
+      "package": "liblastlog2-2",
+      "version": "2.41.5-0+deb13u1",
+      "architecture": "amd64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The nsenter cgroup issue requires a privileged operator to open the target cgroup before executing another program. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-55fx-f4gg-cfhj"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-78409",
+      "package": "liblastlog2-2",
+      "version": "2.41.5-0+deb13u1",
+      "architecture": "amd64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The detached-tree subdirectory issue requires an authorized user-mount route and privileged mount execution. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-8f2p-47x3-43mv"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-78410",
+      "package": "liblastlog2-2",
+      "version": "2.41.5-0+deb13u1",
+      "architecture": "amd64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The restricted bind-mount issue requires a privileged mount of a user-authorized fstab entry. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-rh77-686x-2f2m"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-76642",
+      "package": "libmount1",
+      "version": "2.41.5-0+deb13u1",
+      "architecture": "amd64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The failed-mount post-hook issue requires privileged mount execution. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-m25x-3hj9-m26f"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-78408",
+      "package": "libmount1",
+      "version": "2.41.5-0+deb13u1",
+      "architecture": "amd64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The nsenter cgroup issue requires a privileged operator to open the target cgroup before executing another program. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-55fx-f4gg-cfhj"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-78409",
+      "package": "libmount1",
+      "version": "2.41.5-0+deb13u1",
+      "architecture": "amd64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The detached-tree subdirectory issue requires an authorized user-mount route and privileged mount execution. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-8f2p-47x3-43mv"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-78410",
+      "package": "libmount1",
+      "version": "2.41.5-0+deb13u1",
+      "architecture": "amd64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The restricted bind-mount issue requires a privileged mount of a user-authorized fstab entry. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-rh77-686x-2f2m"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-9538",
+      "package": "libperl5.40",
+      "version": "5.40.1-6+deb13u1",
+      "architecture": "amd64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "not_affected",
+      "rationale": "The vulnerable archive parser is the Perl Archive::Tar module. Its exact Debian-packaged entry point is removed from the supplied runtime; both filesystem inspection and a real Perl module-load failure verify that it cannot load. Other Perl files, package identity and corresponding sources remain. Restoring or adding the module through a hook or custom image invalidates this disposition.",
+      "sources": [
+        "https://security-tracker.debian.org/tracker/CVE-2026-9538",
+        "https://metacpan.org/release/BINGOS/Archive-Tar-3.10/changes"
+      ],
+      "evidence": {
+        "archiveTarUnavailable": true,
+        "absentPaths": ["/usr/share/perl/5.40.1/Archive/Tar.pm"]
+      }
+    },
+    {
+      "id": "CVE-2026-76642",
+      "package": "libsmartcols1",
+      "version": "2.41.5-0+deb13u1",
+      "architecture": "amd64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The failed-mount post-hook issue requires privileged mount execution. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-m25x-3hj9-m26f"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-78408",
+      "package": "libsmartcols1",
+      "version": "2.41.5-0+deb13u1",
+      "architecture": "amd64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The nsenter cgroup issue requires a privileged operator to open the target cgroup before executing another program. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-55fx-f4gg-cfhj"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-78409",
+      "package": "libsmartcols1",
+      "version": "2.41.5-0+deb13u1",
+      "architecture": "amd64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The detached-tree subdirectory issue requires an authorized user-mount route and privileged mount execution. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-8f2p-47x3-43mv"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-78410",
+      "package": "libsmartcols1",
+      "version": "2.41.5-0+deb13u1",
+      "architecture": "amd64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The restricted bind-mount issue requires a privileged mount of a user-authorized fstab entry. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-rh77-686x-2f2m"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-16742",
+      "package": "libsystemd0",
+      "version": "257.13-1~deb13u1",
+      "architecture": "amd64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "not_affected",
+      "rationale": "This issue is in systemd-homed home-record authentication. The supplied image contains systemd-related libraries but neither the systemd/systemd-homed packages nor the systemd-homed executable. No supported startup mode launches that service. Installing or mounting the service into a modified image invalidates this disposition.",
+      "sources": ["https://github.com/systemd/systemd/security/advisories/GHSA-jm29-p7hh-vjhv"],
+      "evidence": {
+        "absentPackages": ["systemd", "systemd-homed"],
+        "absentPaths": ["/usr/lib/systemd/systemd-homed"]
+      }
+    },
+    {
+      "id": "CVE-2025-69720",
+      "package": "libtinfo6",
+      "version": "6.5+20250216-2",
+      "architecture": "amd64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "not_affected",
+      "rationale": "The reported overflow is in the infocmp command, not the terminal library operations used by supported application routes. The supplied runtime removes /usr/bin/infocmp and verifies its absence while retaining package inventory, licenses and source. Restoring the command in a modified image invalidates this disposition.",
+      "sources": [
+        "https://invisible-island.net/ncurses/NEWS.html#t20251213",
+        "https://security-tracker.debian.org/tracker/CVE-2025-69720"
+      ],
+      "evidence": {
+        "absentPaths": ["/usr/bin/infocmp"]
+      }
+    },
+    {
+      "id": "CVE-2026-16742",
+      "package": "libudev1",
+      "version": "257.13-1~deb13u1",
+      "architecture": "amd64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "not_affected",
+      "rationale": "This issue is in systemd-homed home-record authentication. The supplied image contains systemd-related libraries but neither the systemd/systemd-homed packages nor the systemd-homed executable. No supported startup mode launches that service. Installing or mounting the service into a modified image invalidates this disposition.",
+      "sources": ["https://github.com/systemd/systemd/security/advisories/GHSA-jm29-p7hh-vjhv"],
+      "evidence": {
+        "absentPackages": ["systemd", "systemd-homed"],
+        "absentPaths": ["/usr/lib/systemd/systemd-homed"]
+      }
+    },
+    {
+      "id": "CVE-2026-76642",
+      "package": "libuuid1",
+      "version": "2.41.5-0+deb13u1",
+      "architecture": "amd64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The failed-mount post-hook issue requires privileged mount execution. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-m25x-3hj9-m26f"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-78408",
+      "package": "libuuid1",
+      "version": "2.41.5-0+deb13u1",
+      "architecture": "amd64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The nsenter cgroup issue requires a privileged operator to open the target cgroup before executing another program. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-55fx-f4gg-cfhj"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-78409",
+      "package": "libuuid1",
+      "version": "2.41.5-0+deb13u1",
+      "architecture": "amd64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The detached-tree subdirectory issue requires an authorized user-mount route and privileged mount execution. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-8f2p-47x3-43mv"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-78410",
+      "package": "libuuid1",
+      "version": "2.41.5-0+deb13u1",
+      "architecture": "amd64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The restricted bind-mount issue requires a privileged mount of a user-authorized fstab entry. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-rh77-686x-2f2m"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-76642",
+      "package": "login",
+      "version": "1:4.16.0-2+really2.41.5-0+deb13u1",
+      "architecture": "amd64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The failed-mount post-hook issue requires privileged mount execution. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-m25x-3hj9-m26f"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-78408",
+      "package": "login",
+      "version": "1:4.16.0-2+really2.41.5-0+deb13u1",
+      "architecture": "amd64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The nsenter cgroup issue requires a privileged operator to open the target cgroup before executing another program. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-55fx-f4gg-cfhj"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-78409",
+      "package": "login",
+      "version": "1:4.16.0-2+really2.41.5-0+deb13u1",
+      "architecture": "amd64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The detached-tree subdirectory issue requires an authorized user-mount route and privileged mount execution. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-8f2p-47x3-43mv"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-78410",
+      "package": "login",
+      "version": "1:4.16.0-2+really2.41.5-0+deb13u1",
+      "architecture": "amd64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The restricted bind-mount issue requires a privileged mount of a user-authorized fstab entry. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-rh77-686x-2f2m"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-76642",
+      "package": "mount",
+      "version": "2.41.5-0+deb13u1",
+      "architecture": "amd64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The failed-mount post-hook issue requires privileged mount execution. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-m25x-3hj9-m26f"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-78408",
+      "package": "mount",
+      "version": "2.41.5-0+deb13u1",
+      "architecture": "amd64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The nsenter cgroup issue requires a privileged operator to open the target cgroup before executing another program. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-55fx-f4gg-cfhj"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-78409",
+      "package": "mount",
+      "version": "2.41.5-0+deb13u1",
+      "architecture": "amd64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The detached-tree subdirectory issue requires an authorized user-mount route and privileged mount execution. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-8f2p-47x3-43mv"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-78410",
+      "package": "mount",
+      "version": "2.41.5-0+deb13u1",
+      "architecture": "amd64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The restricted bind-mount issue requires a privileged mount of a user-authorized fstab entry. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-rh77-686x-2f2m"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2025-69720",
+      "package": "ncurses-base",
+      "version": "6.5+20250216-2",
+      "architecture": "amd64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "not_affected",
+      "rationale": "The reported overflow is in the infocmp command, not the terminal library operations used by supported application routes. The supplied runtime removes /usr/bin/infocmp and verifies its absence while retaining package inventory, licenses and source. Restoring the command in a modified image invalidates this disposition.",
+      "sources": [
+        "https://invisible-island.net/ncurses/NEWS.html#t20251213",
+        "https://security-tracker.debian.org/tracker/CVE-2025-69720"
+      ],
+      "evidence": {
+        "absentPaths": ["/usr/bin/infocmp"]
+      }
+    },
+    {
+      "id": "CVE-2025-69720",
+      "package": "ncurses-bin",
+      "version": "6.5+20250216-2",
+      "architecture": "amd64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "not_affected",
+      "rationale": "The reported overflow is in the infocmp command, not the terminal library operations used by supported application routes. The supplied runtime removes /usr/bin/infocmp and verifies its absence while retaining package inventory, licenses and source. Restoring the command in a modified image invalidates this disposition.",
+      "sources": [
+        "https://invisible-island.net/ncurses/NEWS.html#t20251213",
+        "https://security-tracker.debian.org/tracker/CVE-2025-69720"
+      ],
+      "evidence": {
+        "absentPaths": ["/usr/bin/infocmp"]
+      }
+    },
+    {
+      "id": "CVE-2026-9538",
+      "package": "perl",
+      "version": "5.40.1-6+deb13u1",
+      "architecture": "amd64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "not_affected",
+      "rationale": "The vulnerable archive parser is the Perl Archive::Tar module. Its exact Debian-packaged entry point is removed from the supplied runtime; both filesystem inspection and a real Perl module-load failure verify that it cannot load. Other Perl files, package identity and corresponding sources remain. Restoring or adding the module through a hook or custom image invalidates this disposition.",
+      "sources": [
+        "https://security-tracker.debian.org/tracker/CVE-2026-9538",
+        "https://metacpan.org/release/BINGOS/Archive-Tar-3.10/changes"
+      ],
+      "evidence": {
+        "archiveTarUnavailable": true,
+        "absentPaths": ["/usr/share/perl/5.40.1/Archive/Tar.pm"]
+      }
+    },
+    {
+      "id": "CVE-2026-9538",
+      "package": "perl-base",
+      "version": "5.40.1-6+deb13u1",
+      "architecture": "amd64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "not_affected",
+      "rationale": "The vulnerable archive parser is the Perl Archive::Tar module. Its exact Debian-packaged entry point is removed from the supplied runtime; both filesystem inspection and a real Perl module-load failure verify that it cannot load. Other Perl files, package identity and corresponding sources remain. Restoring or adding the module through a hook or custom image invalidates this disposition.",
+      "sources": [
+        "https://security-tracker.debian.org/tracker/CVE-2026-9538",
+        "https://metacpan.org/release/BINGOS/Archive-Tar-3.10/changes"
+      ],
+      "evidence": {
+        "archiveTarUnavailable": true,
+        "absentPaths": ["/usr/share/perl/5.40.1/Archive/Tar.pm"]
+      }
+    },
+    {
+      "id": "CVE-2026-9538",
+      "package": "perl-modules-5.40",
+      "version": "5.40.1-6+deb13u1",
+      "architecture": "amd64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "not_affected",
+      "rationale": "The vulnerable archive parser is the Perl Archive::Tar module. Its exact Debian-packaged entry point is removed from the supplied runtime; both filesystem inspection and a real Perl module-load failure verify that it cannot load. Other Perl files, package identity and corresponding sources remain. Restoring or adding the module through a hook or custom image invalidates this disposition.",
+      "sources": [
+        "https://security-tracker.debian.org/tracker/CVE-2026-9538",
+        "https://metacpan.org/release/BINGOS/Archive-Tar-3.10/changes"
+      ],
+      "evidence": {
+        "archiveTarUnavailable": true,
+        "absentPaths": ["/usr/share/perl/5.40.1/Archive/Tar.pm"]
+      }
+    },
+    {
+      "id": "CVE-2026-76642",
+      "package": "util-linux",
+      "version": "2.41.5-0+deb13u1",
+      "architecture": "amd64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The failed-mount post-hook issue requires privileged mount execution. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-m25x-3hj9-m26f"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-78408",
+      "package": "util-linux",
+      "version": "2.41.5-0+deb13u1",
+      "architecture": "amd64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The nsenter cgroup issue requires a privileged operator to open the target cgroup before executing another program. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-55fx-f4gg-cfhj"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-78409",
+      "package": "util-linux",
+      "version": "2.41.5-0+deb13u1",
+      "architecture": "amd64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The detached-tree subdirectory issue requires an authorized user-mount route and privileged mount execution. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-8f2p-47x3-43mv"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-78410",
+      "package": "util-linux",
+      "version": "2.41.5-0+deb13u1",
+      "architecture": "amd64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The restricted bind-mount issue requires a privileged mount of a user-authorized fstab entry. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-rh77-686x-2f2m"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-76642",
+      "package": "bsdutils",
+      "version": "1:2.41.5-0+deb13u1",
+      "architecture": "arm64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The failed-mount post-hook issue requires privileged mount execution. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-m25x-3hj9-m26f"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-78408",
+      "package": "bsdutils",
+      "version": "1:2.41.5-0+deb13u1",
+      "architecture": "arm64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The nsenter cgroup issue requires a privileged operator to open the target cgroup before executing another program. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-55fx-f4gg-cfhj"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-78409",
+      "package": "bsdutils",
+      "version": "1:2.41.5-0+deb13u1",
+      "architecture": "arm64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The detached-tree subdirectory issue requires an authorized user-mount route and privileged mount execution. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-8f2p-47x3-43mv"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-78410",
+      "package": "bsdutils",
+      "version": "1:2.41.5-0+deb13u1",
+      "architecture": "arm64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The restricted bind-mount issue requires a privileged mount of a user-authorized fstab entry. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-rh77-686x-2f2m"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-54369",
+      "package": "libacl1",
+      "version": "2.3.2-2+b1",
+      "architecture": "arm64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The pathname race requires an ACL operation by a privileged caller. Supported application routes expose no privileged ACL-management operation. The image defaults to UID 1000, strips all SUID/SGID bits, and supported startup drops capabilities and enables no-new-privileges. This disposition does not cover arbitrary added hooks or privileged/modified images.",
+      "sources": ["https://security-tracker.debian.org/tracker/CVE-2026-54369"],
+      "evidence": {
+        "noPrivilegedFiles": true
+      }
+    },
+    {
+      "id": "CVE-2026-76642",
+      "package": "libblkid1",
+      "version": "2.41.5-0+deb13u1",
+      "architecture": "arm64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The failed-mount post-hook issue requires privileged mount execution. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-m25x-3hj9-m26f"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-78408",
+      "package": "libblkid1",
+      "version": "2.41.5-0+deb13u1",
+      "architecture": "arm64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The nsenter cgroup issue requires a privileged operator to open the target cgroup before executing another program. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-55fx-f4gg-cfhj"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-78409",
+      "package": "libblkid1",
+      "version": "2.41.5-0+deb13u1",
+      "architecture": "arm64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The detached-tree subdirectory issue requires an authorized user-mount route and privileged mount execution. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-8f2p-47x3-43mv"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-78410",
+      "package": "libblkid1",
+      "version": "2.41.5-0+deb13u1",
+      "architecture": "arm64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The restricted bind-mount issue requires a privileged mount of a user-authorized fstab entry. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-rh77-686x-2f2m"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-12064",
+      "package": "libcurl3t64-gnutls",
+      "version": "8.14.1-2+deb13u5",
+      "architecture": "arm64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "not_affected",
+      "rationale": "The upstream advisory limits this issue to the curl command-line tool rather than libcurl users. The supplied image contains the library used by Git but neither the curl package nor a curl executable in the supported system paths. Restoring the CLI invalidates this disposition.",
+      "sources": ["https://curl.se/docs/CVE-2026-12064.html"],
+      "evidence": {
+        "absentPackages": ["curl"],
+        "absentPaths": ["/usr/bin/curl", "/usr/local/bin/curl"]
+      }
+    },
+    {
+      "id": "CVE-2026-8286",
+      "package": "libcurl3t64-gnutls",
+      "version": "8.14.1-2+deb13u5",
+      "architecture": "arm64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The issue requires a cleartext protocol upgraded using STARTTLS. Production connector commands enforce GIT_ALLOW_PROTOCOL=https:ssh after other environment options, and installed Git checks that allowlist before repository transport configuration. Exact-image tests verify smart HTTPS/SSH operation and rejection of an HTTPS-to-FTP redirect; native regression tests reject rewrites and custom helpers. Added hooks and modified images are outside this reviewed route.",
+      "sources": [
+        "https://curl.se/docs/CVE-2026-8286.html",
+        "https://raw.githubusercontent.com/git/git/v2.47.3/transport.c",
+        "https://sources.debian.org/src/git/1%3A2.47.3-0%2Bdeb13u1/http.c/"
+      ],
+      "evidence": {
+        "packageVersions": {
+          "git": "1:2.47.3-0+deb13u1"
+        },
+        "absentPackages": ["curl"],
+        "absentPaths": ["/usr/bin/curl", "/usr/local/bin/curl"]
+      }
+    },
+    {
+      "id": "CVE-2026-8458",
+      "package": "libcurl3t64-gnutls",
+      "version": "8.14.1-2+deb13u5",
+      "architecture": "arm64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The issue requires changing the Negotiate service-name options while reusing a live connection. The pinned Git 2.47.3 HTTP implementation sets neither CURLOPT_SERVICE_NAME nor CURLOPT_PROXY_SERVICE_NAME, and the connector starts a separate native Git process per operation. The unmet prerequisite is scoped to the supported Git route, not all possible users of this affected library; arbitrary added hooks or a different Git version require another review.",
+      "sources": [
+        "https://curl.se/docs/CVE-2026-8458.html",
+        "https://sources.debian.org/src/git/1%3A2.47.3-0%2Bdeb13u1/http.c/"
+      ],
+      "evidence": {
+        "packageVersions": {
+          "git": "1:2.47.3-0+deb13u1"
+        },
+        "absentPackages": ["curl"],
+        "absentPaths": ["/usr/bin/curl", "/usr/local/bin/curl"]
+      }
+    },
+    {
+      "id": "CVE-2026-8927",
+      "package": "libcurl3t64-gnutls",
+      "version": "8.14.1-2+deb13u5",
+      "architecture": "arm64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The issue requires sequential transfers on a reused handle with a changed environment-selected proxy. The pinned Git 2.47.3 HTTP implementation resolves its proxy configuration once and supplies an explicit CURLOPT_PROXY value; connector operations launch separate processes with a fixed child environment. This disposition is scoped to that supported Git route and excludes arbitrary added hooks or other libcurl consumers.",
+      "sources": [
+        "https://curl.se/docs/CVE-2026-8927.html",
+        "https://sources.debian.org/src/git/1%3A2.47.3-0%2Bdeb13u1/http.c/"
+      ],
+      "evidence": {
+        "packageVersions": {
+          "git": "1:2.47.3-0+deb13u1"
+        },
+        "absentPackages": ["curl"],
+        "absentPaths": ["/usr/bin/curl", "/usr/local/bin/curl"]
+      }
+    },
+    {
+      "id": "CVE-2026-66046",
+      "package": "libexpat1",
+      "version": "2.8.3-1~deb13u1",
+      "architecture": "arm64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The installed Expat package remains affected. The supported Git XML-parsing path is its legacy WebDAV push helper, which the image removes. Exact-image HTTPS/SSH acceptance confirms supported clone/push operation and rejects legacy WebDAV before sending XML requests. The application does not invoke another Expat XML parser. Restoring the helper, adding parser consumers or arbitrary hooks, or changing the pinned Git version invalidates this route-specific mitigation.",
+      "sources": [
+        "https://github.com/libexpat/libexpat/pull/1321",
+        "https://security-tracker.debian.org/tracker/CVE-2026-66046",
+        "https://raw.githubusercontent.com/git/git/v2.47.3/Makefile"
+      ],
+      "evidence": {
+        "packageVersions": {
+          "git": "1:2.47.3-0+deb13u1"
+        },
+        "absentPaths": ["/usr/lib/git-core/git-http-push"]
+      }
+    },
+    {
+      "id": "CVE-2026-76956",
+      "package": "libexpat1",
+      "version": "2.8.3-1~deb13u1",
+      "architecture": "arm64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The installed Expat package remains affected. The supported Git XML-parsing path is its legacy WebDAV push helper, which the image removes. Exact-image HTTPS/SSH acceptance confirms supported clone/push operation and rejects legacy WebDAV before sending XML requests. The application does not invoke another Expat XML parser. Restoring the helper, adding parser consumers or arbitrary hooks, or changing the pinned Git version invalidates this route-specific mitigation.",
+      "sources": [
+        "https://github.com/libexpat/libexpat/pull/1326",
+        "https://security-tracker.debian.org/tracker/CVE-2026-76956",
+        "https://raw.githubusercontent.com/git/git/v2.47.3/Makefile"
+      ],
+      "evidence": {
+        "packageVersions": {
+          "git": "1:2.47.3-0+deb13u1"
+        },
+        "absentPaths": ["/usr/lib/git-core/git-http-push"]
+      }
+    },
+    {
+      "id": "CVE-2026-76957",
+      "package": "libexpat1",
+      "version": "2.8.3-1~deb13u1",
+      "architecture": "arm64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The installed Expat package remains affected. The supported Git XML-parsing path is its legacy WebDAV push helper, which the image removes. Exact-image HTTPS/SSH acceptance confirms supported clone/push operation and rejects legacy WebDAV before sending XML requests. The application does not invoke another Expat XML parser. Restoring the helper, adding parser consumers or arbitrary hooks, or changing the pinned Git version invalidates this route-specific mitigation.",
+      "sources": [
+        "https://github.com/libexpat/libexpat/pull/1322",
+        "https://security-tracker.debian.org/tracker/CVE-2026-76957",
+        "https://raw.githubusercontent.com/git/git/v2.47.3/Makefile"
+      ],
+      "evidence": {
+        "packageVersions": {
+          "git": "1:2.47.3-0+deb13u1"
+        },
+        "absentPaths": ["/usr/lib/git-core/git-http-push"]
+      }
+    },
+    {
+      "id": "CVE-2026-93990",
+      "package": "libexpat1",
+      "version": "2.8.3-1~deb13u1",
+      "architecture": "arm64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The installed Expat package remains affected. The supported Git XML-parsing path is its legacy WebDAV push helper, which the image removes. Exact-image HTTPS/SSH acceptance confirms supported clone/push operation and rejects legacy WebDAV before sending XML requests. The application does not invoke another Expat XML parser. Restoring the helper, adding parser consumers or arbitrary hooks, or changing the pinned Git version invalidates this route-specific mitigation.",
+      "sources": [
+        "https://github.com/libexpat/libexpat/pull/1282",
+        "https://security-tracker.debian.org/tracker/CVE-2026-93990",
+        "https://raw.githubusercontent.com/git/git/v2.47.3/Makefile"
+      ],
+      "evidence": {
+        "packageVersions": {
+          "git": "1:2.47.3-0+deb13u1"
+        },
+        "absentPaths": ["/usr/lib/git-core/git-http-push"]
+      }
+    },
+    {
+      "id": "CVE-2026-76642",
+      "package": "liblastlog2-2",
+      "version": "2.41.5-0+deb13u1",
+      "architecture": "arm64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The failed-mount post-hook issue requires privileged mount execution. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-m25x-3hj9-m26f"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-78408",
+      "package": "liblastlog2-2",
+      "version": "2.41.5-0+deb13u1",
+      "architecture": "arm64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The nsenter cgroup issue requires a privileged operator to open the target cgroup before executing another program. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-55fx-f4gg-cfhj"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-78409",
+      "package": "liblastlog2-2",
+      "version": "2.41.5-0+deb13u1",
+      "architecture": "arm64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The detached-tree subdirectory issue requires an authorized user-mount route and privileged mount execution. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-8f2p-47x3-43mv"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-78410",
+      "package": "liblastlog2-2",
+      "version": "2.41.5-0+deb13u1",
+      "architecture": "arm64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The restricted bind-mount issue requires a privileged mount of a user-authorized fstab entry. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-rh77-686x-2f2m"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-76642",
+      "package": "libmount1",
+      "version": "2.41.5-0+deb13u1",
+      "architecture": "arm64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The failed-mount post-hook issue requires privileged mount execution. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-m25x-3hj9-m26f"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-78408",
+      "package": "libmount1",
+      "version": "2.41.5-0+deb13u1",
+      "architecture": "arm64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The nsenter cgroup issue requires a privileged operator to open the target cgroup before executing another program. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-55fx-f4gg-cfhj"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-78409",
+      "package": "libmount1",
+      "version": "2.41.5-0+deb13u1",
+      "architecture": "arm64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The detached-tree subdirectory issue requires an authorized user-mount route and privileged mount execution. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-8f2p-47x3-43mv"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-78410",
+      "package": "libmount1",
+      "version": "2.41.5-0+deb13u1",
+      "architecture": "arm64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The restricted bind-mount issue requires a privileged mount of a user-authorized fstab entry. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-rh77-686x-2f2m"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-9538",
+      "package": "libperl5.40",
+      "version": "5.40.1-6+deb13u1",
+      "architecture": "arm64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "not_affected",
+      "rationale": "The vulnerable archive parser is the Perl Archive::Tar module. Its exact Debian-packaged entry point is removed from the supplied runtime; both filesystem inspection and a real Perl module-load failure verify that it cannot load. Other Perl files, package identity and corresponding sources remain. Restoring or adding the module through a hook or custom image invalidates this disposition.",
+      "sources": [
+        "https://security-tracker.debian.org/tracker/CVE-2026-9538",
+        "https://metacpan.org/release/BINGOS/Archive-Tar-3.10/changes"
+      ],
+      "evidence": {
+        "archiveTarUnavailable": true,
+        "absentPaths": ["/usr/share/perl/5.40.1/Archive/Tar.pm"]
+      }
+    },
+    {
+      "id": "CVE-2026-76642",
+      "package": "libsmartcols1",
+      "version": "2.41.5-0+deb13u1",
+      "architecture": "arm64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The failed-mount post-hook issue requires privileged mount execution. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-m25x-3hj9-m26f"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-78408",
+      "package": "libsmartcols1",
+      "version": "2.41.5-0+deb13u1",
+      "architecture": "arm64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The nsenter cgroup issue requires a privileged operator to open the target cgroup before executing another program. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-55fx-f4gg-cfhj"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-78409",
+      "package": "libsmartcols1",
+      "version": "2.41.5-0+deb13u1",
+      "architecture": "arm64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The detached-tree subdirectory issue requires an authorized user-mount route and privileged mount execution. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-8f2p-47x3-43mv"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-78410",
+      "package": "libsmartcols1",
+      "version": "2.41.5-0+deb13u1",
+      "architecture": "arm64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The restricted bind-mount issue requires a privileged mount of a user-authorized fstab entry. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-rh77-686x-2f2m"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-16742",
+      "package": "libsystemd0",
+      "version": "257.13-1~deb13u1",
+      "architecture": "arm64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "not_affected",
+      "rationale": "This issue is in systemd-homed home-record authentication. The supplied image contains systemd-related libraries but neither the systemd/systemd-homed packages nor the systemd-homed executable. No supported startup mode launches that service. Installing or mounting the service into a modified image invalidates this disposition.",
+      "sources": ["https://github.com/systemd/systemd/security/advisories/GHSA-jm29-p7hh-vjhv"],
+      "evidence": {
+        "absentPackages": ["systemd", "systemd-homed"],
+        "absentPaths": ["/usr/lib/systemd/systemd-homed"]
+      }
+    },
+    {
+      "id": "CVE-2025-69720",
+      "package": "libtinfo6",
+      "version": "6.5+20250216-2",
+      "architecture": "arm64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "not_affected",
+      "rationale": "The reported overflow is in the infocmp command, not the terminal library operations used by supported application routes. The supplied runtime removes /usr/bin/infocmp and verifies its absence while retaining package inventory, licenses and source. Restoring the command in a modified image invalidates this disposition.",
+      "sources": [
+        "https://invisible-island.net/ncurses/NEWS.html#t20251213",
+        "https://security-tracker.debian.org/tracker/CVE-2025-69720"
+      ],
+      "evidence": {
+        "absentPaths": ["/usr/bin/infocmp"]
+      }
+    },
+    {
+      "id": "CVE-2026-16742",
+      "package": "libudev1",
+      "version": "257.13-1~deb13u1",
+      "architecture": "arm64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "not_affected",
+      "rationale": "This issue is in systemd-homed home-record authentication. The supplied image contains systemd-related libraries but neither the systemd/systemd-homed packages nor the systemd-homed executable. No supported startup mode launches that service. Installing or mounting the service into a modified image invalidates this disposition.",
+      "sources": ["https://github.com/systemd/systemd/security/advisories/GHSA-jm29-p7hh-vjhv"],
+      "evidence": {
+        "absentPackages": ["systemd", "systemd-homed"],
+        "absentPaths": ["/usr/lib/systemd/systemd-homed"]
+      }
+    },
+    {
+      "id": "CVE-2026-76642",
+      "package": "libuuid1",
+      "version": "2.41.5-0+deb13u1",
+      "architecture": "arm64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The failed-mount post-hook issue requires privileged mount execution. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-m25x-3hj9-m26f"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-78408",
+      "package": "libuuid1",
+      "version": "2.41.5-0+deb13u1",
+      "architecture": "arm64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The nsenter cgroup issue requires a privileged operator to open the target cgroup before executing another program. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-55fx-f4gg-cfhj"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-78409",
+      "package": "libuuid1",
+      "version": "2.41.5-0+deb13u1",
+      "architecture": "arm64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The detached-tree subdirectory issue requires an authorized user-mount route and privileged mount execution. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-8f2p-47x3-43mv"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-78410",
+      "package": "libuuid1",
+      "version": "2.41.5-0+deb13u1",
+      "architecture": "arm64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The restricted bind-mount issue requires a privileged mount of a user-authorized fstab entry. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-rh77-686x-2f2m"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-76642",
+      "package": "login",
+      "version": "1:4.16.0-2+really2.41.5-0+deb13u1",
+      "architecture": "arm64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The failed-mount post-hook issue requires privileged mount execution. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-m25x-3hj9-m26f"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-78408",
+      "package": "login",
+      "version": "1:4.16.0-2+really2.41.5-0+deb13u1",
+      "architecture": "arm64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The nsenter cgroup issue requires a privileged operator to open the target cgroup before executing another program. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-55fx-f4gg-cfhj"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-78409",
+      "package": "login",
+      "version": "1:4.16.0-2+really2.41.5-0+deb13u1",
+      "architecture": "arm64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The detached-tree subdirectory issue requires an authorized user-mount route and privileged mount execution. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-8f2p-47x3-43mv"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-78410",
+      "package": "login",
+      "version": "1:4.16.0-2+really2.41.5-0+deb13u1",
+      "architecture": "arm64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The restricted bind-mount issue requires a privileged mount of a user-authorized fstab entry. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-rh77-686x-2f2m"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-76642",
+      "package": "mount",
+      "version": "2.41.5-0+deb13u1",
+      "architecture": "arm64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The failed-mount post-hook issue requires privileged mount execution. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-m25x-3hj9-m26f"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-78408",
+      "package": "mount",
+      "version": "2.41.5-0+deb13u1",
+      "architecture": "arm64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The nsenter cgroup issue requires a privileged operator to open the target cgroup before executing another program. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-55fx-f4gg-cfhj"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-78409",
+      "package": "mount",
+      "version": "2.41.5-0+deb13u1",
+      "architecture": "arm64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The detached-tree subdirectory issue requires an authorized user-mount route and privileged mount execution. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-8f2p-47x3-43mv"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-78410",
+      "package": "mount",
+      "version": "2.41.5-0+deb13u1",
+      "architecture": "arm64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The restricted bind-mount issue requires a privileged mount of a user-authorized fstab entry. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-rh77-686x-2f2m"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2025-69720",
+      "package": "ncurses-base",
+      "version": "6.5+20250216-2",
+      "architecture": "arm64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "not_affected",
+      "rationale": "The reported overflow is in the infocmp command, not the terminal library operations used by supported application routes. The supplied runtime removes /usr/bin/infocmp and verifies its absence while retaining package inventory, licenses and source. Restoring the command in a modified image invalidates this disposition.",
+      "sources": [
+        "https://invisible-island.net/ncurses/NEWS.html#t20251213",
+        "https://security-tracker.debian.org/tracker/CVE-2025-69720"
+      ],
+      "evidence": {
+        "absentPaths": ["/usr/bin/infocmp"]
+      }
+    },
+    {
+      "id": "CVE-2025-69720",
+      "package": "ncurses-bin",
+      "version": "6.5+20250216-2",
+      "architecture": "arm64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "not_affected",
+      "rationale": "The reported overflow is in the infocmp command, not the terminal library operations used by supported application routes. The supplied runtime removes /usr/bin/infocmp and verifies its absence while retaining package inventory, licenses and source. Restoring the command in a modified image invalidates this disposition.",
+      "sources": [
+        "https://invisible-island.net/ncurses/NEWS.html#t20251213",
+        "https://security-tracker.debian.org/tracker/CVE-2025-69720"
+      ],
+      "evidence": {
+        "absentPaths": ["/usr/bin/infocmp"]
+      }
+    },
+    {
+      "id": "CVE-2026-9538",
+      "package": "perl",
+      "version": "5.40.1-6+deb13u1",
+      "architecture": "arm64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "not_affected",
+      "rationale": "The vulnerable archive parser is the Perl Archive::Tar module. Its exact Debian-packaged entry point is removed from the supplied runtime; both filesystem inspection and a real Perl module-load failure verify that it cannot load. Other Perl files, package identity and corresponding sources remain. Restoring or adding the module through a hook or custom image invalidates this disposition.",
+      "sources": [
+        "https://security-tracker.debian.org/tracker/CVE-2026-9538",
+        "https://metacpan.org/release/BINGOS/Archive-Tar-3.10/changes"
+      ],
+      "evidence": {
+        "archiveTarUnavailable": true,
+        "absentPaths": ["/usr/share/perl/5.40.1/Archive/Tar.pm"]
+      }
+    },
+    {
+      "id": "CVE-2026-9538",
+      "package": "perl-base",
+      "version": "5.40.1-6+deb13u1",
+      "architecture": "arm64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "not_affected",
+      "rationale": "The vulnerable archive parser is the Perl Archive::Tar module. Its exact Debian-packaged entry point is removed from the supplied runtime; both filesystem inspection and a real Perl module-load failure verify that it cannot load. Other Perl files, package identity and corresponding sources remain. Restoring or adding the module through a hook or custom image invalidates this disposition.",
+      "sources": [
+        "https://security-tracker.debian.org/tracker/CVE-2026-9538",
+        "https://metacpan.org/release/BINGOS/Archive-Tar-3.10/changes"
+      ],
+      "evidence": {
+        "archiveTarUnavailable": true,
+        "absentPaths": ["/usr/share/perl/5.40.1/Archive/Tar.pm"]
+      }
+    },
+    {
+      "id": "CVE-2026-9538",
+      "package": "perl-modules-5.40",
+      "version": "5.40.1-6+deb13u1",
+      "architecture": "arm64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "not_affected",
+      "rationale": "The vulnerable archive parser is the Perl Archive::Tar module. Its exact Debian-packaged entry point is removed from the supplied runtime; both filesystem inspection and a real Perl module-load failure verify that it cannot load. Other Perl files, package identity and corresponding sources remain. Restoring or adding the module through a hook or custom image invalidates this disposition.",
+      "sources": [
+        "https://security-tracker.debian.org/tracker/CVE-2026-9538",
+        "https://metacpan.org/release/BINGOS/Archive-Tar-3.10/changes"
+      ],
+      "evidence": {
+        "archiveTarUnavailable": true,
+        "absentPaths": ["/usr/share/perl/5.40.1/Archive/Tar.pm"]
+      }
+    },
+    {
+      "id": "CVE-2026-76642",
+      "package": "util-linux",
+      "version": "2.41.5-0+deb13u1",
+      "architecture": "arm64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The failed-mount post-hook issue requires privileged mount execution. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-m25x-3hj9-m26f"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-78408",
+      "package": "util-linux",
+      "version": "2.41.5-0+deb13u1",
+      "architecture": "arm64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The nsenter cgroup issue requires a privileged operator to open the target cgroup before executing another program. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-55fx-f4gg-cfhj"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-78409",
+      "package": "util-linux",
+      "version": "2.41.5-0+deb13u1",
+      "architecture": "arm64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The detached-tree subdirectory issue requires an authorized user-mount route and privileged mount execution. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-8f2p-47x3-43mv"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    },
+    {
+      "id": "CVE-2026-78410",
+      "package": "util-linux",
+      "version": "2.41.5-0+deb13u1",
+      "architecture": "arm64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-09-27",
+      "expiresOn": "2026-10-27",
+      "status": "mitigated",
+      "rationale": "The restricted bind-mount issue requires a privileged mount of a user-authorized fstab entry. The supplied image runs as UID 1000, removes every SUID/SGID bit and has no user-authorized fstab mounts. Supported startup and Compose drop capabilities and enable no-new-privileges; application routes do not invoke mount or nsenter. This disposition excludes privileged/modified images and arbitrary added hooks.",
+      "sources": [
+        "https://github.com/util-linux/util-linux/security/advisories/GHSA-rh77-686x-2f2m"
+      ],
+      "evidence": {
+        "noPrivilegedFiles": true,
+        "noUserFstabMounts": true
+      }
+    }
+  ]
 }

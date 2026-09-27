@@ -6,7 +6,7 @@ Use Docker Engine with Compose v2 on Linux, or Docker Desktop in Linux-container
 
 ## Image availability
 
-The image reference is `ghcr.io/enzovalley9/agile-project-ui:latest`; use a published `sha-<full-commit>` tag or digest to pin a specific build. Image visibility is separate from the source repository, which currently requires access. A public GHCR image can be pulled without a GitHub account. If the registry denies a pull, check the package visibility/tag or build from an authorized source checkout. The public website alone does not prove registry availability. No Docker Hub image is implied.
+The image reference is `ghcr.io/enzovalley9/agile-project-ui:latest`; use a published `sha-<full-commit>` tag or digest to pin a specific build. Both the source repository and GHCR image are public. Image visibility is managed separately from repository visibility; anonymous pulls require no GitHub account. If the registry denies a pull, check the package visibility/tag or build from the public source checkout. The public website alone does not prove registry availability. No Docker Hub image is implied.
 
 Pulling and running the image and extracting its Compose files require no source checkout. The image includes both AMD64 and ARM64 variants when published through the container workflow.
 
@@ -209,7 +209,7 @@ Select a service with the final command `web`, `git`, `jira` or `confluence`. Co
 
 ## Build from source
 
-With authorized access to the source checkout, build without installing Node.js locally:
+From a clone of the public source repository, build without installing Node.js locally:
 
 ```sh
 docker build \
@@ -255,7 +255,7 @@ An interrupted commit can leave a native `.git/index.lock` and an isolated `<ope
 
 | Symptom                    | Check                                                                                                                 |
 | -------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| Image pull denied          | Confirm the published image/tag exists and is public, or build from an authorized source checkout.                    |
+| Image pull denied          | Confirm the published image/tag exists and is public, or build from the public source checkout.                       |
 | Port already allocated     | Stop another container or native connector using that port; keep connector ports stable.                              |
 | Missing mount source       | Correct the absolute host path and create only the intended private state folder yourself.                            |
 | Permission/ownership error | Check UID/GID and Linux-visible `700` state / `600` credential modes; do not run as root to bypass them.              |

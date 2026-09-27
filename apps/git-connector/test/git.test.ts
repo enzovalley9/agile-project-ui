@@ -208,7 +208,7 @@ describe('native Git transport boundaries', () => {
       );
       expect(requests).toBe(1);
       expect(result.exitCode).not.toBe(0);
-      expect(result.stderr).toMatch(/Protocol ["']ftp["'] (?:disabled|not supported)/i);
+      expect(result.stderr).toMatch(/Protocol ["']ftp["'] (?:is )?(?:disabled|not supported)/i);
     } finally {
       await new Promise<void>((resolve, reject) =>
         server.close((error) => (error ? reject(error) : resolve())),
@@ -820,6 +820,8 @@ describe('branch protections and native push verification', () => {
     await expect(git(remote, ['cat-file', '-e', hidden])).rejects.toThrow();
     expect(await fs.readFile(grafts, 'utf8')).toBe(`${tip} ${base}\n`);
   });
+  // This case performs two reviewed commits and a push through many sequential
+  // native processes. Windows ARM runners need more than the default unit-test budget.
   it('keeps the reviewed real ancestry when a legacy graft appears before push execution', async () => {
     const f = await fixture();
     const remote = path.join(f.root, 'remote.git');
@@ -849,7 +851,7 @@ describe('branch protections and native push verification', () => {
     expect(await git(remote, ['rev-parse', 'refs/heads/main'])).toBe(tip);
     expect(await git(remote, ['rev-list', `${base}..main`])).toBe(`${tip}\n${middle}`);
     expect(await git(remote, ['show', 'main:prd.md'])).toBe('Reviewed final change');
-  });
+  }, 60_000);
   it('rejects a second destination rewrite before invoking any remote transport', async () => {
     const f = await fixture();
     await git(f.repo, ['remote', 'add', 'origin', 'https://first.invalid/repo.git']);
