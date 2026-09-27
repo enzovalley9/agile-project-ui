@@ -59,6 +59,8 @@ Use desktop **Chrome or Microsoft Edge**. The application needs the browser's di
 
 Open [Agile Project UI](https://agile-project-ui.enzovalley9.workers.dev), select your project root and start reading. Turn on edit mode to save changes; Chrome or Edge will request permission for that folder. The public app requires no account or local installation for reading, editing and comments. Git, Jira and Confluence use the optional local connectors described below.
 
+A repository with `_bmad-output` can be opened without a local `_bmad` installation. Supported documents and work items remain available for reading and editing; Diagnostics reports the missing installation, and its version cannot be identified unless shared metadata is connected. If your team keeps `_bmad` in a parent folder, choose **Choose shared BMAD installation**, then explicitly choose the child project folder. The configured document locations are hints for that choice. You can also open the child project first and use **Connect shared BMAD installation** in Diagnostics. The browser asks for access to each folder; only the selected project's supported files are inventoried. Other child repositories are not scanned automatically. See the [first-use guide](docs/first-use.md).
+
 For local development, install **Node.js 24 LTS**, npm and Git. [`.node-version`](.node-version) pins the tested runtime.
 
 ```sh
@@ -137,7 +139,7 @@ Details: [Git](docs/git-connector.md) · [Jira and Confluence](docs/atlassian-co
 | PNG, JPEG, GIF, WebP                       | Markdown-referenced local images within authorized roots, up to 8 MiB.                                       |
 | SVG, PDF and other attachments             | Excluded from the text inventory with diagnostics; not executed or edited.                                   |
 
-Text scans are bounded to 2 MiB per file, 32 MiB per inventory, 5,000 files and 20 directory levels. Limits, read failures, unknown formats and ambiguous work items are reported as diagnostics. Secret, tool and dependency paths and nested repositories are excluded. These exclusions are not a complete secret scanner.
+Text scans are bounded to 2 MiB per file, 32 MiB per inventory, 5,000 files and 20 directory levels. Limits, read failures, unknown formats and ambiguous work items are reported as diagnostics. Secret, tool and dependency paths and nested repositories are excluded. Select a child repository itself as the project root; opening its parent does not scan it. These exclusions are not a complete secret scanner.
 
 Derived documents can be edited with a regeneration warning. Changes do not silently rewrite memlogs or invent states. Files with unresolved merge markers remain read-only source until resolved externally.
 
