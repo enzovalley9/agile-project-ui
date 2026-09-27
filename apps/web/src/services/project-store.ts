@@ -305,7 +305,10 @@ export class ProjectStore {
       throw e;
     }
   }
-  constructor(readonly handle: FileSystemDirectoryHandle) {
+  constructor(
+    readonly handle: FileSystemDirectoryHandle,
+    readonly readOnly = false,
+  ) {
     this.name = handle.name;
   }
   static async pick(): Promise<ProjectStore> {
@@ -318,6 +321,11 @@ export class ProjectStore {
     return new ProjectStore(handle);
   }
   async setMode(mode: 'read' | 'edit') {
+    if (mode === 'edit' && this.readOnly)
+      throw new ProjectError(
+        'read-only',
+        'This snapshot is read-only. Open the original folder in desktop Chrome or Edge to edit.',
+      );
     if (this.saving) throw new ProjectError('busy', 'Wait for the save to finish.');
     if (
       mode === 'edit' &&
@@ -416,6 +424,8 @@ export class ProjectStore {
     return new Blob([bytes], { type: mime });
   }
   async addDocumentationFolder(): Promise<void> {
+    if (this.readOnly)
+      throw new ProjectError('read-only', 'Import a new snapshot to change its scope.');
     const selected = await window.showDirectoryPicker({ mode: 'read', id: 'bmad-documentation' });
     const relative = await this.handle.resolve(selected);
     if (!relative?.length)

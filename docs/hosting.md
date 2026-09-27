@@ -31,7 +31,7 @@ npm run deploy:check
 
 `deploy:check` builds the web application, generates the public help pages and version metadata, checks the public asset allowlist, and runs a Wrangler dry run. It does not publish the site. A passing dry run does not prove account access or live browser behavior.
 
-The allowlist accepts the app entry page, hashed Vite assets, reviewed response headers, the MIT license, third-party notices, explicit public help pages and `version.json`. It rejects source maps, symlinks, unexpected files and directories, project fixtures, connector packages and private metadata. The public help generator reads an explicit list of maintained product documents; it never reads the separate private documentation repository.
+The allowlist accepts the app entry page, hashed Vite assets, reviewed response headers, the MIT license, third-party notices, explicit public help pages, four maintained screenshots, the reviewed original example ZIP and `version.json`. It rejects source maps, symlinks, unexpected files and directories, project fixtures, connector packages and private metadata. The public help generator reads an explicit list of maintained product documents; it never reads the separate private documentation repository.
 
 `version.json` contains only the package version and full source Git revision. It includes no timestamp, local filesystem path or account credential. Build from a clean checkout so that the recorded revision identifies the deployed source.
 

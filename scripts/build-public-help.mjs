@@ -1,5 +1,6 @@
+import { buildExample } from './build-example.mjs';
 import { buildRevision } from './build-revision.mjs';
-import { lstat, mkdir, readFile, realpath, rm, writeFile } from 'node:fs/promises';
+import { copyFile, lstat, mkdir, readFile, realpath, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import React from 'react';
@@ -11,6 +12,12 @@ import remarkGfm from 'remark-gfm';
 export const PUBLIC_HELP_PAGES = Object.freeze(
   [
     ['README.md', 'index.html', 'Overview'],
+    ['docs/first-use.md', 'first-use/index.html', 'First steps'],
+    ['docs/compatibility.md', 'compatibility/index.html', 'Support matrix'],
+    ['docs/privacy.md', 'privacy/index.html', 'Privacy'],
+    ['docs/roadmap.md', 'roadmap/index.html', 'Roadmap'],
+    ['docs/maintaining.md', 'maintaining/index.html', 'Maintainers'],
+    ['docs/signing.md', 'signing/index.html', 'Package trust'],
     ['docs/connector-setup.md', 'connector-setup/index.html', 'Install connectors'],
     ['SUPPORT.md', 'support/index.html', 'Support'],
     ['SECURITY.md', 'security/index.html', 'Security'],
@@ -21,12 +28,20 @@ export const PUBLIC_HELP_PAGES = Object.freeze(
     ['docs/testing.md', 'testing/index.html', 'Testing'],
     ['docs/hosting.md', 'hosting/index.html', 'Hosting'],
     ['docs/docker.md', 'docker/index.html', 'Docker'],
+    ['docs/supply-chain.md', 'supply-chain/index.html', 'Supply chain'],
     ['docs/releases.md', 'releases/index.html', 'Releases'],
     ['CHANGELOG.md', 'changelog/index.html', 'Changelog'],
     ['CONTRIBUTING.md', 'contributing/index.html', 'Contributing'],
     ['CODE_OF_CONDUCT.md', 'code-of-conduct/index.html', 'Code of conduct'],
   ].map((entry) => Object.freeze(entry)),
 );
+
+export const PUBLIC_HELP_IMAGES = Object.freeze([
+  'stories-dark.png',
+  'documents-comments.png',
+  'epic-tasks.png',
+  'sprint.png',
+]);
 
 const projectRoot = fileURLToPath(new URL('..', import.meta.url));
 const h = React.createElement;
@@ -112,14 +127,23 @@ function documentComponents() {
     h4: heading(4),
     h5: heading(5),
     h6: heading(6),
-    // Images become explicit links, never automatic requests to remote resources.
+    // Only maintained allowlisted screenshots become images. Remote content stays opt-in.
     img: ({ src, alt }) =>
-      h(
-        'span',
-        { className: 'image-reference' },
-        alt || 'Image',
-        src ? [' · ', h('a', { href: src, key: 'source' }, 'Open image source')] : null,
-      ),
+      PUBLIC_HELP_IMAGES.some((name) => src === `/help/images/${name}`)
+        ? h('img', {
+            src,
+            alt: alt || 'Application screenshot',
+            loading: 'lazy',
+            width: 1440,
+            height: src.endsWith('/sprint.png') ? 1140 : 960,
+            style: { maxWidth: '100%', height: 'auto', borderRadius: '.5rem' },
+          })
+        : h(
+            'span',
+            { className: 'image-reference' },
+            alt || 'Image',
+            src ? [' · ', h('a', { href: src, key: 'source' }, 'Open image source')] : null,
+          ),
     a: ({ href, children, title }) => h('a', { href, title, rel: 'noreferrer' }, children),
     input: ({ checked }) =>
       h('input', {
@@ -158,6 +182,9 @@ function rewriteUrl(url, source, repository, commit) {
   if (decoded.startsWith('/')) return decoded === '/' ? `/${match[2]}` : undefined;
   const target = path.posix.normalize(path.posix.join(path.posix.dirname(source), decoded));
   if (target === '..' || target.startsWith('../') || target.includes('\0')) return undefined;
+  if (PUBLIC_HELP_IMAGES.some((name) => target === `docs/screenshots/${name}`))
+    return `/help/images/${path.posix.basename(target)}`;
+  if (target === 'example/community-garden.zip') return '/example/community-garden.zip';
   const output = helpBySource.get(target);
   if (output) return `/help/${output.replace(/index\.html$/, '')}${match[2]}`;
   if (publicRootFiles.has(target)) return `/${target}${match[2]}`;
@@ -204,6 +231,14 @@ export async function buildPublicHelp() {
     if (error.code !== 'ENOENT') throw error;
   }
   await mkdir(helpRoot);
+  await mkdir(path.join(helpRoot, 'images'));
+  for (const name of PUBLIC_HELP_IMAGES) {
+    const source = path.join(projectRoot, 'docs/screenshots', name);
+    if (!(await lstat(source)).isFile() || (await realpath(source)) !== source)
+      throw new Error('Screenshot must be a regular source file.');
+    await copyFile(source, path.join(helpRoot, 'images', name));
+  }
+  await buildExample();
   await writeFile(path.join(helpRoot, 'help.css'), stylesheet.trim() + '\n');
   for (const document of documents) {
     const page = h(

@@ -8,6 +8,14 @@ Read, edit and discuss your project in a browser. Browse documents, move stories
 
 Agile Project UI is an independent project and is not affiliated with, endorsed by, approved by or certified by BMad Code, LLC. It does not run BMAD agents or workflows. Its structured adapter targets **BMAD Method 6.12.0**; other versions retain generic reading with visible compatibility limits.
 
+## Beta scope and first steps
+
+**Public beta:** the full local-folder workflow supports desktop Chrome and Edge. Other browsers can explore the built-in read-only demo or import a text snapshot when their folder picker allows it. Jira and Confluence remain experimental, with production remote writes disabled. See the [support matrix](docs/compatibility.md).
+
+1. [Open the app](https://agile-project-ui.enzovalley9.workers.dev) and choose **Try the demo**. No account or installation is needed.
+2. [Download the original example ZIP](https://agile-project-ui.enzovalley9.workers.dev/example/community-garden.zip), extract it and open that folder in Chrome or Edge. Enable edit mode, save a change and inspect the original file.
+3. Optionally install the Git connector, review a local commit and push when ready. Follow the [first-use walkthrough](docs/first-use.md).
+
 ## Features
 
 - **Documents:** searchable file tree, Markdown rendering, source editing, headings, relative links and local images.
@@ -62,7 +70,7 @@ npm run dev
 
 Open **http://127.0.0.1:5173**, select your project root and start reading. Turn on edit mode when you want to save changes; the browser will request write permission. No connector is needed to read, edit or comment on local documents.
 
-For a disposable example, copy [`tests/fixtures/community-garden`](tests/fixtures/community-garden) outside the checkout and open the copy. It contains original synthetic planning documents, stories, epics, a sprint and comments. Installing or running BMAD is unnecessary to open it.
+The built-in demo and [downloadable example](https://agile-project-ui.enzovalley9.workers.dev/example/community-garden.zip) contain original synthetic planning documents, stories, epics and a sprint. The broader test fixtures also cover comments and unsupported/malicious inputs. Installing or running BMAD is unnecessary to open the example.
 
 The GitHub repository and release downloads currently require repository access. MIT grants rights to copies you receive; it does not grant access to a private repository. See [release access and verification](docs/releases.md).
 
@@ -102,7 +110,7 @@ Existing projects keep the historical `.bmad-project-ui` data namespace for comm
 
 New connector packages, installed application folders and launcher commands use the Agile Project UI name. The session and credential paths in the setup guide are explicit examples under `~/.agile-project-ui`; an existing private path remains valid when passed through the corresponding command-line option.
 
-See [architecture and data boundaries](docs/architecture.md) and the [security policy](SECURITY.md).
+See [privacy and local data](docs/privacy.md), [architecture and data boundaries](docs/architecture.md) and the [security policy](SECURITY.md).
 
 ## Optional connectors
 
@@ -163,7 +171,7 @@ The frontend supports Cloudflare Workers Static Assets, including public install
 
 Start with [CONTRIBUTING.md](CONTRIBUTING.md), the [development guide](docs/development.md) and the [code of conduct](CODE_OF_CONDUCT.md). Maintained code, comments, documentation and examples use English. The application preserves the original language of users' files and includes deliberate Unicode regression coverage.
 
-Use [SUPPORT.md](SUPPORT.md) for troubleshooting and sanitized bug reports. Report vulnerabilities through the route described in [SECURITY.md](SECURITY.md), not a public issue. Release changes are recorded in [CHANGELOG.md](CHANGELOG.md).
+Use [SUPPORT.md](SUPPORT.md) for troubleshooting and sanitized bug reports. Report vulnerabilities through the route described in [SECURITY.md](SECURITY.md), not a public issue. Release changes are recorded in [CHANGELOG.md](CHANGELOG.md). The [roadmap](docs/roadmap.md) lists current priorities and starter contributions; the [maintainer guide](docs/maintaining.md) explains review, security setup and release acceptance.
 
 For questions, suggestions or help, contact **Enzo Valley** at [enzovalley9@gmail.com](mailto:enzovalley9@gmail.com).
 

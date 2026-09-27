@@ -58,3 +58,9 @@ Prefer a minimal reproduction for a defect and assert the resulting behavior, no
 Tests must own their temporary files, ports and processes and release them in cleanup. A timeout after the last assertion can still be a fixture failure. Investigate traces and logs before changing timeouts. Do not remove assertions or accept retries solely to make CI green.
 
 Playwright stores its HTML report in `playwright-report` and failure evidence in `test-results`; these outputs are ignored by Git. Capture durable, sanitized evidence separately when needed. The fixture directory is synthetic and can be reused without installing BMAD or executing its agents.
+
+## Public beta acceptance
+
+After `npm run build:web`, install the Playwright engines with `npx playwright install chromium firefox webkit` and run `npm run test:beta`. This suite exercises the built-in demo, desktop read-only folder imports, the real help screenshots and the licensed example download in Chromium, Firefox and WebKit, plus a mobile WebKit viewport. The mobile native folder picker is explicitly outside emulated acceptance. CI runs the cross-engine suite on Linux; a local browser launch failure must be recorded as unavailable coverage, not a passing application test.
+
+`npm run test:maintenance` checks the publication policy, stronger-rule preservation, visibility drift and exact example ZIP contents. Original-folder read/write, connector authorization, recovery and Git remain in the full `test:e2e`/`test:hosted` suites. Engine emulation and maintainer automation are not independent human usability studies; use the protocol in [the maintainer guide](maintaining.md) and record unperformed sessions as not run.

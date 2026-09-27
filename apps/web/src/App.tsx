@@ -20,6 +20,8 @@ import {
 } from 'lucide-react';
 import { visibleWorkItems, type WorkItem } from '../../../packages/domain/src/index';
 import { ProjectStore, type ProjectSnapshot, type RecoveryStatus } from './services/project-store';
+import { importReadOnlyFiles, readOnlyDirectory } from './services/read-only-project';
+import exampleProject from '../../../examples/community-garden.json';
 import { FileTree } from './components/FileTree';
 import { DocumentReader } from './components/DocumentReader';
 import type { SourceSelection } from './components/SourceEditor';
@@ -56,6 +58,8 @@ const navItems: [View, string][] = [
 ];
 export default function App() {
   const [theme, setTheme] = useTheme();
+  const importInput = useRef<HTMLInputElement>(null);
+  const folderAccess = 'showDirectoryPicker' in window;
   const [modeChanging, setModeChanging] = useState(false);
   const [store, setStore] = useState<ProjectStore | null>(null),
     [snapshot, setSnapshot] = useState<ProjectSnapshot | null>(null),
@@ -154,13 +158,22 @@ export default function App() {
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
-  async function chooseProject() {
+  async function chooseProject(source: 'folder' | 'demo' | readonly File[] = 'folder') {
     const generation = ++projectGeneration.current;
     refreshSequence.current++;
     setError('');
     setBusy(true);
     try {
-      const nextStore = await ProjectStore.pick();
+      let skipped = 0;
+      const nextStore =
+        source === 'folder'
+          ? await ProjectStore.pick()
+          : source === 'demo'
+            ? new ProjectStore(readOnlyDirectory(exampleProject, 'Community Garden demo'), true)
+            : await importReadOnlyFiles(source).then((result) => {
+                skipped = result.skipped;
+                return new ProjectStore(result.handle, true);
+              });
       const next = await nextStore.refresh();
       if (generation !== projectGeneration.current) return;
       storeRef.current = nextStore;
@@ -176,6 +189,11 @@ export default function App() {
       );
       setCommentsOpen(false);
       setCommentDirty(false);
+      setNotice(
+        nextStore.readOnly
+          ? `Read-only snapshot. ${skipped ? `${skipped} unsupported or excluded files skipped. ` : ''}Changes to the original folder are not refreshed; import it again to reread.`
+          : '',
+      );
     } catch (e) {
       if (generation !== projectGeneration.current) return;
       if (e instanceof DOMException && e.name === 'AbortError')
@@ -374,6 +392,19 @@ export default function App() {
   );
   return (
     <div className={styles.app}>
+      <input
+        ref={importInput}
+        type="file"
+        multiple
+        {...({ webkitdirectory: '' } as Record<string, string>)}
+        hidden
+        aria-label="Import read-only project folder"
+        onChange={(event) => {
+          const files = Array.from(event.currentTarget.files ?? []);
+          event.currentTarget.value = '';
+          if (files.length) guard(() => void chooseProject(files), 'import another project');
+        }}
+      />
       <header className={styles.header}>
         {brand}
         <div className={styles.headerActions}>
@@ -403,6 +434,7 @@ export default function App() {
             </select>
           </label>
           {store &&
+            !store.readOnly &&
             (['git', 'jira', 'confluence'] as const).map((service) => (
               <button
                 key={service}
@@ -439,7 +471,13 @@ export default function App() {
                 aria-label="Edit mode"
                 className={styles.modeSwitch}
                 disabled={
-                  modeChanging || busy || saving || auxiliarySaving || gitBusy || integrationBusy
+                  store.readOnly ||
+                  modeChanging ||
+                  busy ||
+                  saving ||
+                  auxiliarySaving ||
+                  gitBusy ||
+                  integrationBusy
                 }
                 onClick={setEditorMode}
               >
@@ -448,23 +486,38 @@ export default function App() {
                 </span>
                 {mode === 'edit' ? <Pencil size={14} /> : <Eye size={14} />}
                 <span>
-                  {modeChanging ? 'Requesting permission…' : mode === 'edit' ? 'Edit' : 'Read'}
+                  {store.readOnly
+                    ? 'Read-only snapshot'
+                    : modeChanging
+                      ? 'Requesting permission…'
+                      : mode === 'edit'
+                        ? 'Edit'
+                        : 'Read'}
                 </span>
               </button>
               <button
                 className="iconButton"
-                title="Refresh files"
+                title={
+                  store.readOnly ? 'Import the folder again to reread its files' : 'Refresh files'
+                }
                 aria-label="Refresh files"
-                disabled={busy || saving || auxiliarySaving || gitBusy || integrationBusy}
+                disabled={
+                  store.readOnly || busy || saving || auxiliarySaving || gitBusy || integrationBusy
+                }
                 onClick={() => void manualRefresh()}
               >
                 <RefreshCw size={15} />
               </button>
               <button
                 disabled={busy || saving || auxiliarySaving || gitBusy || integrationBusy}
-                onClick={() => guard(() => void chooseProject(), 'switch project')}
+                onClick={() =>
+                  guard(
+                    () => (folderAccess ? void chooseProject() : importInput.current?.click()),
+                    'switch project',
+                  )
+                }
               >
-                Change folder
+                {folderAccess ? 'Change folder' : 'Import another folder'}
               </button>
             </div>
           </div>
@@ -530,7 +583,7 @@ export default function App() {
       )}
       {!store || !snapshot ? (
         <main className={styles.welcome}>
-          <p className={styles.eyebrow}>Your project, from its files</p>
+          <p className={styles.eyebrow}>Public beta · Your project, from its files</p>
           <h1>
             Your project context,
             <br />
@@ -540,13 +593,45 @@ export default function App() {
             Open your project folder to explore documents, epics and stories. Start in read mode,
             then enable editing to work on the original files.
           </p>
-          <button className="primary" disabled={busy} onClick={() => void chooseProject()}>
-            <FolderOpen size={18} />
-            Choose project folder
-          </button>
+          <div className={styles.startActions}>
+            <button className="primary" disabled={busy} onClick={() => void chooseProject('demo')}>
+              <BookOpen size={18} /> Try the demo
+            </button>
+            <button disabled={busy || !folderAccess} onClick={() => void chooseProject()}>
+              <FolderOpen size={18} /> Choose project folder
+            </button>
+            <button disabled={busy} onClick={() => importInput.current?.click()}>
+              Import folder for reading
+            </button>
+          </div>
+          <p className={styles.muted}>
+            No account needed. Demo and imported snapshots are read-only. To edit and save
+            originals, use desktop Chrome or Edge. Jira and Confluence are experimental; remote
+            writes are disabled.
+          </p>
+          <ol className={styles.firstSteps}>
+            <li>
+              <strong>Explore.</strong> Try the fictional garden project, including documents,
+              stories and a sprint.
+            </li>
+            <li>
+              <strong>Make it yours.</strong>{' '}
+              <a href="/example/community-garden.zip" download>
+                Download the example ZIP
+              </a>
+              , extract it and choose that folder in Chrome or Edge. Enable edit mode and save a
+              change.
+            </li>
+            <li>
+              <strong>Share when ready.</strong> Optionally connect Git to review, commit and push.{' '}
+              <a href="/help/first-use/">Follow the walkthrough</a>.
+            </li>
+          </ol>
           <p className={styles.muted}>
             Compatible with BMAD Method. An independent project, not affiliated with or endorsed by
-            BMAD. Desktop Chrome or Edge. Your documents stay on your computer.
+            BMAD. Your documents stay on your computer. See the{' '}
+            <a href="/help/compatibility/">support matrix</a> and{' '}
+            <a href="/help/privacy/">privacy guide</a>.
           </p>
           <div className={styles.welcomeFeatures}>
             <section>
@@ -924,7 +1009,10 @@ export default function App() {
               </div>
               <div className={styles.contentTitle}>
                 <h2>Document roots</h2>
-                <button disabled={busy} onClick={() => void addDocumentationFolder()}>
+                <button
+                  disabled={busy || store.readOnly}
+                  onClick={() => void addDocumentationFolder()}
+                >
                   <FolderOpen size={15} />
                   Add documentation folder
                 </button>

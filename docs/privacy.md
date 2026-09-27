@@ -1,0 +1,22 @@
+# Privacy and local data
+
+Agile Project UI has no application account, analytics SDK, advertising, hosted project database or background project synchronization. This describes the maintained application, not a promise about browser extensions, your operating system or third-party providers.
+
+| Data                                 | Where it goes and how long it stays                                                                                                                                                                          |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Selected project files               | Read in your browser. Original-folder edits are written to the folder you authorized. Read-only imports stay in the current tab. Project contents are not sent to the static host.                           |
+| Comments and reactions               | Saved in versionable `.bmad-project-ui/comments/threads` files in the project. Anyone with those files can read them; author identity is locally declared.                                                   |
+| Drafts                               | Memory in the current tab until saved or exported. Closing/reloading can lose unsaved text.                                                                                                                  |
+| Recovery copies and comparison bases | Browser-private storage for this origin/profile; auxiliary recovery metadata also lives in `.bmad-project-ui/local`. Clearing storage can remove recovery evidence. Resolve pending recovery before cleanup. |
+| Theme preference                     | Browser local storage; remove through browser site-data controls.                                                                                                                                            |
+| Connector session capability         | Generated locally; private session file and browser memory. Restart/stop the service to revoke the session. Never commit or share the file.                                                                  |
+| Git credentials                      | Your native Git authentication tooling, outside the web app. A requested push contacts your configured remote. Git hooks and helpers can run trusted native programs.                                        |
+| Jira / Confluence credentials        | Separate local private files, read by the appropriate connector. Explicit provider requests transmit required data to that configured provider.                                                              |
+| Hosting requests                     | Cloudflare receives ordinary HTTPS request metadata such as IP address, URL and browser headers while serving assets. No claim is made that the hosting provider processes no network metadata.              |
+| Help/support reports                 | GitHub or the maintainer's email provider receives what you choose to submit, under their own policies. Do not send secrets or real project exports.                                                         |
+
+Remote Markdown images are not loaded automatically. Local images are read only within authorized roots. External document links are user-initiated and may contact their destination; the deployed site sends a restrictive referrer policy.
+
+To leave, save/export any wanted drafts, resolve incomplete operations, stop local connectors, and clear site data if desired. Delete your local example or sidecars only when you no longer need them; clearing browser data does not delete project files or revoke credentials issued by an external provider. Revoke those through the provider.
+
+Data-handling questions: [Enzo Valley, enzovalley9@gmail.com](mailto:enzovalley9@gmail.com). Security reports follow the [security policy](../SECURITY.md). See [architecture](architecture.md) for technical boundaries and [first steps](first-use.md) for the snapshot/edit distinction.

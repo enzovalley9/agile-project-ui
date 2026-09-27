@@ -2,7 +2,7 @@ import { buildRevision } from './build-revision.mjs';
 import { lstat, readFile, readdir, realpath } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { PUBLIC_HELP_PAGES } from './build-public-help.mjs';
+import { PUBLIC_HELP_PAGES, PUBLIC_HELP_IMAGES } from './build-public-help.mjs';
 
 const projectRoot = fileURLToPath(new URL('..', import.meta.url));
 const outputRoot = path.join(projectRoot, 'dist/web');
@@ -17,10 +17,14 @@ const rootFiles = new Set([
 ]);
 const helpFiles = new Set([
   'help/help.css',
+  'example/community-garden.zip',
+  ...PUBLIC_HELP_IMAGES.map((name) => `help/images/${name}`),
   ...PUBLIC_HELP_PAGES.map(([, output]) => `help/${output}`),
 ]);
 const allowedDirectories = new Set([
   'assets',
+  'example',
+  'help/images',
   'help',
   ...PUBLIC_HELP_PAGES.map(([, output]) => path.posix.dirname(`help/${output}`)),
 ]);
