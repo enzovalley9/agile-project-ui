@@ -4,9 +4,9 @@
 
 Do not post exploit details, capabilities, provider credentials or private project content in a public issue or pull request.
 
-Email **Enzo Valley** at [enzovalley9@gmail.com](mailto:enzovalley9@gmail.com) with a subject beginning with `Security report`. This contact is available regardless of GitHub repository access. Do not use a general issue for sensitive details, even when the repository itself is private.
+Email **Enzo Valley** at [enzovalley9@gmail.com](mailto:enzovalley9@gmail.com) with a subject beginning with `Security report`. This contact requires no GitHub account. Do not use a public issue for sensitive details.
 
-GitHub issue and advisory URLs for this repository are not anonymous reporting channels while repository access is restricted. This policy does not promise that GitHub's **Report a vulnerability** form is available.
+You can also sign in to GitHub and use [Report a vulnerability](https://github.com/enzovalley9/agile-project-ui/security/advisories/new). Private vulnerability reporting is enabled; a report sent through that form is shared privately with the maintainers. Use email if you prefer not to sign in to GitHub.
 
 Include the affected commit/version, component, OS/browser, a minimal synthetic reproduction, observed impact and any proposed mitigation. Remove tokens, personal data and real project documents. Report only systems you are authorized to test.
 
