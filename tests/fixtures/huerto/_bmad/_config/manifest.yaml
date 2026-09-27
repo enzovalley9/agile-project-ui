@@ -1,0 +1,5 @@
+installation:
+  version: 6.12.0
+modules:
+  - name: bmm
+    version: 6.12.0
