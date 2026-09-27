@@ -13,5 +13,12 @@
     "noEmit": true,
     "types": ["node", "vite/client", "@types/wicg-file-system-access"]
   },
-  "include": ["apps", "packages", "tests", "vitest.config.ts", "playwright.config.ts"]
+  "include": [
+    "apps",
+    "packages",
+    "tests",
+    "vitest.config.ts",
+    "playwright.config.ts",
+    "playwright.hosted.config.ts"
+  ]
 }

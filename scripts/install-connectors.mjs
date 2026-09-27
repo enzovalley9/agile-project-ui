@@ -67,6 +67,7 @@ async function install() {
     `runtime/${process.platform === 'win32' ? 'node.exe' : 'node'}`,
     'runtime/LICENSE',
     'THIRD_PARTY_NOTICES.md',
+    'LICENSE',
     'connectors/git.mjs',
     'connectors/atlassian.mjs',
     'runtime-checksum.json',
@@ -76,11 +77,10 @@ async function install() {
     installer,
     'README.txt',
   ]);
-  const optional = new Set(['LICENSE']);
   for (const entry of manifest.files) {
     if (
       !entry ||
-      (!required.delete(entry.path) && !optional.delete(entry.path)) ||
+      !required.delete(entry.path) ||
       !/^[a-f0-9]{64}$/.test(entry.sha256) ||
       ![0o644, 0o755].includes(entry.mode)
     )

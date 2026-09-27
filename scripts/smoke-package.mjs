@@ -259,11 +259,16 @@ try {
   assert.match(notices, /hono@/);
   assert.match(notices, /Permission is hereby granted/);
   assert(manifest.files.some((entry) => entry.path === 'THIRD_PARTY_NOTICES.md'));
-  if (manifest.files.some((entry) => entry.path === 'LICENSE'))
-    assert.equal(
-      await fs.readFile(path.join(destination, 'LICENSE'), 'utf8'),
-      await fs.readFile('LICENSE', 'utf8'),
-    );
+  assert(manifest.files.some((entry) => entry.path === 'LICENSE'));
+  assert.equal(
+    await fs.readFile(path.join(destination, 'LICENSE'), 'utf8'),
+    await fs.readFile('LICENSE', 'utf8'),
+  );
+  assert.equal(manifest.version, JSON.parse(await fs.readFile('package.json', 'utf8')).version);
+  assert.equal(
+    manifest.revision,
+    (await exec('git', ['rev-parse', 'HEAD'], options)).stdout.trim(),
+  );
 
   const launcher = path.join(
     destination,

@@ -47,6 +47,12 @@ jobs:
       - run: npm run test:e2e
         env:
           BMAD_E2E_CHANNEL: ${{ matrix.channel }}
+      - name: Verify static deployment and local connector boundary
+        if: matrix.channel == 'chromium'
+        run: npm run build && npm run test:hosted
+        env:
+          BMAD_HOSTED_URL: http://127.0.0.1:8787
+          BMAD_HOSTED_PREVIEW: '1'
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:

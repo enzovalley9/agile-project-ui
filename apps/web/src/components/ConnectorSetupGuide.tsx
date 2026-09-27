@@ -368,7 +368,11 @@ export function ConnectorSetupGuide({
         </details>
         <p>
           <a
-            href={`${repository}/blob/main/docs/connector-setup.md`}
+            href={
+              import.meta.env.PROD
+                ? '/help/connector-setup/'
+                : `${repository}/blob/main/docs/connector-setup.md`
+            }
             target="_blank"
             rel="noopener noreferrer"
           >

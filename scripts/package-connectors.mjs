@@ -9,6 +9,9 @@ const platform = args.platform || process.platform,
 if (!['darwin', 'linux', 'win32'].includes(platform) || !['arm64', 'x64'].includes(arch))
   throw new Error('Unsupported packaging target');
 const nodeVersion = (await readFile('.node-version', 'utf8')).trim();
+const { version } = JSON.parse(await readFile('package.json', 'utf8'));
+const revision = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
+if (!/^[a-f0-9]{40}$/.test(revision)) throw new Error('Invalid source revision');
 const runtimePlatform = platform === 'win32' ? 'win' : platform;
 const nodeBase = `node-v${nodeVersion}-${runtimePlatform}-${arch}`;
 const archive = `${nodeBase}.${platform === 'win32' ? 'zip' : 'tar.gz'}`;
@@ -43,16 +46,7 @@ await copyFile(join(temp, nodeBase, 'LICENSE'), join(out, 'runtime', 'LICENSE'))
 for (const connector of ['git', 'atlassian'])
   await copyFile(`dist/connectors/${connector}.mjs`, join(out, 'connectors', `${connector}.mjs`));
 await copyFile('THIRD_PARTY_NOTICES.md', join(out, 'THIRD_PARTY_NOTICES.md'));
-const firstPartyFiles = [];
-try {
-  await copyFile('LICENSE', join(out, 'LICENSE'));
-  firstPartyFiles.push('LICENSE');
-} catch (error) {
-  if (error.code !== 'ENOENT') throw error;
-  console.warn(
-    'First-party LICENSE is pending; this package is not ready for public redistribution.',
-  );
-}
+await copyFile('LICENSE', join(out, 'LICENSE'));
 await writeFile(
   join(out, 'runtime-checksum.json'),
   JSON.stringify({ nodeVersion, archive, sha256: actual, source: origin + archive }, null, 2) +
@@ -85,7 +79,7 @@ await writeFile(
 );
 const packageFiles = [
   'THIRD_PARTY_NOTICES.md',
-  ...firstPartyFiles,
+  'LICENSE',
   `runtime/${runtimeName}`,
   'runtime/LICENSE',
   'connectors/git.mjs',
@@ -112,7 +106,11 @@ for (const file of packageFiles)
   });
 await writeFile(
   join(out, 'manifest.json'),
-  JSON.stringify({ schemaVersion: 1, nodeVersion, platform, arch, files }, null, 2) + '\n',
+  JSON.stringify(
+    { schemaVersion: 1, version, revision, nodeVersion, platform, arch, files },
+    null,
+    2,
+  ) + '\n',
 );
 await mkdir('dist/artifacts', { recursive: true });
 const output = resolve('dist/artifacts', name + '.tar.gz');

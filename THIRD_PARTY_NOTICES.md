@@ -1,7 +1,7 @@
 # Third-party notices
 
 Generated from the locked production dependency tree and build tools that can emit runtime helpers by `npm run notices`.
-Lockfile SHA-256: `569824f770380f857eec17274eaca4cab73373362bc2678ba5df57b3694161f2`.
+Lockfile SHA-256: `a30f71589238b5ccc47b54687bb2d03e03fca76f1c7a05fff1121abc301ce749`.
 This inventory is deliberately inclusive: a particular web or connector bundle may use only a subset.
 These notices cover dependencies, not the first-party BMAD Project UI license.
 Top-level license and attribution files from each production package are retained, including mixed notices such as Lucide/Feather.

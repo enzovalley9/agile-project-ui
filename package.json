@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "vite --config apps/web/vite.config.ts",
     "build": "npm run build:web && npm run build:connectors",
-    "build:web": "vite build --config apps/web/vite.config.ts && node scripts/copy-web-notices.mjs",
+    "build:web": "vite build --config apps/web/vite.config.ts && node scripts/copy-web-notices.mjs && node scripts/build-public-help.mjs && node scripts/check-public-assets.mjs",
     "build:connectors": "node scripts/build-connectors.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
@@ -22,7 +22,10 @@
     "notices:check": "node scripts/generate-third-party-notices.mjs --check",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "audit:dependencies": "npm audit --audit-level=high"
+    "audit:dependencies": "npm audit --audit-level=high",
+    "deploy:check": "npm run build:web && wrangler deploy --dry-run --name static-preview",
+    "deploy:web": "npm run build:web && wrangler deploy",
+    "test:hosted": "playwright test --config playwright.hosted.config.ts"
   },
   "dependencies": {
     "@codemirror/commands": "^6.11.1",
@@ -59,7 +62,8 @@
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vite": "^8.3.1",
-    "vitest": "^5.0.2"
+    "vitest": "^5.0.2",
+    "wrangler": "4.141.0"
   },
   "description": "A file-based browser workspace for BMAD Method documents, stories, comments and reviewed Git changes.",
   "repository": {
@@ -69,5 +73,6 @@
   "homepage": "https://github.com/enzovalley9/bmad-project-ui#readme",
   "bugs": {
     "url": "https://github.com/enzovalley9/bmad-project-ui/issues"
-  }
+  },
+  "license": "MIT"
 }

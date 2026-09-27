@@ -377,6 +377,18 @@ export default function App() {
       <header className={styles.header}>
         {brand}
         <div className={styles.headerActions}>
+          <a
+            className={styles.helpLink}
+            href={
+              import.meta.env.PROD
+                ? '/help/'
+                : 'https://github.com/enzovalley9/bmad-project-ui#readme'
+            }
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Help
+          </a>
           <label className={styles.themePicker}>
             <SunMoon size={16} aria-hidden="true" />
             <span className="srOnly">Theme</span>
