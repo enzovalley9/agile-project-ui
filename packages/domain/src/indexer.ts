@@ -71,7 +71,7 @@ export function indexProject(input:FileSnapshot,revisions:RevisionSnapshot={},op
     if(conflicted.has(path)) {
       const message='El archivo contiene marcadores de conflicto. Resuélvelo fuera de la aplicación y relee los archivos antes de editar.';
       diagnostics.push({code:'merge-conflict',severity:'error',path,message});
-      documents.push({path,title:displayFile(path),kind:'text',revision,derived:false,capabilities:{read:true,comment:false,textEdit:false,structuredEdit:false},headings:[],links:[],metadata:{},warnings:[message],parseValid:false,lineCount:text.split('\n').length});
+      documents.push({path,title:displayFile(path),kind:'text',revision,derived:false,capabilities:{read:true,comment:true,textEdit:false,structuredEdit:false},headings:[],links:[],metadata:{},warnings:[message],parseValid:false,lineCount:text.split('\n').length});
       continue;
     }
     if(path.startsWith('_bmad/') || path.startsWith('.bmad-project-ui/')) continue;

@@ -30,7 +30,7 @@ describe('unresolved Git content is read-only text, never BMAD authority',()=>{
     };
     const original=JSON.stringify(files),index=indexProject(files,{'docs/epics.md':'exact-revision'});
     expect(index.documents).toHaveLength(3);
-    for(const path of ['docs/epics.md','sprint-status.yaml'])expect(index.documents.find(doc=>doc.path===path)).toMatchObject({kind:'text',parseValid:false,headings:[],links:[],metadata:{},capabilities:{read:true,textEdit:false,structuredEdit:false,comment:false}});
+    for(const path of ['docs/epics.md','sprint-status.yaml'])expect(index.documents.find(doc=>doc.path===path)).toMatchObject({kind:'text',parseValid:false,headings:[],links:[],metadata:{},capabilities:{read:true,textEdit:false,structuredEdit:false,comment:true}});
     expect(index.documents.find(doc=>doc.path==='docs/epics.md')?.revision).toBe('exact-revision');
     expect(index.workItems.map(item=>item.source.path)).toEqual(['docs/clean.md']);
     expect(index.diagnostics.filter(d=>d.code==='merge-conflict').map(d=>d.path).sort()).toEqual(['docs/epics.md','sprint-status.yaml']);
