@@ -114,12 +114,26 @@ export class ProjectStore {
     return new TextDecoder('utf-8',{fatal:true,ignoreBOM:true}).decode(await file.arrayBuffer());
   }
   async readImage(path:string):Promise<Blob> {
-    safePath(path);
+    const parts=safePath(path);
     const snapshot=this.lastSnapshot;
-    if(!snapshot||path.startsWith('.bmad-project-ui/')||!snapshot.index.roots.some(root=>root.exists&&(!root.path||path.startsWith(root.path+'/')))||snapshot.diagnostics.some(d=>d.code==='nested-repository'&&d.path&&(path===d.path||path.startsWith(d.path+'/'))))throw new ProjectError('image-outside-scope','La imagen queda fuera de las raíces documentales autorizadas.',path);
-    const file=await(await this.file(path)).getFile();
+    const outside=()=>new ProjectError('image-outside-scope','La imagen queda fuera de las raíces documentales autorizadas.',path);
+    if(!snapshot||parts.some(part=>part.startsWith('.'))||!snapshot.index.roots.some(root=>root.exists&&(!root.path||path.startsWith(root.path+'/')))||snapshot.diagnostics.some(d=>d.code==='nested-repository'&&d.path&&(path===d.path||path.startsWith(d.path+'/'))))throw outside();
+    // The inventory may be partial or stale. Check every live ancestor, including
+    // a worktree's .git file, without reading the marker or relying on diagnostics.
+    const ancestors:FileSystemDirectoryHandle[]=[];let dir=this.handle;
+    for(const part of parts.slice(0,-1)){dir=await dir.getDirectoryHandle(part);ancestors.push(dir);}
+    const assertNoNestedRepository=async()=>{
+      for(const ancestor of ancestors)for(const kind of ['directory','file'] as const){
+        try{if(kind==='directory')await ancestor.getDirectoryHandle('.git');else await ancestor.getFileHandle('.git');}
+        catch(error){if(error instanceof DOMException&&error.name==='NotFoundError')continue;if(error instanceof DOMException&&error.name==='TypeMismatchError')throw outside();throw error;}
+        throw outside();
+      }
+    };
+    await assertNoNestedRepository();
+    const file=await(await dir.getFileHandle(parts.at(-1)!)).getFile();
     if(file.size>8*1024*1024)throw new ProjectError('image-too-large','La imagen supera el límite de 8 MiB.',path);
     const bytes=new Uint8Array(await file.arrayBuffer());
+    await assertNoNestedRepository();
     const ascii=(start:number,end:number)=>String.fromCharCode(...bytes.subarray(start,end));
     const png=[137,80,78,71,13,10,26,10].every((value,i)=>bytes[i]===value);
     const mime=png?'image/png':bytes[0]===255&&bytes[1]===216&&bytes[2]===255?'image/jpeg':['GIF87a','GIF89a'].includes(ascii(0,6))?'image/gif':ascii(0,4)==='RIFF'&&ascii(8,12)==='WEBP'?'image/webp':null;

@@ -274,6 +274,47 @@ describe('branch protections and native push verification', () => {
     const response = await f.request('plans/push', 'POST', {...context, remote:'origin', branch:'main'});
     expect(response.status).toBe(403); expect(await response.text()).not.toContain('FIXTURE_PRIVATE_BYTES'); expect(await git(remote, ['rev-parse', 'refs/heads/main'])).toBe(before);
   });
+  it('reviews original objects when a replacement commit hides a sensitive file', async () => {
+    const f = await fixture(); const remote = path.join(f.root, 'remote.git'); await git(f.root, ['init', '--bare', remote]); await git(f.repo, ['remote', 'add', 'origin', remote]); await git(f.repo, ['push', '-u', 'origin', 'main']);
+    const base = await git(f.repo, ['rev-parse', 'HEAD']);
+    await fs.writeFile(path.join(f.repo, '.env'), 'DUMMY_REPLACEMENT_FIXTURE_ONLY'); await git(f.repo, ['add', '.env']); await git(f.repo, ['commit', '-m', 'Sensitive original']); const original = await git(f.repo, ['rev-parse', 'HEAD']);
+    await git(f.repo, ['switch', '-c', 'clean-view', base]); await fs.writeFile(path.join(f.repo, 'prd.md'), 'Harmless replacement\n'); await git(f.repo, ['add', 'prd.md']); await git(f.repo, ['commit', '-m', 'Clean replacement']); const replacement = await git(f.repo, ['rev-parse', 'HEAD']);
+    await git(f.repo, ['switch', 'main']); await git(f.repo, ['replace', original, replacement]);
+    expect(await git(f.repo, ['diff-tree', '--no-commit-id', '--name-only', '-r', original])).toBe('prd.md');
+    expect(await git(f.repo, ['--no-replace-objects', 'ls-tree', '-r', '--name-only', original])).toContain('.env');
+    const raw = await nativeGitRunner(['ls-tree', '-r', '--name-only', original], {cwd:f.repo, timeoutMs:30_000, env:{GIT_CONFIG_GLOBAL:emptyGlobalConfig, GIT_CONFIG_NOSYSTEM:'1', GIT_NO_REPLACE_OBJECTS:'0'}});
+    expect(raw.exitCode).toBe(0); expect(raw.stdout).toContain('.env');
+    const response = await f.request('plans/push', 'POST', {...context, remote:'origin', branch:'main'});
+    expect(response.status).toBe(403); expect((await response.json() as {error:{code:string}}).error.code).toBe('PRIVATE_FILE');
+    expect(await git(remote, ['rev-parse', 'refs/heads/main'])).toBe(base); expect(await git(remote, ['ls-tree', '-r', '--name-only', 'main'])).not.toContain('.env');
+    await expect(git(remote, ['cat-file', '-e', original])).rejects.toThrow();
+  });
+  it('ignores legacy grafts hiding sensitive intermediate commits even with explicit runner overrides', async () => {
+    const f = await fixture(); const remote = path.join(f.root, 'remote.git'); await git(f.root, ['init', '--bare', remote]); await git(f.repo, ['remote', 'add', 'origin', remote]); await git(f.repo, ['push', '-u', 'origin', 'main']);
+    const base = await git(f.repo, ['rev-parse', 'HEAD']);
+    await fs.writeFile(path.join(f.repo, '.env'), 'DUMMY_GRAFT_FIXTURE_ONLY'); await git(f.repo, ['add', '.env']); await git(f.repo, ['commit', '-m', 'Hidden sensitive history']); const hidden = await git(f.repo, ['rev-parse', 'HEAD']);
+    await fs.unlink(path.join(f.repo, '.env')); await fs.writeFile(path.join(f.repo, 'prd.md'), 'Clean final tree\n'); await git(f.repo, ['add', '-A']); await git(f.repo, ['commit', '-m', 'Remove sensitive file']); const tip = await git(f.repo, ['rev-parse', 'HEAD']);
+    const grafts = path.join(f.repo, '.git', 'info', 'grafts'); await fs.writeFile(grafts, `${tip} ${base}\n`);
+    expect(await git(f.repo, ['--no-replace-objects', 'rev-list', `${base}..HEAD`])).toBe(tip);
+    const raw = await nativeGitRunner(['rev-list', `${base}..HEAD`], {cwd:f.repo, timeoutMs:30_000, env:{GIT_CONFIG_GLOBAL:emptyGlobalConfig, GIT_CONFIG_NOSYSTEM:'1', GIT_GRAFT_FILE:grafts}});
+    expect(raw.exitCode).toBe(0); expect(raw.stdout.trim().split('\n')).toEqual([tip, hidden]);
+    const response = await f.request('plans/push', 'POST', {...context, remote:'origin', branch:'main'});
+    expect(response.status).toBe(403); expect((await response.json() as {error:{code:string}}).error.code).toBe('PRIVATE_FILE');
+    expect(await git(remote, ['rev-parse', 'refs/heads/main'])).toBe(base); expect(await git(remote, ['rev-list', '--count', 'main'])).toBe('1');
+    await expect(git(remote, ['cat-file', '-e', hidden])).rejects.toThrow();
+    expect(await fs.readFile(grafts, 'utf8')).toBe(`${tip} ${base}\n`);
+  });
+  it('keeps the reviewed real ancestry when a legacy graft appears before push execution', async () => {
+    const f = await fixture(); const remote = path.join(f.root, 'remote.git'); await git(f.root, ['init', '--bare', remote]); await git(f.repo, ['remote', 'add', 'origin', remote]); await git(f.repo, ['push', '-u', 'origin', 'main']);
+    const base = await git(f.repo, ['rev-parse', 'HEAD']);
+    await fs.writeFile(path.join(f.repo, 'prd.md'), 'Reviewed first change\n'); await f.execute(await f.planCommit()); const middle = await git(f.repo, ['rev-parse', 'HEAD']);
+    await fs.writeFile(path.join(f.repo, 'prd.md'), 'Reviewed final change\n'); await f.execute(await f.planCommit()); const tip = await git(f.repo, ['rev-parse', 'HEAD']);
+    const response = await f.request('plans/push', 'POST', {...context, remote:'origin', branch:'main'}); expect(response.status).toBe(200); const plan = await response.json() as GitPlan; expect(plan.commits?.map(commit => commit.sha)).toEqual([tip, middle]);
+    await fs.writeFile(path.join(f.repo, '.git', 'info', 'grafts'), `${tip} ${base}\n`);
+    expect((await f.execute(plan)).status).toBe('verified');
+    expect(await git(remote, ['rev-parse', 'refs/heads/main'])).toBe(tip); expect(await git(remote, ['rev-list', `${base}..main`])).toBe(`${tip}\n${middle}`);
+    expect(await git(remote, ['show', 'main:prd.md'])).toBe('Reviewed final change');
+  });
   it('rejects a second destination rewrite before invoking any remote transport', async () => {
     const f = await fixture(); await git(f.repo, ['remote', 'add', 'origin', 'https://first.invalid/repo.git']);
     await git(f.repo, ['config', 'url.https://second.invalid/.insteadOf', 'https://first.invalid/']);

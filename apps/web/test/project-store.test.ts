@@ -108,6 +108,26 @@ describe('private recovery copies',()=>{
 });
 
 describe('scan coverage',()=>{
+ it('rejects images in hidden nested repositories before reading their contents',async()=>{
+  const fs=memoryDirectory({...initial,'_bmad/config.toml':'[core]\nproject_knowledge="docs"\n','docs/.private/.git/config':'private','docs/.private/pixel.gif':'GIF89a'}),store=new ProjectStore(fs.handle);const snapshot=await store.refresh();
+  expect(snapshot.diagnostics.some(item=>item.path==='docs/.private')).toBe(false);
+  const reads:string[]=[];fs.state.beforeRead=path=>{reads.push(path);};
+  await expect(store.readImage('docs/.private/pixel.gif')).rejects.toMatchObject({code:'image-outside-scope'});
+  expect(reads).toEqual([]);expect(fs.state.writes).toBe(0);
+ });
+ it.each(['directory','file'] as const)('rechecks live %s repository markers after an image inventory',async kind=>{
+  const fs=memoryDirectory({...initial,'_bmad/config.toml':'[core]\nproject_knowledge="docs"\n','docs/assets/pixel.gif':'GIF89a'}),store=new ProjectStore(fs.handle);await store.refresh();
+  expect((await store.readImage('docs/assets/pixel.gif')).type).toBe('image/gif');
+  if(kind==='directory')fs.directories.add('docs/.git');else fs.files.set('docs/.git','gitdir: elsewhere');
+  const reads:string[]=[];fs.state.beforeRead=path=>{reads.push(path);};
+  await expect(store.readImage('docs/assets/pixel.gif')).rejects.toMatchObject({code:'image-outside-scope'});
+  expect(reads).toEqual([]);expect(fs.state.writes).toBe(0);
+ });
+ it('withholds image bytes if a repository marker appears while reading',async()=>{
+  const fs=memoryDirectory({...initial,'_bmad/config.toml':'[core]\nproject_knowledge="docs"\n','docs/assets/pixel.gif':'GIF89a'}),store=new ProjectStore(fs.handle);await store.refresh();
+  fs.state.beforeRead=path=>{if(path==='docs/assets/pixel.gif')fs.files.set('docs/assets/.git','gitdir: elsewhere');};
+  await expect(store.readImage('docs/assets/pixel.gif')).rejects.toMatchObject({code:'image-outside-scope'});expect(fs.state.writes).toBe(0);
+ });
  it('identifies unsupported attachments without treating the text inventory as exhaustive',async()=>{
   const fs=memoryDirectory({...initial,'docs/attachment.pdf':'PDF','docs/image.png':'PNG'}),store=new ProjectStore(fs.handle),snapshot=await store.refresh();
   expect(snapshot.diagnostics.find(item=>item.code==='unsupported-formats')?.message).toContain('2 archivos');expect(snapshot.files['docs/attachment.pdf']).toBeUndefined();expect(snapshot.index.coverage.partial).toBe(true);expect(fs.state.writes).toBe(0);

@@ -7,8 +7,11 @@ export const nativeGitRunner: GitRunner = (args, options) => new Promise((resolv
   // Credentials and signing remain native. Disable inherited Git routing/index overrides.
   const env: NodeJS.ProcessEnv = { ...process.env };
   for (const key of Object.keys(env)) if (key.startsWith('GIT_')) delete env[key];
-  Object.assign(env, { GIT_TERMINAL_PROMPT: '0', GIT_OPTIONAL_LOCKS: '0', GIT_PAGER: 'cat', LC_ALL: 'C', ...options.env });
-  const child = spawn('git', args, { cwd: options.cwd, env, shell: false, windowsHide: true, detached: process.platform !== 'win32', stdio: ['ignore', 'pipe', 'pipe'] });
+  Object.assign(env, { GIT_TERMINAL_PROMPT: '0', GIT_OPTIONAL_LOCKS: '0', GIT_PAGER: 'cat', LC_ALL: 'C', ...options.env,
+    // Reviews and transport must see the same real objects. An explicitly empty
+    // graft path disables legacy info/grafts without a check/read race or temp file.
+    GIT_NO_REPLACE_OBJECTS: '1', GIT_GRAFT_FILE: '' });
+  const child = spawn('git', ['--no-replace-objects', ...args], { cwd: options.cwd, env, shell: false, windowsHide: true, detached: process.platform !== 'win32', stdio: ['ignore', 'pipe', 'pipe'] });
   const terminate = () => {
     if (!child.pid) return;
     if (process.platform === 'win32') { const killer = spawn('taskkill', ['/pid', String(child.pid), '/T', '/F'], { shell: false, windowsHide: true, stdio: 'ignore' }); killer.on('error', () => child.kill('SIGKILL')); }

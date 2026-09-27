@@ -9,7 +9,8 @@ import type { GitOptions, GitPlan, GitOperation, GitRepository, GitChange, Mutat
 const hash = (value: string | Buffer) => createHash('sha256').update(value).digest('hex');
 const inside = (root: string, child: string) => child === root || child.startsWith(root + path.sep);
 const splitNull = (text: string) => text.split('\0').filter(Boolean);
-const baseArgs = ['--literal-pathspecs', '-c', 'core.fsmonitor=false', '-c', 'core.untrackedCache=false', '-c', 'core.quotePath=false', '-c', 'submodule.recurse=false', '-c', 'status.submoduleSummary=false', '--no-pager'];
+const baseArgs = ['--no-replace-objects', '--literal-pathspecs', '-c', 'core.fsmonitor=false', '-c', 'core.untrackedCache=false', '-c', 'core.quotePath=false', '-c', 'submodule.recurse=false', '-c', 'status.submoduleSummary=false', '--no-pager'];
+const historyEnv = { GIT_NO_REPLACE_OBJECTS: '1', GIT_GRAFT_FILE: '' };
 const MAX_FILE = 32 * 1024 * 1024;
 const MAX_PATHS = 200;
 const sensitivePath = (relative: string) => relative.split('/').some((part) => /^\.env(?:\.|$)/i.test(part) || /^(secrets?|\.secrets)$/i.test(part) || /\.(pem|key|p12|pfx|keystore)$/i.test(part)) || /(?:^|\/)\.bmad-project-ui\/local(?:\/|$)/i.test(relative) || /(?:^|\/)integrations\/local(?:\/|$)/i.test(relative);
@@ -77,7 +78,7 @@ export class GitService {
   }
 
   private async git(args: string[], allowFailure = false, env?: Record<string, string>) {
-    const result = await (this.options.runner ?? nativeGitRunner)([...baseArgs, ...args], { cwd: this.repo || path.resolve(this.options.repo), timeoutMs: this.options.commandTimeoutMs ?? 30_000, ...(env ? { env } : {}) });
+    const result = await (this.options.runner ?? nativeGitRunner)([...baseArgs, ...args], { cwd: this.repo || path.resolve(this.options.repo), timeoutMs: this.options.commandTimeoutMs ?? 30_000, env: { ...env, ...historyEnv } });
     if (result.exitCode !== 0 && !allowFailure) {
       const code = /Authentication failed|could not read Username|Permission denied|publickey|terminal prompts disabled/i.test(result.stderr) ? 'AUTHENTICATION'
         : /index\.lock|cannot lock ref|another git process/i.test(result.stderr) ? 'GIT_LOCKED'
@@ -309,7 +310,7 @@ export class GitService {
     requireCondition(typeof input.branch === 'string' && input.branch.length > 0, 'INVALID_BRANCH', 'Select an existing remote branch.', 400);
     await this.git(['check-ref-format', `refs/heads/${input.branch}`]);
     const targetUrl = await this.remoteTarget(input.remote); const remoteSha = await this.remoteSha(targetUrl, input.branch);
-    const ancestry = await (this.options.runner ?? nativeGitRunner)([...baseArgs, 'merge-base', '--is-ancestor', remoteSha, repository.head], { cwd: this.repo, timeoutMs: this.options.commandTimeoutMs ?? 30_000 });
+    const ancestry = await (this.options.runner ?? nativeGitRunner)([...baseArgs, 'merge-base', '--is-ancestor', remoteSha, repository.head], { cwd: this.repo, timeoutMs: this.options.commandTimeoutMs ?? 30_000, env: historyEnv });
     requireCondition(ancestry.exitCode === 0, 'REMOTE_DIVERGED', 'The remote tip is missing locally or is not an ancestor. Fetch and integrate with your Git client before reviewing again.');
     const raw = await this.git(['log', '--format=%H%x00%s', `${remoteSha}..${repository.head}`]);
     const lines = raw.trimEnd().split('\n').filter(Boolean); requireCondition(lines.length > 0, 'NOTHING_TO_PUSH', 'The selected remote already contains this tip.');
@@ -449,7 +450,7 @@ export class GitService {
       const actual = await this.remoteSha(plan.targetUrl!, plan.branch!); operation.remoteSha = actual;
       if (actual === plan.head) operation.status = 'verified';
       else {
-        const result = await (this.options.runner ?? nativeGitRunner)([...baseArgs, 'merge-base', '--is-ancestor', plan.head!, actual], { cwd: this.repo, timeoutMs: 30_000 });
+        const result = await (this.options.runner ?? nativeGitRunner)([...baseArgs, 'merge-base', '--is-ancestor', plan.head!, actual], { cwd: this.repo, timeoutMs: 30_000, env: historyEnv });
         operation.status = result.exitCode === 0 ? 'verified' : 'uncertain';
       }
     } else {
