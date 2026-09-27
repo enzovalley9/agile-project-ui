@@ -16,7 +16,12 @@ async function setup(root:string,port:number){
  const token=randomBytes(32).toString('hex');await writeFile(tokenFile,token,{mode:0o600});
  const app=createGitApp({repo:root,origin:'http://127.0.0.1:5173',token,port,stateDir:join(state,'journal'),allowLocalRemotes:true});await app.service.ready;
  const server=serve({fetch:app.fetch,hostname:'127.0.0.1',port});
- return {remote,tokenFile,close:()=>new Promise<void>((resolve,reject)=>server.close(e=>e?reject(e):resolve()))};
+ return {remote,tokenFile,close:()=>new Promise<void>((resolve,reject)=>{
+  server.close(e=>e?reject(e):resolve());
+  // Open browser connections can hold server.close open after every assertion
+  // passed. This disposable fixture owns its sockets and closes them at teardown.
+  if('closeAllConnections' in server)server.closeAllConnections();
+ })};
 }
 async function open(page:import('@playwright/test').Page){await page.goto('/');await page.getByRole('button',{name:'Elegir carpeta del proyecto'}).click();await page.getByRole('button',{name:'Activar Editor'}).click();}
 async function connect(page:import('@playwright/test').Page,port:number,tokenFile:string){

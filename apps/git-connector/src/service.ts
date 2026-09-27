@@ -354,7 +354,14 @@ export class GitService {
       // real index while this isolated copy is committed. Never use --only: that
       // option recaptures mutable working-tree bytes after the final review check.
       requireCondition(JSON.stringify(await this.snapshot(plan.paths)) === JSON.stringify(plan.snapshot), 'STALE_PLAN', 'The repository changed before its index was locked. Review again.');
-      try { await fs.copyFile(indexPath, privateIndex, fs.constants.COPYFILE_EXCL); }
+      try {
+        const originalIndex = await fs.stat(indexPath);
+        await fs.copyFile(indexPath, privateIndex, fs.constants.COPYFILE_EXCL);
+        // Copying bytes with a newer mtime can make racy entries look clean to
+        // Git. Keep its rehash threshold at or before the original timestamp;
+        // whole seconds avoid rounding a nanosecond timestamp forward.
+        await fs.utimes(privateIndex, originalIndex.atime, Math.floor(originalIndex.mtimeMs / 1000));
+      }
       catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; await this.git(['read-tree', '--empty'], false, env); }
       await fs.chmod(privateIndex, 0o600);
       await this.git(['add', '--', ...plan.paths], false, env);
@@ -370,7 +377,10 @@ export class GitService {
           let currentIndex = 'absent';
           try { currentIndex = hash(await fs.readFile(indexPath)); } catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; }
           requireCondition(currentIndex === plan.snapshot.index, 'FOREIGN_INDEX', 'A program changed the real index despite its lock. Its contents were preserved; inspect the verified commit and index with Git.');
-          await indexLock.writeFile(await fs.readFile(privateIndex)); await indexLock.sync(); await indexLock.close();
+          const committedIndex = await fs.stat(privateIndex);
+          await indexLock.writeFile(await fs.readFile(privateIndex));
+          await indexLock.utimes(committedIndex.atime, Math.floor(committedIndex.mtimeMs / 1000));
+          await indexLock.sync(); await indexLock.close();
           await fs.rename(lockPath, indexPath); ownLock = false; published = true;
         }
       }

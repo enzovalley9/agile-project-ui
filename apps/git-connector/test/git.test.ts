@@ -118,6 +118,21 @@ describe('Git connector capability and repository binding', () => {
 });
 
 describe('reviewed commits and concurrent changes', () => {
+  it('rehashes a same-size change when an isolated index copy crosses the racy-Git timestamp', async () => {
+    const f = await fixture();
+    await git(f.repo, ['config', 'core.checkStat', 'minimal']); await git(f.repo, ['config', 'core.trustctime', 'false']);
+    const file = path.join(f.repo, 'prd.md'), index = path.join(f.repo, '.git', 'index');
+    const cachedTime = new Date('2020-01-01T00:00:00.000Z');
+    await fs.utimes(file, cachedTime, cachedTime); await git(f.repo, ['update-index', '--refresh']);
+    await fs.utimes(index, cachedTime, cachedTime);
+    const original = await fs.readFile(file, 'utf8'), changed = '# Next project\n'; expect(Buffer.byteLength(changed)).toBe(Buffer.byteLength(original));
+    await fs.writeFile(file, changed); await fs.utimes(file, cachedTime, cachedTime);
+    const plan = await f.planCommit(); expect(plan.files[0].diff).toContain('# Next project');
+    const operation = await f.execute(plan); expect(operation.status, JSON.stringify(operation)).toBe('verified');
+    expect(await git(f.repo, ['show', 'HEAD:prd.md'])).toBe('# Next project');
+    expect(await git(f.repo, ['rev-list', '--count', 'HEAD'])).toBe('2');
+    expect(await git(f.repo, ['diff', '--cached', '--name-only'])).toBe('');
+  });
   it('rejects a file changed after its rendered diff instead of approving a newer snapshot', async () => {
     let changed = false;
     const runner: GitRunner = async (args, options) => {
@@ -307,8 +322,8 @@ describe('branch protections and native push verification', () => {
   it('keeps the reviewed real ancestry when a legacy graft appears before push execution', async () => {
     const f = await fixture(); const remote = path.join(f.root, 'remote.git'); await git(f.root, ['init', '--bare', remote]); await git(f.repo, ['remote', 'add', 'origin', remote]); await git(f.repo, ['push', '-u', 'origin', 'main']);
     const base = await git(f.repo, ['rev-parse', 'HEAD']);
-    await fs.writeFile(path.join(f.repo, 'prd.md'), 'Reviewed first change\n'); await f.execute(await f.planCommit()); const middle = await git(f.repo, ['rev-parse', 'HEAD']);
-    await fs.writeFile(path.join(f.repo, 'prd.md'), 'Reviewed final change\n'); await f.execute(await f.planCommit()); const tip = await git(f.repo, ['rev-parse', 'HEAD']);
+    await fs.writeFile(path.join(f.repo, 'prd.md'), 'Reviewed first change\n'); const first = await f.execute(await f.planCommit()); expect(first.status, JSON.stringify(first)).toBe('verified'); const middle = await git(f.repo, ['rev-parse', 'HEAD']);
+    await fs.writeFile(path.join(f.repo, 'prd.md'), 'Reviewed final change\n'); const second = await f.execute(await f.planCommit()); expect(second.status, JSON.stringify(second)).toBe('verified'); const tip = await git(f.repo, ['rev-parse', 'HEAD']); expect(tip).not.toBe(middle);
     const response = await f.request('plans/push', 'POST', {...context, remote:'origin', branch:'main'}); expect(response.status).toBe(200); const plan = await response.json() as GitPlan; expect(plan.commits?.map(commit => commit.sha)).toEqual([tip, middle]);
     await fs.writeFile(path.join(f.repo, '.git', 'info', 'grafts'), `${tip} ${base}\n`);
     expect((await f.execute(plan)).status).toBe('verified');
