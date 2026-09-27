@@ -85,6 +85,7 @@ npm run check
 npm run format:check
 npm run notices:check
 npm run audit:dependencies
+npm run test:release
 npx playwright install chromium
 npm run test:e2e
 ```
@@ -98,6 +99,10 @@ npx vite preview --config apps/web/vite.config.ts
 ```
 
 Open **http://127.0.0.1:4173**. Restart any connector with this exact origin; browser permissions and private storage are origin-specific.
+
+## Hosting
+
+The frontend supports Cloudflare Workers Static Assets, including public installation and help pages. Only the static build is uploaded; project files and optional connectors remain on each visitor's computer. See the [hosting guide](docs/hosting.md) for account selection, free static delivery, deployment, browser permissions, verification and rollback.
 
 ## Contributing and support
 

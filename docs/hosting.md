@@ -71,6 +71,15 @@ Open the returned HTTPS URL directly in a current desktop Chrome or Microsoft Ed
 
 The [testing guide](testing.md) distinguishes automated file fixtures from the native picker and real provider authentication. Jira and Confluence mock coverage is not live account certification.
 
+The automated acceptance suite can target the deployed origin after building the local connector:
+
+```sh
+npm run build:connectors
+BMAD_HOSTED_URL='https://YOUR_WORKER_NAME.YOUR_SUBDOMAIN.workers.dev' npm run test:hosted
+```
+
+This suite uses real disposable files through an automated picker boundary and the actual local Git CLI. It checks headers, private-path rejection, public help, saving, a reviewed commit, story movement and theme persistence. The browser context grants local-network permission for the test. A separate native browser run must still verify the real folder picker and permission prompts.
+
 ## Connect the hosted page to local services
 
 Start the connector on the same computer as the browser. Use the public application's **exact HTTPS origin** for `--origin`: scheme, hostname and optional port, with no path or trailing slash. The in-app installation guide inserts the current origin into its commands.

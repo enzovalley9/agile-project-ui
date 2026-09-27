@@ -317,6 +317,7 @@ async function main() {
           ]
         : [
             'Run npm ci',
+            'Run npm run test:release',
             'Run npm run format:check',
             'Run npm run notices:check',
             'Run npm run audit:dependencies',

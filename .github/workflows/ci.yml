@@ -74,6 +74,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run format:check
+      - run: npm run test:release
       - run: npm run notices:check
       - run: npm run audit:dependencies
       - name: Scan reachable history for secrets

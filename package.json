@@ -25,7 +25,8 @@
     "audit:dependencies": "npm audit --audit-level=high",
     "deploy:check": "npm run build:web && wrangler deploy --dry-run --name static-preview",
     "deploy:web": "npm run build:web && wrangler deploy",
-    "test:hosted": "playwright test --config playwright.hosted.config.ts"
+    "test:hosted": "playwright test --config playwright.hosted.config.ts",
+    "test:release": "node --test tests/release/create-release.test.mjs"
   },
   "dependencies": {
     "@codemirror/commands": "^6.11.1",

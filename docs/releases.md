@@ -53,3 +53,14 @@ node scripts/smoke-package.mjs
 Packaging fetches the pinned official Node runtime and verifies its upstream SHA-256. Native CI checks the installed runtime on its actual operating system; merely producing a cross-platform archive does not prove it runs on that target. Connector smoke tests and live provider account acceptance are separate.
 
 See [CHANGELOG.md](../CHANGELOG.md) for user-visible changes and the [development release checklist](development.md#dependency-and-release-changes) for maintainer responsibilities.
+
+## Maintainer release workflow
+
+1. Update the package version and its matching changelog section, complete the documented checks, then push the reviewed commit to `main`.
+2. Wait for **Verify application and connectors** to pass all six jobs at that exact commit, including the static frontend/local connector journey.
+3. Run **Release verified connector packages** through GitHub Actions' manual workflow dispatch on `main`.
+4. The workflow validates the three native CI packages and their provenance, creates a draft, uploads the archives and checksums, and verifies their remote hashes before publishing the release. Inspect the workflow result and release assets before sharing the link.
+
+The current workflow requires a private repository and never changes visibility. It rejects an existing release, a conflicting tag, incomplete CI, or a changed `main` revision. Publishing an existing version is not a retry mechanism. If an operation fails or has an uncertain outcome, inspect the retained draft/release before choosing a recovery; do not delete or replace it blindly. Public-repository releases require an explicit future change to this private-release policy.
+
+The initial native release matrix is macOS ARM64, Linux x64 and Windows x64. Other source-supported architectures are not advertised as tested release downloads.
