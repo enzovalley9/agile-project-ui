@@ -4,7 +4,7 @@ Agile Project UI's original code uses the MIT license. The container also redist
 
 ## Obtain corresponding source without GitHub access
 
-Each container includes the exact source packages for **every installed Debian binary package**, not only Git, plus the source archives for its Node.js version and the compiled OpenSSH client. The source payload increases the download size. Keeping it in the binary image ensures anyone who can pull the image can obtain its matching sources, even while the application repository is private.
+Each container includes the exact source packages for **every installed Debian binary package**, not only Git, plus the source archives for its Node.js version and the compiled OpenSSH client. The source payload increases the download size. Keeping it in the binary image ensures anyone who can pull the image can obtain its matching sources without a separate checkout or GitHub account.
 
 Pin the digest of the image you received, then copy its license and source directory. No container process, credentials, project mount or GitHub login is required:
 
@@ -55,7 +55,7 @@ The separately compiled OpenSSH client is explicitly recorded in the CycloneDX S
 
 The publication workflow tests both AMD64 and ARM64 images, stores those exact images under unique candidate tags, then promotes their recorded immutable digests without rebuilding. It requires successful application CI for the same source commit. OCI labels and the web's `version.json` record the application revision. Pin the multi-platform digest for deployments and rollback; a tag is a convenient lookup, not a cryptographic identity.
 
-The publication workflow signs the multi-platform digest with Sigstore Cosign using GitHub Actions OIDC. Its signed provenance names the commit and workflow run. Runtime CycloneDX attestations attach to each platform digest. Candidate tags may exist before a full release; use the signed multi-platform digest for deployment. Only small metadata reports enter private Actions artifact storage; the image/source payload stays in the already-public registry. These signatures prove which workflow produced the statements; they do not replace tests, a security review, or an operating-system code-signing certificate. The public transparency log records the repository/workflow identity and digest, never source files, credentials or user projects.
+The publication workflow signs the multi-platform digest with Sigstore Cosign using GitHub Actions OIDC. Its signed provenance names the commit and workflow run. Runtime CycloneDX attestations attach to each platform digest. Candidate tags may exist before a full release; use the signed multi-platform digest for deployment. Only small metadata reports enter Actions artifact storage; the image/source payload stays in the public registry. These signatures prove which workflow produced the statements; they do not replace tests, a security review, or an operating-system code-signing certificate. The public transparency log records the repository/workflow identity and digest, never source files, credentials or user projects.
 
 Install Cosign from its official distribution, select a digest from the release evidence, and require the exact workflow identity:
 
