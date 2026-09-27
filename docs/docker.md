@@ -6,7 +6,7 @@ Use Docker Engine with Compose v2 on Linux, or Docker Desktop in Linux-container
 
 ## Image availability
 
-The image reference is `ghcr.io/enzovalley9/agile-project-ui:latest`; use a published `sha-<full-commit>` tag or digest to pin a specific build. Image visibility is separate from the source repository, which currently requires access. A public GHCR image can be pulled without a GitHub account. If the registry denies a pull, check the package visibility/tag or build from an authorized source checkout. The public website alone does not prove registry availability. No Docker Hub image is implied.
+The image reference is `ghcr.io/enzovalley9/agile-project-ui:latest`; use a published `sha-<full-commit>` tag or digest to pin a specific build. Both the source repository and GHCR image are public. Image visibility is managed separately from repository visibility; anonymous pulls require no GitHub account. If the registry denies a pull, check the package visibility/tag or build from the public source checkout. The public website alone does not prove registry availability. No Docker Hub image is implied.
 
 Pulling and running the image and extracting its Compose files require no source checkout. The image includes both AMD64 and ARM64 variants when published through the container workflow.
 

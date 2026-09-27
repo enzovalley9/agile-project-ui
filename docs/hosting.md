@@ -94,11 +94,11 @@ The browser may ask for permission to connect to local services. Allow that perm
 
 Folder permission, write permission, local-network permission and the connector's local session are separate. Load only the generated connector session file; provider credentials remain outside the browser. For Git, explicitly choose repository trust and bind the same selected project folder. A new application origin requires a new directory grant and matching connector configuration; browser-private recovery data does not move between origins automatically.
 
-## Public help and private downloads
+## Public help and downloads
 
-The website's `/help/` pages are generated from public-facing product documentation and are accessible anonymously. The application, documentation and legal notices can be public while the GitHub repository remains private.
+The website's `/help/` pages are generated from maintained product documentation and are accessible anonymously. The project repository, source links and release downloads are also public; downloading the application or connector packages requires no GitHub account. GitHub may require sign-in to submit an issue or contribution.
 
-Private GitHub releases, source links and issue forms still require repository access. A public help page does not make a private download available to everyone. Keep that restriction visible to visitors; do not proxy private GitHub credentials through the app or silently expose release assets. See [release access](releases.md).
+Hosting and repository visibility are independent settings. For a private fork, document its access requirements and never proxy GitHub credentials through the application. Keep credentials, local session files and user projects outside the deployed assets. See [release access](releases.md).
 
 ## Update and rollback
 

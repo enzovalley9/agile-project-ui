@@ -18,7 +18,7 @@ These instructions use the current `agile-connectors` launcher and new applicati
 
 ## 1. Download and install
 
-[Download connectors from Releases](https://github.com/enzovalley9/agile-project-ui/releases). The GitHub repository and releases currently require repository access; sign in to an authorized account. A public web app URL does not grant that access. See [release access and verification](releases.md).
+[Download connectors from Releases](https://github.com/enzovalley9/agile-project-ui/releases). The source and release downloads are public and require no GitHub account. See [release access and verification](releases.md).
 
 Select an available `agile-project-ui-connectors-SYSTEM-ARCH.tar.gz` asset for your computer:
 

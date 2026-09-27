@@ -7,12 +7,12 @@ Enzo Valley (`@enzovalley9`) currently owns maintenance and review; see [CODEOWN
 With an authenticated administrator's GitHub CLI, preview the settings for the repository's **current** visibility:
 
 ```sh
-node scripts/configure-github.mjs --repo enzovalley9/agile-project-ui --expected-visibility private
+node scripts/configure-github.mjs --repo enzovalley9/agile-project-ui --expected-visibility public
 ```
 
 Add `--apply` to enable dependency alerts/security-update PRs, maintained topics and merged-branch cleanup. The command checks repository identity and expected visibility before each change. It never changes visibility or enables a paid security product. Dependabot opens weekly npm, Actions and Docker update PRs; tests and maintainer review remain mandatory.
 
-After the owner separately authorizes and performs a public transition, use the same command with `--expected-visibility public`, review its plan, then add `--apply`. The public policy prepares:
+The product repository is public. Review the command's plan, then add `--apply` to apply and verify the public policy below. For a private fork, use `--expected-visibility private`; changing visibility always requires a separate owner decision. The public policy applies:
 
 - Required current release CI checks from GitHub Actions and up-to-date pull requests; no deletion or force push of `main`, including administrators.
 - A pull-request review surface with zero mandatory approvals for the initial solo maintainer. Existing stronger requirements are preserved. A maintainer's own PR can pass CI without needing a second person; contributions still receive manual review.
@@ -39,4 +39,4 @@ Record OS/CPU/browser, exact source/version, task success without help, steps/ti
 
 ## Final public-access acceptance
 
-When visibility is authorized, use a logged-out clean environment to clone the source, download and verify every advertised release target, pull the container, open public help/images/example, and follow CONTRIBUTING with a real fork and pull request. Check issue forms and private vulnerability reporting independently. Keep the separate planning/documentation repository private. An authenticated private clone, mock API or local green build does not prove anonymous public access.
+Use a logged-out clean environment to verify public access: clone the source, download and verify every advertised release target, pull the container, open public help/images/example, and follow CONTRIBUTING with a real fork and pull request when an external contributor is available. Check issue forms and private vulnerability reporting independently. Keep the separate planning/documentation repository private. An authenticated clone, mock API or local green build does not prove anonymous public access; a maintainer's own PR does not establish an outsider's fork experience.

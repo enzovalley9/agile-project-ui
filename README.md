@@ -72,7 +72,7 @@ Open **http://127.0.0.1:5173**, select your project root and start reading. Turn
 
 The built-in demo and [downloadable example](https://agile-project-ui.enzovalley9.workers.dev/example/community-garden.zip) contain original synthetic planning documents, stories, epics and a sprint. The broader test fixtures also cover comments and unsupported/malicious inputs. Installing or running BMAD is unnecessary to open the example.
 
-The GitHub repository and release downloads currently require repository access. MIT grants rights to copies you receive; it does not grant access to a private repository. See [release access and verification](docs/releases.md).
+The GitHub repository and release downloads are public; no GitHub account is required to read the source or download connector packages. See [release access and verification](docs/releases.md).
 
 ## Install with Docker
 
