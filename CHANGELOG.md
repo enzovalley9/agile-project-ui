@@ -2,6 +2,24 @@
 
 Changes are grouped by release. This project is in its early 0.x series; review release notes before updating connector installations or relying on provider-specific behavior.
 
+## 0.3.0
+
+Projects can keep their BMAD documentation in a separate repository while sharing an installation from an ancestor folder.
+
+### Added
+
+- Open a project containing `_bmad-output` without a local `_bmad` installation. Documents and work items remain available, with an informational installation diagnostic.
+- Select an ancestor folder containing `_bmad`, then explicitly select its child documentation project. The shared installation supplies version, configuration and catalog metadata; documents, edits, comments and Git use the selected project folder.
+- Connect a shared ancestor installation after opening the documentation project directly. Configured document paths appear as hints during folder selection.
+
+### Fixed
+
+- A Windows package smoke test now retries temporary runtime cleanup when the operating system briefly holds the stopped executable open.
+
+### Limits
+
+- The browser requires separate permission for each selected folder. It does not automatically choose a child repository or scan sibling repositories.
+
 ## 0.2.0
 
 Public-beta readiness release. The source repository remains private until its owner authorizes a public transition; the hosted application and container remain available independently.
