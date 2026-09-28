@@ -1,4 +1,11 @@
-import { LIMITS, ProjectError, safePath } from './project-store';
+import { indexProject } from '../../../../packages/domain/src/index';
+import {
+  LIMITS,
+  ProjectError,
+  ProjectStore,
+  installationMetadataPaths,
+  safePath,
+} from './project-store';
 
 const denied = () => new DOMException('This snapshot is read-only.', 'NotAllowedError');
 const missing = () => new DOMException('File not found in this snapshot.', 'NotFoundError');
@@ -10,6 +17,7 @@ const permission = async (
 export function readOnlyDirectory(
   contents: Record<string, string>,
   name: string,
+  repositoryMarkers: string[] = [],
 ): FileSystemDirectoryHandle {
   const files = new Map<string, File>();
   const directories = new Set(['']);
@@ -58,6 +66,7 @@ export function readOnlyDirectory(
       getDirectoryHandle: async (child: string, options?: FileSystemGetDirectoryOptions) => {
         if (options?.create) throw denied();
         const path = base ? `${base}/${child}` : child;
+        if (child === '.git' && repositoryMarkers.includes(base)) return directory(path);
         if (!directories.has(path) || child.includes('/')) throw missing();
         return directory(path);
       },
@@ -98,6 +107,23 @@ export async function importReadOnlyFiles(selection: readonly File[]) {
       return at > 0 ? [parts.slice(0, at).join('/')] : [];
     }),
   );
+  // Read configuration before filtering nested repositories. Marker contents are never read.
+  const metadata: Record<string, string> = {};
+  for (const [index, file] of selection.entries()) {
+    if (!installationMetadataPaths.includes(paths[index])) continue;
+    if (file.size > LIMITS.bytesPerFile) throw new Error('Configuration exceeds 2 MiB.');
+    if (Object.hasOwn(metadata, paths[index]))
+      throw new Error('Selected files have duplicate paths.');
+    metadata[paths[index]] = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(
+      await file.arrayBuffer(),
+    );
+  }
+  const roots = indexProject(metadata, {}).roots.filter((root) => root.role === 'output');
+  const configured = [...nested].filter((path) =>
+    roots.some((root) => root.path === path || root.path.startsWith(path + '/')),
+  );
+  // Several candidates require an explicit project selection; never merge repositories.
+  const selectedProject = configured.length === 1 ? configured[0] : undefined;
   const entries: [string, string][] = [];
   let total = 0;
   let skipped = 0;
@@ -112,7 +138,15 @@ export async function importReadOnlyFiles(selection: readonly File[]) {
       continue;
     }
     if (
-      parts.some((_, at) => at > 0 && nested.has(parts.slice(0, at).join('/'))) ||
+      (selectedProject &&
+        !path.startsWith(selectedProject + '/') &&
+        !Object.hasOwn(metadata, path)) ||
+      parts.some(
+        (_, at) =>
+          at > 0 &&
+          nested.has(parts.slice(0, at).join('/')) &&
+          parts.slice(0, at).join('/') !== selectedProject,
+      ) ||
       !/\.(md|mdx|txt|yaml|yml|toml|json|csv|html|xml)$/i.test(path)
     ) {
       skipped++;
@@ -136,5 +170,11 @@ export async function importReadOnlyFiles(selection: readonly File[]) {
     entries.push([path, text]);
   }
   if (!entries.length) throw new Error('No supported UTF-8 text files were selected.');
-  return { handle: readOnlyDirectory(Object.fromEntries(entries), name), skipped };
+  const handle = readOnlyDirectory(
+    Object.fromEntries(entries),
+    name,
+    selectedProject ? [selectedProject] : [],
+  );
+  const store = await new ProjectStore(handle, true).configuredProject();
+  return { handle: store.handle, store, skipped };
 }

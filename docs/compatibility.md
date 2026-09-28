@@ -13,6 +13,10 @@ Agile Project UI is a **public beta** and an independent project compatible with
 | Git connector                                                         | Supported on the same desktop computer                     | Not supported in snapshot mode                          | Not supported                                                 |
 | Jira / Confluence                                                     | Experimental read, link, compare and reviewed local import | Not supported in snapshot mode                          | Not supported                                                 |
 
+Connector installation guides are available in every mode, including snapshots and the demo. Active connections and editing require opening the original folder in desktop Chrome or Edge.
+
+Brave disables the File System Access API by default. On versions that expose `brave://flags/#file-system-access-api`, enabling **File System Access API** and relaunching lets the app offer its native folder workflow. Reopen the original folder afterward; an existing snapshot remains read-only. This browser-wide flag is a user choice, not an app setting. Brave is not part of the automated Chrome/Edge acceptance matrix. See the [Brave tracking issue](https://github.com/brave/brave-browser/issues/44411).
+
 A snapshot never writes, tracks external changes, connects to providers, or imports local images. Import it again to reread. Text imports use the same scope and size limits as the original-folder reader. Excluded/unsupported files are counted; this filter is not a complete secret detector. Files remain in the current browser tab and are not uploaded. The demo is original fictional data.
 
 Automated acceptance covers Chromium and Microsoft Edge for the full workflow. Firefox/WebKit fallback checks approximate their engines, not a claim of physical-device acceptance on every Safari/mobile version. Browser policy, secure contexts and local-network permissions can prevent access even in a supported browser.

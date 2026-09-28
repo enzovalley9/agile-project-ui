@@ -37,6 +37,7 @@ import { CommentsPanel } from './components/CommentsPanel';
 import { StoryBoard, StoryDialog, statusLabel } from './components/WorkViews';
 import { Dialog } from './components/Dialog';
 import { RecoveryDialog } from './components/RecoveryDialog';
+import { ConnectorSetupGuide } from './components/ConnectorSetupGuide';
 import { GitPanel } from './components/GitPanel';
 import { AtlassianPanel } from './components/AtlassianPanel';
 import styles from './App.module.css';
@@ -98,6 +99,7 @@ export default function App() {
     [jiraStatus, setJiraStatus] = useState('Not connected'),
     [confluenceStatus, setConfluenceStatus] = useState('Not connected'),
     [integrationBusy, setIntegrationBusy] = useState(false);
+  const [setupGuide, setSetupGuide] = useState<'git' | 'jira' | 'confluence' | null>(null);
   const [recoveryReview, setRecoveryReview] = useState<RecoveryStatus | null>(null);
   const [auxiliarySaving, setAuxiliarySaving] = useState(false),
     [visualDirty, setVisualDirty] = useState(false);
@@ -188,7 +190,9 @@ export default function App() {
     setNotice(
       nextStore.readOnly
         ? `Read-only snapshot. ${skipped ? `${skipped} unsupported or excluded files skipped. ` : ''}Changes to the original folder are not refreshed; import it again to reread.`
-        : '',
+        : nextStore.sharedInstallationName
+          ? `Opened ${nextStore.name} from the configured BMAD output. Shared installation: ${nextStore.sharedInstallationName}.`
+          : '',
     );
   }
   async function chooseProject(source: 'folder' | 'demo' | readonly File[] = 'folder') {
@@ -200,12 +204,12 @@ export default function App() {
       let skipped = 0;
       const nextStore =
         source === 'folder'
-          ? await ProjectStore.pick()
+          ? await ProjectStore.pick().then((project) => project.configuredProject())
           : source === 'demo'
             ? new ProjectStore(readOnlyDirectory(exampleProject, 'Community Garden demo'), true)
             : await importReadOnlyFiles(source).then((result) => {
                 skipped = result.skipped;
-                return new ProjectStore(result.handle, true);
+                return result.store;
               });
       const next = await nextStore.refresh();
       if (generation !== projectGeneration.current) return;
@@ -500,7 +504,6 @@ export default function App() {
             </select>
           </label>
           {store &&
-            !store.readOnly &&
             (['git', 'jira', 'confluence'] as const).map((service) => (
               <button
                 key={service}
@@ -713,6 +716,17 @@ export default function App() {
                 : 'This browser opens a read-only copy. Use desktop Chrome or Edge to edit and save originals.'}
             </p>
           </div>
+          {!folderAccess && (
+            <details className={styles.folderOptions}>
+              <summary>Using Brave?</summary>
+              <p>
+                Brave disables writable folder access by default. Open{' '}
+                <code>brave://flags/#file-system-access-api</code>, enable File System Access API,
+                and relaunch Brave. Then return here and choose the original folder again. This
+                browser setting applies beyond this site.
+              </p>
+            </details>
+          )}
           {folderAccess && (
             <details className={styles.folderOptions}>
               <summary>More folder options</summary>
@@ -1158,42 +1172,79 @@ export default function App() {
               )}
             </main>
           )}
-          <GitPanel
-            store={store}
-            hidden={view !== 'git'}
-            context={{
-              drafts: Number(dirty) + Number(commentDirty),
-              saving: saving || auxiliarySaving,
-              recoveryPending: store.recoveryPending || stale,
-            }}
-            onStatus={setGitStatus}
-            onBusy={setGitBusy}
-            onRefresh={refresh}
-          />
-          <AtlassianPanel
-            provider="jira"
-            store={store}
-            snapshot={snapshot}
-            activePath={path}
-            hidden={view !== 'jira'}
-            dirty={dirty || commentDirty}
-            saving={saving || auxiliarySaving || gitBusy}
-            onStatus={setJiraStatus}
-            onBusy={setIntegrationBusy}
-            onRefresh={refresh}
-          />
-          <AtlassianPanel
-            provider="confluence"
-            store={store}
-            snapshot={snapshot}
-            activePath={path}
-            hidden={view !== 'confluence'}
-            dirty={dirty || commentDirty}
-            saving={saving || auxiliarySaving || gitBusy}
-            onStatus={setConfluenceStatus}
-            onBusy={setIntegrationBusy}
-            onRefresh={refresh}
-          />
+          {store.readOnly && (view === 'git' || view === 'jira' || view === 'confluence') && (
+            <main className={styles.content}>
+              <h1>{view === 'git' ? 'Git' : view === 'jira' ? 'Jira' : 'Confluence'} connection</h1>
+              <p>
+                This project is a read-only snapshot. To save documents, commit or synchronize
+                changes, open the original folder in desktop Chrome or Edge and enable Edit mode.
+              </p>
+              <p>
+                The connectors run locally on your computer. Install them using the guide below,
+                then configure the connection after opening the original folder.
+              </p>
+              {!folderAccess && (
+                <p>
+                  In Brave, enable File System Access API at{' '}
+                  <code>brave://flags/#file-system-access-api</code>, relaunch the browser and
+                  select the original folder again. The setting applies beyond this site.
+                </p>
+              )}
+              <button onClick={() => setSetupGuide(view)}>
+                Install {view === 'git' ? 'Git' : view === 'jira' ? 'Jira' : 'Confluence'} connector
+              </button>
+              {folderAccess && (
+                <button
+                  onClick={() => guard(() => void chooseProject(), 'open the original folder')}
+                >
+                  Open original folder
+                </button>
+              )}
+              <a href="/help/connector-setup/" target="_blank" rel="noopener noreferrer">
+                Connector setup guide
+              </a>
+            </main>
+          )}
+          {!store.readOnly && (
+            <>
+              <GitPanel
+                store={store}
+                hidden={view !== 'git'}
+                context={{
+                  drafts: Number(dirty) + Number(commentDirty),
+                  saving: saving || auxiliarySaving,
+                  recoveryPending: store.recoveryPending || stale,
+                }}
+                onStatus={setGitStatus}
+                onBusy={setGitBusy}
+                onRefresh={refresh}
+              />
+              <AtlassianPanel
+                provider="jira"
+                store={store}
+                snapshot={snapshot}
+                activePath={path}
+                hidden={view !== 'jira'}
+                dirty={dirty || commentDirty}
+                saving={saving || auxiliarySaving || gitBusy}
+                onStatus={setJiraStatus}
+                onBusy={setIntegrationBusy}
+                onRefresh={refresh}
+              />
+              <AtlassianPanel
+                provider="confluence"
+                store={store}
+                snapshot={snapshot}
+                activePath={path}
+                hidden={view !== 'confluence'}
+                dirty={dirty || commentDirty}
+                saving={saving || auxiliarySaving || gitBusy}
+                onStatus={setConfluenceStatus}
+                onBusy={setIntegrationBusy}
+                onRefresh={refresh}
+              />
+            </>
+          )}
           {selectedItem && (
             <StoryDialog
               key={selectedItem.id}
@@ -1208,6 +1259,9 @@ export default function App() {
             />
           )}
         </>
+      )}
+      {setupGuide && (
+        <ConnectorSetupGuide provider={setupGuide} onClose={() => setSetupGuide(null)} />
       )}
       {recoveryReview && store && (
         <RecoveryDialog

@@ -23,7 +23,7 @@ If access is blocked, use HTTPS or localhost and open the app directly rather th
 
 If your repository contains `_bmad-output` but no `_bmad`, choose the repository itself with **Choose project folder**. Supported text documents and work items can still be read and edited. Diagnostics explains that no installation was detected; the BMAD version remains unknown without installation metadata. Comments are saved under `.bmad-project-ui` in the selected project root when it has a project-root marker such as `.git`.
 
-If `_bmad` is in a parent folder, expand **More folder options**, choose **Choose shared BMAD installation** and select that parent. The app shows configured document locations as hints, then asks you to choose the child project folder explicitly. Chrome or Edge requests access to both folders. The installation supplies BMAD configuration; document reads and writes, comments and optional Git use the selected child project. You can also open the child project first and use **Connect shared BMAD installation** in Diagnostics to select its parent later. Choose the project repository root for Git, not the shared parent: the connector requires that exact repository root. Selecting a parent never scans its nested Git repositories automatically.
+If `_bmad` is in a parent folder, expand **More folder options**, choose **Choose shared BMAD installation** and select that parent. The app shows configured document locations as hints, then asks you to choose the child project folder explicitly. Chrome or Edge requests access to both folders. The installation supplies BMAD configuration; document reads and writes, comments and optional Git use the selected child project. You can also open the child project first and use **Connect shared BMAD installation** in Diagnostics to select its parent later. Choose the project repository root for Git, not the shared parent: the connector requires that exact repository root. When the configured BMAD output identifies exactly one nested repository, opening the parent selects that child automatically and retains the parent installation metadata. Other repositories remain excluded. If output configurations identify multiple repositories, use the explicit shared-installation selection flow.
 
 ## 3. Add Git when you need it
 
@@ -36,3 +36,13 @@ Jira and Confluence each have their own optional connector and credentials. They
 ## Get help
 
 Use [Support](../SUPPORT.md) or email [Enzo Valley](mailto:enzovalley9@gmail.com). Include browser, OS and exact app/connector versions. Send a minimal synthetic example, not a real project's sensitive contents or a session/token file.
+
+## Diagrams and snapshot connectors
+
+Fenced `mermaid` blocks render locally in the visual document view and follow the selected light or dark theme. Expand **Mermaid source** to read the original code, or use the Markdown editor to change it. An invalid or oversized diagram keeps its source and shows a preview warning; diagram clicks and active HTML are disabled.
+
+Git, Jira and Confluence setup guides remain visible in imported snapshots and the demo. A snapshot cannot write back to the original folder. To edit, save or configure an active connector, open the live site in desktop Chrome or Edge, choose the original folder and enable **Edit**. Installing a connector does not give a snapshot write access. The existing [Atlassian capability limits](atlassian-connectors.md) still apply.
+
+### Brave
+
+Brave disables writable folder access by default. Open `brave://flags/#file-system-access-api`, set **File System Access API** to **Enabled**, and relaunch Brave. Return to the live site and choose the original project folder again. The flag applies to the browser, not just this site; folders still require your permission. Brave is not in the automated Chrome/Edge support matrix. See the [Brave issue](https://github.com/brave/brave-browser/issues/44411).

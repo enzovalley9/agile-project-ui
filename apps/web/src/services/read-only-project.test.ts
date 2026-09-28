@@ -38,6 +38,49 @@ describe('read-only snapshots', () => {
     expect((await store.refresh()).files).toEqual({ 'docs/notes.md': '# Local only' });
     expect(result.skipped).toBe(6);
   });
+  it('follows configured output into a child repository without reading siblings or Git metadata', async () => {
+    const sibling = selected('parent/other/docs/private.md', '# Private');
+    const marker = selected('parent/projects/garden/.git', 'gitdir: private');
+    const reads = [vi.spyOn(sibling, 'arrayBuffer'), vi.spyOn(marker, 'arrayBuffer')];
+    const result = await importReadOnlyFiles([
+      selected(
+        'parent/_bmad/core/config.yaml',
+        'output_folder: "{project-root}/projects/garden/artifacts"',
+      ),
+      selected('parent/_bmad/_config/manifest.yaml', 'installation:\n  version: 6.12.0'),
+      marker,
+      selected('parent/projects/garden/artifacts/plan.md', '# Child plan'),
+      selected('parent/projects/garden/nested/.git/config', 'private'),
+      selected('parent/projects/garden/nested/docs/skip.md', '# Skip'),
+      selected('parent/other/.git/config', 'private'),
+      sibling,
+    ]);
+    const snapshot = await result.store.refresh();
+    expect(snapshot.name).toBe('garden');
+    expect(snapshot.files).toEqual({ 'artifacts/plan.md': '# Child plan' });
+    expect(snapshot.index.roots).toContainEqual(
+      expect.objectContaining({ path: 'artifacts', exists: true }),
+    );
+    expect(snapshot.index.declaredVersion).toBe('6.12.0');
+    expect(result.store.sharedInstallationName).toBe('parent');
+    for (const read of reads) expect(read).not.toHaveBeenCalled();
+    await expect(result.store.setMode('edit')).rejects.toThrow('read-only');
+  });
+  it('does not combine child repositories when output configuration diverges', async () => {
+    const result = await importReadOnlyFiles([
+      selected('parent/_bmad/core/config.yaml', 'output_folder: one/artifacts'),
+      selected('parent/_bmad/bmm/config.yaml', 'output_folder: two/artifacts'),
+      selected('parent/one/.git/config', 'private'),
+      selected('parent/one/artifacts/plan.md', '# One'),
+      selected('parent/two/.git/config', 'private'),
+      selected('parent/two/artifacts/plan.md', '# Two'),
+    ]);
+    expect(result.store.name).toBe('parent');
+    expect(Object.keys((await result.store.refresh()).files)).toEqual(
+      expect.arrayContaining(['_bmad/core/config.yaml']),
+    );
+    expect((await result.store.refresh()).files['one/artifacts/plan.md']).toBeUndefined();
+  });
   it('rejects ambiguous, oversized and invalid paths before exposing a snapshot', async () => {
     await expect(
       importReadOnlyFiles([selected('p/a.md', 'a'), selected('p/a.md', 'b')]),

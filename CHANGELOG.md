@@ -2,6 +2,26 @@
 
 Changes are grouped by release. This project is in its early 0.x series; review release notes before updating connector installations or relying on provider-specific behavior.
 
+## 0.4.0
+
+### Fixed
+
+- Opening a BMAD installation follows a uniquely configured output into its child repository, including read-only folder imports. Shared metadata remains separate from document, comment and Git paths; unrelated nested repositories remain excluded.
+- Git, Jira and Confluence installation guides are visible in read-only snapshots and the demo, with instructions for reopening originals in a browser that supports editing.
+
+### Added
+
+- Brave folder-access guidance explains its optional File System Access API flag and reopening original folders.
+- Local Mermaid previews in Markdown documents, light/dark themes, source disclosure and recoverable invalid-diagram feedback. Strict rendering and sanitized SVG disable active content and remote diagram resources.
+
+### Maintenance
+
+- Version 0.4.0 connector packages and web build. Direct pushes to `main` are enabled temporarily; the repository settings helper now requires `--protect-main` to restore branch protection. CI, release gates, version-tag protections and security scanning remain in place.
+
+### Limits
+
+- Browsers without writable directory access still import immutable snapshots. Jira and Confluence retain their existing experimental capability restrictions; restoring setup access does not certify production remote writes.
+
 ## 0.3.0
 
 Projects can keep their BMAD documentation in a separate repository while sharing an installation from an ancestor folder.

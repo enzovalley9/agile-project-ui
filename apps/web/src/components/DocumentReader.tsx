@@ -7,6 +7,7 @@ import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Link2, ImageOff } from 'lucide-react';
 import type { ProjectStore } from '../services/project-store';
+import { MermaidDiagram } from './MermaidDiagram';
 import { DocumentImage } from './DocumentImage';
 import type { SourceSelection } from './SourceEditor';
 import styles from '../App.module.css';
@@ -184,6 +185,22 @@ const DocumentContent = memo(function DocumentContent({
   };
   const components = useMemo<Components>(
     () => ({
+      pre: ({ node, children }) => {
+        const code = node?.children[0];
+        if (
+          code?.type === 'element' &&
+          code.tagName === 'code' &&
+          Array.isArray(code.properties.className) &&
+          code.properties.className.includes('language-mermaid')
+        ) {
+          const source = code.children
+            .filter((child) => child.type === 'text')
+            .map((child) => child.value)
+            .join('');
+          return <MermaidDiagram source={source} />;
+        }
+        return <pre>{children}</pre>;
+      },
       span: (props) => {
         const { source, editable, onChange, highlightLine, onDraftChange } =
           rendererContext.current;

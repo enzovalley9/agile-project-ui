@@ -9,7 +9,15 @@ const lockHash = createHash('sha256').update(lockSource).digest('hex');
 const sections = [];
 const helperTools = new Set(['node_modules/esbuild', 'node_modules/vite', 'node_modules/rolldown']);
 const inventory = [];
-const reviewed = new Set(['MIT', 'ISC', 'BSD-3-Clause']);
+// Retain complete upstream notices. DOMPurify is redistributed under its Apache-2.0 option.
+const reviewed = new Set([
+  'MIT',
+  'ISC',
+  'BSD-3-Clause',
+  'Apache-2.0',
+  '(MPL-2.0 OR Apache-2.0)',
+  'Unlicense',
+]);
 for (const [directory, entry] of Object.entries(lock.packages).sort(([a], [b]) =>
   a.localeCompare(b, 'en'),
 )) {
@@ -17,7 +25,13 @@ for (const [directory, entry] of Object.entries(lock.packages).sort(([a], [b]) =
   const pkg = JSON.parse(await readFile(join(directory, 'package.json'), 'utf8'));
   if (pkg.version !== entry.version)
     throw new Error(`Install the locked version of ${directory} before generating notices.`);
-  const license = pkg.license ?? pkg.licenses?.map((item) => item.type).join(' OR ');
+  let license = pkg.license ?? pkg.licenses?.map((item) => item.type).join(' OR ');
+  if (!license && pkg.name === 'khroma' && pkg.version === '2.1.0') {
+    const declared = await readFile(join(directory, 'license'), 'utf8');
+    if (!declared.includes('MIT License') || !declared.includes('Permission is hereby granted'))
+      throw new Error('The khroma license changed. Review the upstream notice.');
+    license = 'MIT';
+  }
   if (!reviewed.has(license))
     throw new Error(
       `Review the redistribution license for ${pkg.name}@${pkg.version}: ${license ?? 'unknown'}`,
@@ -31,6 +45,19 @@ for (const [directory, entry] of Object.entries(lock.packages).sort(([a], [b]) =
   for (const name of candidates) {
     const path = join(directory, name);
     if ((await stat(path)).isFile()) notices.push({ name, text: await readFile(path, 'utf8') });
+  }
+  if (
+    !notices.length &&
+    ['fastdom@1.0.12', 'strictdom@1.0.1'].includes(`${pkg.name}@${pkg.version}`)
+  ) {
+    const readme = await readFile(join(directory, 'README.md'), 'utf8');
+    const licenseSection = readme.slice(readme.indexOf('## License'));
+    if (
+      !licenseSection.includes('Permission is hereby granted') ||
+      !licenseSection.includes('Wilson Page')
+    )
+      throw new Error(`The ${pkg.name} README license changed. Review the upstream notice.`);
+    notices.push({ name: 'README.md (upstream license section)', text: licenseSection });
   }
   if (!notices.length && pkg.name === 'format' && pkg.version === '0.2.2') {
     const readme = await readFile(join(directory, 'Readme.md'), 'utf8');

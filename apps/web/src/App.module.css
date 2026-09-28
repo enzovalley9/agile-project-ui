@@ -1398,3 +1398,19 @@
 .demoSection a {
   font-size: 13px;
 }
+
+.mermaid {
+  margin: 1.5rem 0;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: auto;
+}
+.mermaid svg {
+  max-width: 100%;
+  height: auto;
+}
+.mermaid summary {
+  cursor: pointer;
+  margin-top: 0.75rem;
+}

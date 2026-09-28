@@ -15,7 +15,19 @@ test('demo provides work context without folder permissions or write controls', 
   await page.screenshot({ path: info.outputPath('project-entry.png'), fullPage: true });
   await page.getByRole('button', { name: 'Try the demo', exact: true }).click();
   await expect(page.getByRole('switch', { name: 'Edit mode', exact: true })).toBeDisabled();
-  await expect(page.getByRole('button', { name: /Connect to Git/ })).toHaveCount(0);
+  for (const provider of ['Git', 'Jira', 'Confluence']) {
+    await page.getByRole('button', { name: new RegExp(`Connect to ${provider}`) }).click();
+    await expect(
+      page.getByText('This project is a read-only snapshot.', { exact: false }),
+    ).toBeVisible();
+    await page.getByRole('button', { name: `Install ${provider} connector`, exact: true }).click();
+    const guide = page.getByRole('dialog', { name: `Install and start the ${provider} connector` });
+    await expect(guide).toBeVisible();
+    await expect(
+      guide.getByRole('link', { name: 'Download connectors', exact: true }),
+    ).toBeVisible();
+    await guide.getByRole('button', { name: 'Back to connection', exact: true }).click();
+  }
   await page.getByRole('button', { name: 'Stories', exact: true }).click();
   await expect(page.getByText('View plots', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Sprint', exact: true }).click();
@@ -98,5 +110,37 @@ test('public help shows real screenshots and the downloadable licensed example',
     const response = await request.get(`/help/${route}/`);
     expect(response.ok(), route).toBeTruthy();
     expect(await response.text()).toContain('<main');
+  }
+});
+
+test('importing a BMAD parent follows its configured nested output', async ({ page }, info) => {
+  test.skip(info.project.name === 'mobile-webkit', 'Mobile folder picker is OS dependent.');
+  const root = await mkdtemp(join(tmpdir(), 'agile-parent-'));
+  try {
+    await mkdir(join(root, '_bmad/core'), { recursive: true });
+    await mkdir(join(root, 'projects/garden/.git'), { recursive: true });
+    await mkdir(join(root, 'projects/garden/artifacts'), { recursive: true });
+    await writeFile(
+      join(root, '_bmad/core/config.yaml'),
+      'output_folder: "{project-root}/projects/garden/artifacts"',
+    );
+    await writeFile(join(root, 'projects/garden/.git/config'), 'never read');
+    await writeFile(
+      join(root, 'projects/garden/artifacts/plan.md'),
+      '# Configured child document\n\n```mermaid\nflowchart LR\nA[Read] --> B[Review]\n```\n',
+    );
+    await page.addInitScript(() => {
+      Reflect.deleteProperty(window, 'showDirectoryPicker');
+    });
+    await page.goto('/');
+    const picker = page.waitForEvent('filechooser');
+    await page.getByRole('button', { name: 'Choose project folder' }).click();
+    await (await picker).setFiles(root);
+    await expect(page.getByRole('heading', { name: 'Configured child document' })).toBeVisible();
+    await expect(page.locator('figure svg')).toHaveCount(1);
+    await expect(page.getByRole('switch', { name: 'Edit mode', exact: true })).toBeDisabled();
+    await expect(page.getByRole('button', { name: /Connect to Jira/ })).toBeVisible();
+  } finally {
+    await rm(root, { recursive: true, force: true });
   }
 });

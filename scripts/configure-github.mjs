@@ -124,13 +124,14 @@ export function configure(args = process.argv.slice(2)) {
       repo: { type: 'string' },
       'expected-visibility': { type: 'string' },
       apply: { type: 'boolean', default: false },
+      'protect-main': { type: 'boolean', default: false },
     },
   });
   const name = values.repo,
     expected = values['expected-visibility'];
   if (!/^[\w.-]+\/[\w.-]+$/.test(name ?? '') || !['private', 'public'].includes(expected))
     throw new Error(
-      'Use --repo OWNER/REPO --expected-visibility private|public [--apply]. Visibility is never changed.',
+      'Use --repo OWNER/REPO --expected-visibility private|public [--apply] [--protect-main]. Visibility is never changed.',
     );
   const base = `repos/${name}`;
   const check = () => {
@@ -158,13 +159,15 @@ export function configure(args = process.argv.slice(2)) {
     allow_auto_merge: false,
   });
   if (expected === 'public') {
-    const existing = gh('GET', `${base}/branches/main/protection`, undefined, [404]).value;
-    apply(
-      'Required CI, reviewed pull requests and protected main',
-      'PUT',
-      `${base}/branches/main/protection`,
-      protectionPolicy(existing?.message ? {} : (existing ?? {})),
-    );
+    if (values['protect-main']) {
+      const existing = gh('GET', `${base}/branches/main/protection`, undefined, [404]).value;
+      apply(
+        'Required CI, reviewed pull requests and protected main',
+        'PUT',
+        `${base}/branches/main/protection`,
+        protectionPolicy(existing?.message ? {} : (existing ?? {})),
+      );
+    }
     const rules = gh('GET', `${base}/rulesets?per_page=100`).value;
     const match = rules.filter((rule) => rule.name === immutableTags.name);
     if (match.length > 1)
@@ -202,15 +205,17 @@ export function configure(args = process.argv.slice(2)) {
     const fixes = gh('GET', `${base}/automated-security-fixes`).value;
     if (!fixes?.enabled) throw new Error('Security update enablement was not confirmed.');
     if (expected === 'public') {
-      const actual = gh('GET', `${base}/branches/main/protection`).value;
-      const contexts = actual.required_status_checks?.contexts ?? [];
-      if (
-        !Object.keys(requiredJobs).every((job) => contexts.includes(job)) ||
-        actual.allow_force_pushes?.enabled ||
-        actual.allow_deletions?.enabled ||
-        !actual.enforce_admins?.enabled
-      )
-        throw new Error('Main protection readback differs from required policy.');
+      if (values['protect-main']) {
+        const actual = gh('GET', `${base}/branches/main/protection`).value;
+        const contexts = actual.required_status_checks?.contexts ?? [];
+        if (
+          !Object.keys(requiredJobs).every((job) => contexts.includes(job)) ||
+          actual.allow_force_pushes?.enabled ||
+          actual.allow_deletions?.enabled ||
+          !actual.enforce_admins?.enabled
+        )
+          throw new Error('Main protection readback differs from required policy.');
+      }
       const tags = gh('GET', `${base}/rulesets?per_page=100`).value.filter(
         (rule) => rule.name === immutableTags.name,
       );

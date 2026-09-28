@@ -32,6 +32,33 @@ async function prepareSharedFixture(project: string) {
   return { child, sibling };
 }
 
+test('opening the parent automatically uses the configured child repository and saves there', async ({
+  page,
+  project,
+}) => {
+  const { child } = await prepareSharedFixture(project);
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Choose project folder' }).click();
+  await expect(
+    page.getByText('Shared installation: Community Garden', { exact: true }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'meeting.md', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Test meeting' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'sibling-secret.md' })).toHaveCount(0);
+  await page.getByRole('switch', { name: 'Edit mode', exact: true }).click();
+  await page.getByRole('button', { name: 'Markdown', exact: true }).click();
+  const source = page.getByLabel('Markdown source');
+  await source.click();
+  await source.press('ControlOrMeta+End');
+  await page.keyboard.insertText('\nSaved via configured parent.\n');
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(page.getByText('Saved locally and verified.')).toBeVisible();
+  expect(await readFile(join(child, 'docs/notes/meeting.md'), 'utf8')).toContain(
+    'Saved via configured parent.',
+  );
+  await expect(access(join(project, '.bmad-project-ui'))).rejects.toMatchObject({ code: 'ENOENT' });
+});
+
 test('opens a documentation repository without a local BMAD installation', async ({
   page,
   project,

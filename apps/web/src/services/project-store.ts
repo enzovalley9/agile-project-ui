@@ -76,7 +76,7 @@ const excluded = new Set([
 const textTypes = /\.(md|mdx|txt|yaml|yml|toml|json|csv|html|xml)$/i;
 // Read only the metadata already understood by the domain adapter. An explicitly
 // selected shared installation never grants a document scan of its parent tree.
-const installationMetadataPaths = [
+export const installationMetadataPaths = [
   '_bmad/_config/manifest.yaml',
   '_bmad/_config/bmad-help.csv',
   '_bmad/config.toml',
@@ -394,6 +394,49 @@ export class ProjectStore {
     safePath(projectRelativePath);
     const project = new ProjectStore(handle);
     project.sharedInstallation = { handle: installation.handle, projectRelativePath };
+    return project;
+  }
+  /** Follow a uniquely configured output into its own repository, retaining BMAD metadata. */
+  async configuredProject(): Promise<ProjectStore> {
+    const metadata = await this.installationFiles();
+    const roots = indexProject(metadata, {}, { projectName: this.name }).roots;
+    const candidates = new Map<string, FileSystemDirectoryHandle>();
+    for (const root of roots.filter((root) => root.role === 'output')) {
+      if (!root.path) continue;
+      let dir = this.handle;
+      const parts = safePath(root.path);
+      for (let i = 0; i < parts.length; i++) {
+        try {
+          dir = await dir.getDirectoryHandle(parts[i]);
+        } catch (error) {
+          if (error instanceof DOMException && error.name === 'NotFoundError') break;
+          throw error;
+        }
+        let repository = false;
+        for (const kind of ['directory', 'file'] as const) {
+          try {
+            if (kind === 'directory') await dir.getDirectoryHandle('.git');
+            else await dir.getFileHandle('.git');
+            repository = true;
+            break;
+          } catch (error) {
+            if (!(
+              error instanceof DOMException &&
+              ['NotFoundError', 'TypeMismatchError'].includes(error.name)
+            ))
+              throw error;
+          }
+        }
+        if (repository) {
+          candidates.set(parts.slice(0, i + 1).join('/'), dir);
+          break;
+        }
+      }
+    }
+    if (candidates.size !== 1) return this;
+    const [projectRelativePath, handle] = [...candidates][0];
+    const project = new ProjectStore(handle, this.readOnly);
+    project.sharedInstallation = { handle: this.handle, projectRelativePath };
     return project;
   }
   async attachSharedInstallation(): Promise<void> {

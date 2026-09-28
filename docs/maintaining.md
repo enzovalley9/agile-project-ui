@@ -2,6 +2,12 @@
 
 Enzo Valley (`@enzovalley9`) currently owns maintenance and review; see [CODEOWNERS](../.github/CODEOWNERS). Contributions stay under MIT as described in [CONTRIBUTING](../CONTRIBUTING.md). No CLA, automatic merge, paid support commitment or additional discussion channel is required. Use issues for ordinary work and the private security contact for sensitive reports.
 
+## Temporary direct-main workflow
+
+During the 0.x development phase, the maintainer delivers directly to `main`. Branch protection is disabled by owner decision; CI still runs on every push and the release workflow still requires all ten successful jobs at the exact commit. Contributor PRs remain welcome. Version-tag protection and security scanning remain enabled.
+
+The settings script leaves branch protection unchanged by default. Restore the reviewed-PR policy explicitly with `--protect-main --apply` when the maintainer ends this temporary workflow.
+
 ## Repository safeguards
 
 With an authenticated administrator's GitHub CLI, preview the settings for the repository's **current** visibility:
@@ -14,8 +20,8 @@ Add `--apply` to enable dependency alerts/security-update PRs, maintained topics
 
 The product repository is public. Review the command's plan, then add `--apply` to apply and verify the public policy below. For a private fork, use `--expected-visibility private`; changing visibility always requires a separate owner decision. The public policy applies:
 
-- Required current release CI checks from GitHub Actions and up-to-date pull requests; no deletion or force push of `main`, including administrators.
-- A pull-request review surface with zero mandatory approvals for the initial solo maintainer. Existing stronger requirements are preserved. A maintainer's own PR can pass CI without needing a second person; contributions still receive manual review.
+- With `--protect-main`: required current release CI checks from GitHub Actions and up-to-date pull requests; no deletion or force push of `main`, including administrators.
+- With `--protect-main`: a pull-request review surface with zero mandatory approvals for the initial solo maintainer. Existing stronger requirements are preserved. A maintainer's own PR can pass CI without needing a second person; contributions still receive manual review.
 - Immutable `v*` tags: no updates or deletions and no routine bypass. Release creation remains allowed. Never replace a published asset/tag to fix a release.
 - Secret scanning and push protection, private vulnerability reporting, and CodeQL default setup where available for a public Free repository.
 
