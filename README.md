@@ -2,6 +2,12 @@
 
 A local-first workspace for documents, stories and sprints. Compatible with BMAD Method.
 
+<p align="center">
+  <a href="demo/agile-project-ui-demo-en.mp4"><img src="demo/agile-project-ui-demo-preview.webp" width="880" alt="Agile Project UI in action: opening a project folder, reading documents, moving a story with a reviewed change, discussing beside the text, switching themes and committing with Git"></a>
+</p>
+
+**▶ Watch the full demo (4:45):** [English](demo/agile-project-ui-demo-en.mp4) · [Español](demo/agile-project-ui-demo-es.mp4) · [chapters and subtitles](demo/README.md)
+
 Read, edit and discuss your project in a browser. Browse documents, move stories, inspect epic and sprint tasks, and keep every change in the project's files.
 
 [Open the app](https://agile-project-ui.enzovalley9.workers.dev) · [MIT license](LICENSE) · [Releases](https://github.com/enzovalley9/agile-project-ui/releases) · [CI](https://github.com/enzovalley9/agile-project-ui/actions/workflows/ci.yml) · [Contributing](CONTRIBUTING.md)

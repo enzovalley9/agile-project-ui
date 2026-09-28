@@ -1,0 +1,256 @@
+WEBVTT
+
+00:00:00.867 --> 00:00:04.210
+Tu proyecto vive en ficheros: el PRD, la arquitectura,
+
+00:00:04.210 --> 00:00:07.275
+las épicas, las historias y el estado del sprint,
+
+00:00:07.275 --> 00:00:08.947
+repartidos por carpetas.
+
+00:00:09.767 --> 00:00:12.329
+Agile Project UI los reúne en una sola vista,
+
+00:00:12.329 --> 00:00:14.087
+directamente en tu navegador.
+
+00:00:16.567 --> 00:00:19.724
+Es una web local-first, compatible con BMAD Method,
+
+00:00:19.724 --> 00:00:22.327
+para leer, editar y comentar tu proyecto.
+
+00:00:23.700 --> 00:00:25.925
+Sin cuentas y sin base de datos:
+
+00:00:25.925 --> 00:00:29.380
+tus ficheros siguen siendo la única fuente de verdad.
+
+00:00:32.567 --> 00:00:35.454
+Empiezo eligiendo la carpeta del proyecto.
+
+00:00:35.454 --> 00:00:38.643
+Chrome o Edge te piden permiso y la app lee los
+
+00:00:38.643 --> 00:00:40.327
+ficheros en tu equipo.
+
+00:00:41.400 --> 00:00:43.355
+Detecta la versión de BMAD,
+
+00:00:43.355 --> 00:00:46.850
+carga todos los documentos y abre el PRD. De momento,
+
+00:00:46.850 --> 00:00:49.160
+en modo lectura: no se toca nada.
+
+00:00:52.500 --> 00:00:55.274
+A la izquierda tienes el árbol completo del proyecto,
+
+00:00:55.274 --> 00:00:57.860
+con un buscador para encontrar cualquier fichero.
+
+00:00:58.600 --> 00:01:01.994
+El Markdown se lee como un documento de verdad: títulos,
+
+00:01:01.994 --> 00:01:04.840
+tablas y un índice para saltar a cada sección.
+
+00:01:06.900 --> 00:01:09.826
+Los enlaces relativos llevan al documento enlazado,
+
+00:01:09.826 --> 00:01:13.060
+y las imágenes locales se cargan sin salir de tu carpeta.
+
+00:01:16.467 --> 00:01:19.406
+La pestaña de historias las muestra por estado,
+
+00:01:19.406 --> 00:01:22.067
+tal y como están escritas en los ficheros.
+
+00:01:22.800 --> 00:01:25.676
+Puedo filtrar por épica y abrir una tarjeta:
+
+00:01:25.676 --> 00:01:26.711
+descripción,
+
+00:01:26.711 --> 00:01:29.760
+tareas y de qué fichero y línea sale cada dato.
+
+00:01:31.000 --> 00:01:33.498
+Si un estado no se reconoce, no se adivina:
+
+00:01:33.498 --> 00:01:35.640
+queda aparte, con su valor original.
+
+00:01:37.267 --> 00:01:41.028
+Las épicas agrupan sus historias con las tareas desplegables,
+
+00:01:41.028 --> 00:01:43.667
+y la vista de sprint resume cómo va todo.
+
+00:01:45.800 --> 00:01:47.223
+Y si quieres más detalle,
+
+00:01:47.223 --> 00:01:49.564
+tienes el catálogo de agentes instalados y un
+
+00:01:49.564 --> 00:01:51.400
+diagnóstico de lo que se ha leído.
+
+00:01:54.900 --> 00:01:57.350
+Para cambiar algo, activo el modo edición.
+
+00:01:57.350 --> 00:02:00.820
+El navegador pide permiso de escritura solo para esta carpeta.
+
+00:02:01.967 --> 00:02:04.635
+Ahora arrastro una historia que estaba lista para
+
+00:02:04.635 --> 00:02:06.527
+empezar a la columna de en curso.
+
+00:02:07.833 --> 00:02:10.815
+Antes de guardar veo exactamente qué cambia:
+
+00:02:10.815 --> 00:02:14.393
+la historia y el estado del sprint, fichero a fichero.
+
+00:02:15.167 --> 00:02:15.971
+Confirmo,
+
+00:02:15.971 --> 00:02:18.864
+y la app escribe los ficheros y comprueba que el
+
+00:02:18.864 --> 00:02:20.847
+resultado es justo el esperado.
+
+00:02:22.133 --> 00:02:24.237
+Los documentos también se editan:
+
+00:02:24.237 --> 00:02:26.664
+sobre el texto o en la fuente Markdown.
+
+00:02:26.664 --> 00:02:29.253
+Añado una tarea a las notas de la reunión.
+
+00:02:31.800 --> 00:02:33.423
+Reviso el cambio y guardo.
+
+00:02:33.423 --> 00:02:35.808
+Si alguien modifica el fichero por fuera,
+
+00:02:35.808 --> 00:02:38.040
+tu borrador se conserva para comparar.
+
+00:02:41.533 --> 00:02:44.317
+Para comentar, abro el panel de conversaciones.
+
+00:02:44.317 --> 00:02:46.733
+Sam ya dejó una pregunta en estas notas.
+
+00:02:47.500 --> 00:02:50.167
+Le respondo que sí, con fecha de devolución,
+
+00:02:50.167 --> 00:02:53.260
+y le dejo una reacción para que vea que lo he leído.
+
+00:02:54.367 --> 00:02:56.282
+También puedo abrir un hilo nuevo:
+
+00:02:56.282 --> 00:02:58.532
+selecciono cualquier fragmento del texto,
+
+00:02:58.532 --> 00:03:00.447
+escribo el comentario y lo guardo.
+
+00:03:03.233 --> 00:03:07.211
+Los hilos se resuelven y se guardan como ficheros junto al proyecto,
+
+00:03:07.211 --> 00:03:09.953
+fuera de la salida de BMAD y listos para Git.
+
+00:03:11.500 --> 00:03:14.201
+¿Prefieres trabajar a oscuras? Tema claro,
+
+00:03:14.201 --> 00:03:16.620
+oscuro o el del sistema, con un clic.
+
+00:03:20.067 --> 00:03:23.166
+Cuando quieras compartir, entra el conector de Git:
+
+00:03:23.166 --> 00:03:27.027
+un programa opcional que corre en tu ordenador con tu propio Git.
+
+00:03:27.767 --> 00:03:30.371
+La guía te da los comandos para tu sistema.
+
+00:03:30.371 --> 00:03:33.612
+Lo conecto con su clave de sesión y confirmo que confío
+
+00:03:33.612 --> 00:03:34.887
+en el repositorio.
+
+00:03:35.633 --> 00:03:37.786
+Ya veo la rama y los cambios locales.
+
+00:03:37.786 --> 00:03:39.838
+Elijo solo los ficheros que quiero,
+
+00:03:39.838 --> 00:03:42.841
+escribo el mensaje y reviso el commit con el diff real
+
+00:03:42.841 --> 00:03:44.193
+antes de confirmarlo.
+
+00:03:46.767 --> 00:03:48.347
+El push es otro paso:
+
+00:03:48.347 --> 00:03:51.567
+veo todos los commits que van a salir y confirmo.
+
+00:03:51.567 --> 00:03:53.967
+Nada se sube sin que tú lo decidas.
+
+00:03:57.867 --> 00:04:00.018
+Si tu equipo usa Jira o Confluence,
+
+00:04:00.018 --> 00:04:03.479
+hay conectores independientes que se configuran paso a paso:
+
+00:04:03.479 --> 00:04:05.840
+la dirección local, la clave de sesión,
+
+00:04:05.840 --> 00:04:08.987
+el proyecto y una comprobación final antes de guardar.
+
+00:04:10.967 --> 00:04:13.091
+Vinculo una historia con su incidencia,
+
+00:04:13.091 --> 00:04:15.781
+comparo los campos a tres bandas y reviso cualquier
+
+00:04:15.781 --> 00:04:17.527
+importación antes de aplicarla.
+
+00:04:21.033 --> 00:04:23.458
+Tus documentos no salen de tu ordenador:
+
+00:04:23.458 --> 00:04:25.831
+el servidor solo entrega la aplicación.
+
+00:04:25.831 --> 00:04:27.993
+Sin cuentas y sin sincronizaciones.
+
+00:04:28.733 --> 00:04:30.071
+Para empezar,
+
+00:04:30.071 --> 00:04:33.872
+abre la web en Chrome o Edge y elige tu carpeta.
+
+00:04:33.872 --> 00:04:37.533
+Y si desarrollas, clona, npm ci y npm run dev.
+
+00:04:38.533 --> 00:04:41.653
+Agile Project UI. Tu proyecto, desde sus ficheros.
