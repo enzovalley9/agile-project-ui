@@ -18,7 +18,7 @@ Agile Project UI is an independent project and is not affiliated with, endorsed 
 
 ## Features
 
-- **Documents:** searchable file tree, Markdown rendering, source editing, headings, relative links and local images.
+- **Documents:** searchable tree of BMAD output and documentation folders, Markdown rendering, source editing, headings, relative links and local images. Project code and surrounding files stay out of the tree; custom documentation folders can be added in Diagnostics.
 - **Work:** story boards, epic details and sprint views with expandable task lists. Move stories by drag and drop or keyboard, then review the source changes before saving.
 - **Discussion:** comments on text fragments, replies, reactions and resolved threads, saved in versionable sidecar files.
 - **Appearance:** light, dark and system themes, with a separate switch for read and edit modes.

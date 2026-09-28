@@ -10,6 +10,8 @@ To read your own files without the directory-access API, use the same **Choose p
 
 ## 2. Save a real local edit
 
+The Documents tree shows `_bmad-output`, `docs`, `doc`, `documentation`, and document folders resolved from BMAD configuration. Other project files, such as root package manifests and source directories, stay out of the tree. Keep choosing the project root for Git; use **Diagnostics → Add documentation folder** for a custom documentation location. Selecting a documentation folder directly also works. This filters navigation, not filesystem permissions or the text inventory used for configuration and document links.
+
 1. [Download the Community Garden ZIP](https://agile-project-ui.enzovalley9.workers.dev/example/community-garden.zip) and extract it into a new disposable folder. It contains original MIT-licensed planning documents, two epics, stories and sprint tracking. No BMAD installation is needed.
 2. In desktop Chrome or Edge, select **Choose project folder**, then select the extracted `community-garden` root. Grant read access.
 3. Open `docs/notes/meeting.md`, turn on **Edit**, and grant write access to this folder. Add a short line and choose **Save**. Inspect the same file in your ordinary text editor to confirm the bytes were saved.
