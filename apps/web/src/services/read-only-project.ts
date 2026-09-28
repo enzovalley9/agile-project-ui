@@ -84,30 +84,35 @@ export function readOnlyDirectory(
 /** Import only selected text, preserving relative paths; never upload it. */
 export async function importReadOnlyFiles(selection: readonly File[]) {
   if (selection.length > LIMITS.files)
-    throw new Error('Select a smaller folder (at most 5,000 files).');
+    throw new Error(
+      `Select a smaller folder (at most ${LIMITS.files.toLocaleString('en-US')} files).`,
+    );
   const name = selection[0]?.webkitRelativePath.split('/')[0] || 'Imported files';
   const pathOf = (file: File) =>
     file.webkitRelativePath ? file.webkitRelativePath.split('/').slice(1).join('/') : file.name;
   const paths = selection.map(pathOf);
-  const nested = paths.flatMap((path) => {
-    const parts = path.split('/');
-    const at = parts.indexOf('.git');
-    return at > 0 ? [parts.slice(0, at).join('/') + '/'] : [];
-  });
+  const nested = new Set(
+    paths.flatMap((path) => {
+      const parts = path.split('/');
+      const at = parts.indexOf('.git');
+      return at > 0 ? [parts.slice(0, at).join('/')] : [];
+    }),
+  );
   const entries: [string, string][] = [];
   let total = 0;
   let skipped = 0;
   const seen = new Set<string>();
   for (const [index, file] of selection.entries()) {
     const path = paths[index];
+    let parts: string[];
     try {
-      safePath(path);
+      parts = safePath(path);
     } catch {
       skipped++;
       continue;
     }
     if (
-      nested.some((prefix) => path.startsWith(prefix)) ||
+      parts.some((_, at) => at > 0 && nested.has(parts.slice(0, at).join('/'))) ||
       !/\.(md|mdx|txt|yaml|yml|toml|json|csv|html|xml)$/i.test(path)
     ) {
       skipped++;
