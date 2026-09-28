@@ -10,7 +10,6 @@ import {
   FileQuestion,
   CircleCheck,
   BookOpen,
-  ListChecks,
   Search,
   Users,
   Layers,
@@ -694,75 +693,53 @@ export default function App() {
       ) : !store || !snapshot ? (
         <main className={styles.welcome}>
           <p className={styles.eyebrow}>Public beta · Your project, from its files</p>
-          <h1>
-            Your project context,
-            <br />
-            in one place.
-          </h1>
-          <p>
-            Open your project folder to explore documents, epics and stories. Start in read mode,
-            then enable editing to work on the original files.
-          </p>
-          <div className={styles.startActions}>
-            <button className="primary" disabled={busy} onClick={() => void chooseProject('demo')}>
-              <BookOpen size={18} /> Try the demo
+          <h1>Open your project.</h1>
+          <p>Explore your documents, epics and stories from the files on your computer.</p>
+          <div className={styles.projectEntry}>
+            <button
+              className={`primary ${styles.openProjectButton}`}
+              disabled={busy}
+              onClick={() => (folderAccess ? void chooseProject() : importInput.current?.click())}
+            >
+              <FolderOpen size={24} /> Choose project folder
             </button>
-            <button disabled={busy || !folderAccess} onClick={() => void chooseProject()}>
-              <FolderOpen size={18} /> Choose project folder
-            </button>
-            <button disabled={busy || !folderAccess} onClick={() => void chooseInstallation()}>
-              Choose shared BMAD installation
-            </button>
-            <button disabled={busy} onClick={() => importInput.current?.click()}>
-              Import folder for reading
-            </button>
+            <p className={styles.muted}>
+              Your files stay on your computer. No upload or account needed.
+            </p>
+            <p className={styles.muted}>
+              {folderAccess
+                ? 'Start in read mode. Enable editing when you want to save changes.'
+                : 'This browser opens a read-only copy. Use desktop Chrome or Edge to edit and save originals.'}
+            </p>
           </div>
-          <p className={styles.muted}>
-            No account needed. Demo and imported snapshots are read-only. To edit and save
-            originals, use desktop Chrome or Edge. Jira and Confluence are experimental; remote
-            writes are disabled.
-          </p>
-          <ol className={styles.firstSteps}>
-            <li>
-              <strong>Explore.</strong> Try the fictional garden project, including documents,
-              stories and a sprint.
-            </li>
-            <li>
-              <strong>Make it yours.</strong>{' '}
+          {folderAccess && (
+            <details className={styles.folderOptions}>
+              <summary>More folder options</summary>
+              <p className={styles.muted}>
+                If several projects use the same BMAD installation, choose that installation first.
+              </p>
+              <button disabled={busy} onClick={() => void chooseInstallation()}>
+                Choose shared BMAD installation
+              </button>
+            </details>
+          )}
+          <section className={styles.demoSection} aria-labelledby="demo-heading">
+            <div>
+              <h2 id="demo-heading">Just exploring?</h2>
+              <p>Look around a sample project. No folder needed.</p>
               <a href="/example/community-garden.zip" download>
                 Download the example ZIP
               </a>
-              , extract it and choose that folder in Chrome or Edge. Enable edit mode and save a
-              change.
-            </li>
-            <li>
-              <strong>Share when ready.</strong> Optionally connect Git to review, commit and push.{' '}
-              <a href="/help/first-use/">Follow the walkthrough</a>.
-            </li>
-          </ol>
+            </div>
+            <button disabled={busy} onClick={() => void chooseProject('demo')}>
+              <BookOpen size={18} /> Try the demo
+            </button>
+          </section>
           <p className={styles.muted}>
             Compatible with BMAD Method. An independent project, not affiliated with or endorsed by
-            BMAD. Your documents stay on your computer. See the{' '}
-            <a href="/help/compatibility/">support matrix</a> and{' '}
+            BMAD. See the <a href="/help/first-use/">getting started guide</a> and{' '}
             <a href="/help/privacy/">privacy guide</a>.
           </p>
-          <div className={styles.welcomeFeatures}>
-            <section>
-              <BookOpen size={22} />
-              <h2>Connected documents</h2>
-              <p>A complete file tree, Markdown and links between documents.</p>
-            </section>
-            <section>
-              <ListChecks size={22} />
-              <h2>Work with context</h2>
-              <p>Stories, states and provenance without duplicating your plans.</p>
-            </section>
-            <section>
-              <MessageSquare size={22} />
-              <h2>Discussions beside the text</h2>
-              <p>Edit and comment; save your changes before sharing them with Git.</p>
-            </section>
-          </div>
         </main>
       ) : (
         <>

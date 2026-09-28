@@ -12,6 +12,7 @@ test('demo provides work context without folder permissions or write controls', 
   await page.goto('/');
   await expect(page.getByText('Public beta', { exact: false })).toBeVisible();
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+  await page.screenshot({ path: info.outputPath('project-entry.png'), fullPage: true });
   await page.getByRole('button', { name: 'Try the demo', exact: true }).click();
   await expect(page.getByRole('switch', { name: 'Edit mode', exact: true })).toBeDisabled();
   await expect(page.getByRole('button', { name: /Connect to Git/ })).toHaveCount(0);
@@ -42,8 +43,16 @@ test('folder snapshot is readable and original bytes cannot be changed', async (
     );
     await writeFile(join(root, '.env'), 'SKIP_THIS_FILE=yes');
     await writeFile(join(root, 'excluded.png'), 'unsupported');
+    await page.addInitScript(() => {
+      Reflect.deleteProperty(window, 'showDirectoryPicker');
+    });
     await page.goto('/');
-    await page.getByLabel('Import read-only project folder').setInputFiles(root);
+    await expect(
+      page.getByText('This browser opens a read-only copy.', { exact: false }),
+    ).toBeVisible();
+    const picker = page.waitForEvent('filechooser');
+    await page.getByRole('button', { name: 'Choose project folder' }).click();
+    await (await picker).setFiles(root);
     await expect(
       page.getByRole('heading', { name: 'Imported document', exact: true }),
     ).toBeVisible();
