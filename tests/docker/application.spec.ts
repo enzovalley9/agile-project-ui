@@ -107,7 +107,17 @@ test('newcomers can download the complete example and explore the read-only demo
   }
   await page.getByRole('button', { name: 'Try the demo', exact: true }).click();
   await expect(page.getByRole('switch', { name: 'Edit mode', exact: true })).toBeDisabled();
-  await expect(page.getByRole('button', { name: /Connect to Git/ })).toHaveCount(0);
+  for (const provider of ['Git', 'Jira', 'Confluence']) {
+    await page.getByRole('button', { name: new RegExp(`Connect to ${provider}`) }).click();
+    await expect(
+      page.getByText('This project is a read-only snapshot.', { exact: false }),
+    ).toBeVisible();
+    await page.getByRole('button', { name: `Install ${provider} connector`, exact: true }).click();
+    const guide = page.getByRole('dialog', { name: `Install and start the ${provider} connector` });
+    await expect(guide).toBeVisible();
+    await guide.getByRole('button', { name: 'Back to connection', exact: true }).click();
+    await expect(page.getByRole('switch', { name: 'Edit mode', exact: true })).toBeDisabled();
+  }
   await page.getByRole('button', { name: 'Stories', exact: true }).click();
   await expect(page.getByText('View plots', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Sprint', exact: true }).click();
