@@ -68,6 +68,7 @@ test('uses a parent BMAD installation while keeping documents and edits in the s
     { id: 'bmad-installation', path: '' },
     { id: 'bmad-project-child', path: 'projects/garden' },
   ]);
+  await page.getByText('More folder options', { exact: true }).click();
   await page.getByRole('button', { name: 'Choose shared BMAD installation' }).click();
   await page.getByRole('button', { name: 'Choose documentation project' }).click();
   await page.getByRole('button', { name: 'meeting.md', exact: true }).click();
@@ -142,6 +143,7 @@ test('rejects a project outside the selected installation folder', async ({ page
     { id: 'bmad-installation', path: 'installation' },
     { id: 'bmad-project-child', path: 'projects/garden' },
   ]);
+  await page.getByText('More folder options', { exact: true }).click();
   await page.getByRole('button', { name: 'Choose shared BMAD installation' }).click();
   await page.getByRole('button', { name: 'Choose documentation project' }).click();
   await expect(
@@ -185,6 +187,7 @@ test('binds Git to the selected child repository, not the shared installation', 
       { id: 'bmad-installation', path: '' },
       { id: 'bmad-project-child', path: 'projects/garden' },
     ]);
+    await page.getByText('More folder options', { exact: true }).click();
     await page.getByRole('button', { name: 'Choose shared BMAD installation' }).click();
     await page.getByRole('button', { name: 'Choose documentation project' }).click();
     await page.getByRole('switch', { name: 'Edit mode', exact: true }).click();
