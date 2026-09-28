@@ -43,6 +43,7 @@ test('folder snapshot is readable and original bytes cannot be changed', async (
     );
     await writeFile(join(root, '.env'), 'SKIP_THIS_FILE=yes');
     await writeFile(join(root, 'excluded.png'), 'unsupported');
+    await writeFile(join(root, 'package.json'), '{}');
     await page.addInitScript(() => {
       Reflect.deleteProperty(window, 'showDirectoryPicker');
     });
@@ -59,6 +60,11 @@ test('folder snapshot is readable and original bytes cannot be changed', async (
     await expect(page.getByRole('switch', { name: 'Edit mode', exact: true })).toBeDisabled();
     await expect(page.getByRole('button', { name: 'Save', exact: true })).toHaveCount(0);
     await expect(page.getByText('Only in this browser.')).toBeVisible();
+    await expect(
+      page
+        .getByRole('navigation', { name: 'Project files' })
+        .getByTitle('package.json', { exact: true }),
+    ).toHaveCount(0);
     await expect(page.getByRole('status').filter({ hasText: 'Read-only snapshot.' })).toContainText(
       'unsupported or excluded',
     );

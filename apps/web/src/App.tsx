@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   FolderOpen,
   FileText,
@@ -25,6 +25,7 @@ import {
   type SharedInstallationPreview,
 } from './services/project-store';
 import { importReadOnlyFiles, readOnlyDirectory } from './services/read-only-project';
+import { documentTreeDocuments } from './services/document-tree';
 import exampleProject from '../../../examples/community-garden.json';
 import { FileTree } from './components/FileTree';
 import { DocumentReader } from './components/DocumentReader';
@@ -116,6 +117,10 @@ export default function App() {
   const dirty = draft !== base || visualDirty;
   const stale = !!snapshot && !!path && revision !== snapshot.revisions[path];
   const selectedDoc = snapshot?.index.documents.find((d) => d.path === path);
+  const treeDocuments = useMemo(
+    () => (snapshot ? documentTreeDocuments(snapshot.index, snapshot.name) : []),
+    [snapshot],
+  );
   const conflicted = !!snapshot?.index.diagnostics.some(
     (d) => d.path === path && d.code === 'merge-conflict',
   );
@@ -176,12 +181,8 @@ export default function App() {
     setInstallationSetup(null);
     setMode('read');
     setView('documents');
-    activate(
-      next.index.documents.find((d) => d.kind === 'prd')?.path ??
-        next.index.documents[0]?.path ??
-        '',
-      next,
-    );
+    const documents = documentTreeDocuments(next.index, next.name);
+    activate(documents.find((d) => d.kind === 'prd')?.path ?? documents[0]?.path ?? '', next);
     setCommentsOpen(false);
     setCommentDirty(false);
     setNotice(
@@ -746,7 +747,7 @@ export default function App() {
           {view === 'documents' && (
             <div className={styles.shell}>
               <FileTree
-                paths={snapshot.index.documents.map((d) => d.path)}
+                paths={treeDocuments.map((d) => d.path)}
                 selected={path}
                 onSelect={navigateDocument}
               />
@@ -754,11 +755,15 @@ export default function App() {
                 {!path ? (
                   <div className={styles.empty}>
                     <FolderOpen size={30} />
-                    <h1>Choose a document</h1>
+                    <h1>
+                      {treeDocuments.length
+                        ? 'Choose a document'
+                        : 'No documentation folders found'}
+                    </h1>
                     <p>
-                      {snapshot.index.documents.length
+                      {treeDocuments.length
                         ? 'Open a file from the tree to get started.'
-                        : 'No supported documents were found in this folder. Check diagnostics to review the scope.'}
+                        : 'The tree shows BMAD output, docs, doc, documentation and configured document folders. Open diagnostics to add another documentation folder.'}
                     </p>
                     <button onClick={() => navigateView('diagnostics')}>View diagnostics</button>
                   </div>
@@ -1081,7 +1086,7 @@ export default function App() {
               </div>
               <div className={styles.statGrid}>
                 <div className={styles.stat}>
-                  <strong>{snapshot.index.documents.length}</strong>
+                  <strong>{treeDocuments.length}</strong>
                   <span>Documents</span>
                 </div>
                 <div className={styles.stat}>
