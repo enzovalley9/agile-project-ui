@@ -12,7 +12,7 @@ Agile Project UI is an independent project and is not affiliated with, endorsed 
 
 **Public beta:** the full local-folder workflow supports desktop Chrome and Edge. Other browsers can explore the built-in read-only demo or import a text snapshot when their folder picker allows it. Jira and Confluence remain experimental, with production remote writes disabled. See the [support matrix](docs/compatibility.md).
 
-1. [Open the app](https://agile-project-ui.enzovalley9.workers.dev) and choose **Try the demo**. No account or installation is needed.
+1. [Open the app](https://agile-project-ui.enzovalley9.workers.dev) and select **Choose project folder**. Alternatively, explore the sample project using **Try the demo** in the separate **Just exploring?** section. No account or installation is needed.
 2. [Download the original example ZIP](https://agile-project-ui.enzovalley9.workers.dev/example/community-garden.zip), extract it and open that folder in Chrome or Edge. Enable edit mode, save a change and inspect the original file.
 3. Optionally install the Git connector, review a local commit and push when ready. Follow the [first-use walkthrough](docs/first-use.md).
 
@@ -59,7 +59,7 @@ Use desktop **Chrome or Microsoft Edge**. The application needs the browser's di
 
 Open [Agile Project UI](https://agile-project-ui.enzovalley9.workers.dev), select your project root and start reading. Turn on edit mode to save changes; Chrome or Edge will request permission for that folder. The public app requires no account or local installation for reading, editing and comments. Git, Jira and Confluence use the optional local connectors described below.
 
-A repository with `_bmad-output` can be opened without a local `_bmad` installation. Supported documents and work items remain available for reading and editing; Diagnostics reports the missing installation, and its version cannot be identified unless shared metadata is connected. If your team keeps `_bmad` in a parent folder, choose **Choose shared BMAD installation**, then explicitly choose the child project folder. The configured document locations are hints for that choice. You can also open the child project first and use **Connect shared BMAD installation** in Diagnostics. The browser asks for access to each folder; only the selected project's supported files are inventoried. Other child repositories are not scanned automatically. See the [first-use guide](docs/first-use.md).
+A repository with `_bmad-output` can be opened without a local `_bmad` installation. Supported documents and work items remain available for reading and editing; Diagnostics reports the missing installation, and its version cannot be identified unless shared metadata is connected. If your team keeps `_bmad` in a parent folder, expand **More folder options** and choose **Choose shared BMAD installation**, then explicitly choose the child project folder. The configured document locations are hints for that choice. You can also open the child project first and use **Connect shared BMAD installation** in Diagnostics. The browser asks for access to each folder; only the selected project's supported files are inventoried. Other child repositories are not scanned automatically. See the [first-use guide](docs/first-use.md).
 
 For local development, install **Node.js 24 LTS**, npm and Git. [`.node-version`](.node-version) pins the tested runtime.
 

@@ -2,11 +2,11 @@
 
 No account is required for the public application. Start with disposable example data before trusting a real repository or editing valuable documents. See the [support matrix](compatibility.md).
 
-## 1. Explore without installing
+## 1. Open a project or explore the demo
 
-Open [Agile Project UI](https://agile-project-ui.enzovalley9.workers.dev) and select **Try the demo**. Browse Documents, Stories, Epics and Sprint. Open a story to inspect its source and tasks. Try the dark theme. This built-in fictional project is read-only; closing the tab discards its snapshot.
+Open [Agile Project UI](https://agile-project-ui.enzovalley9.workers.dev) and select **Choose project folder** to open your own project. To explore sample data first, select **Try the demo** in the separate **Just exploring?** section. Browse Documents, Stories, Epics and Sprint. Open a story to inspect its source and tasks. Try the dark theme. This built-in fictional project is read-only; closing the tab discards its snapshot.
 
-To read your own files without the directory-access API, select **Import folder for reading**. The browser reads supported selected text locally. It does not upload the folder. Snapshots cannot edit, connect Git or refresh from disk; import again after external changes. Mobile folder selection depends on the operating system. The demo works without that permission.
+To read your own files without the directory-access API, use the same **Choose project folder** button. The app automatically opens a read-only snapshot when direct folder access is unavailable. The browser reads supported selected text locally. It does not upload the folder. Snapshots cannot edit, connect Git or refresh from disk; import again after external changes. Mobile folder selection depends on the operating system. The demo works without that permission.
 
 ## 2. Save a real local edit
 
@@ -21,7 +21,7 @@ If access is blocked, use HTTPS or localhost and open the app directly rather th
 
 If your repository contains `_bmad-output` but no `_bmad`, choose the repository itself with **Choose project folder**. Supported text documents and work items can still be read and edited. Diagnostics explains that no installation was detected; the BMAD version remains unknown without installation metadata. Comments are saved under `.bmad-project-ui` in the selected project root when it has a project-root marker such as `.git`.
 
-If `_bmad` is in a parent folder, choose **Choose shared BMAD installation** and select that parent. The app shows configured document locations as hints, then asks you to choose the child project folder explicitly. Chrome or Edge requests access to both folders. The installation supplies BMAD configuration; document reads and writes, comments and optional Git use the selected child project. You can also open the child project first and use **Connect shared BMAD installation** in Diagnostics to select its parent later. Choose the project repository root for Git, not the shared parent: the connector requires that exact repository root. Selecting a parent never scans its nested Git repositories automatically.
+If `_bmad` is in a parent folder, expand **More folder options**, choose **Choose shared BMAD installation** and select that parent. The app shows configured document locations as hints, then asks you to choose the child project folder explicitly. Chrome or Edge requests access to both folders. The installation supplies BMAD configuration; document reads and writes, comments and optional Git use the selected child project. You can also open the child project first and use **Connect shared BMAD installation** in Diagnostics to select its parent later. Choose the project repository root for Git, not the shared parent: the connector requires that exact repository root. Selecting a parent never scans its nested Git repositories automatically.
 
 ## 3. Add Git when you need it
 
