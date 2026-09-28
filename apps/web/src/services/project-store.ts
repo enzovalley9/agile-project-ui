@@ -52,7 +52,7 @@ export class ProjectError extends Error {
   }
 }
 export const LIMITS = {
-  files: 5000,
+  files: 100_000,
   depth: 20,
   bytesPerFile: 2 * 1024 * 1024,
   totalBytes: 32 * 1024 * 1024,
