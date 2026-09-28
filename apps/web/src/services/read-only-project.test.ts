@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { ProjectStore } from './project-store';
 import { importReadOnlyFiles, readOnlyDirectory } from './read-only-project';
 import example from '../../../../examples/community-garden.json';
@@ -49,5 +49,35 @@ describe('read-only snapshots', () => {
     expect(() => readOnlyDirectory({ 'a.md': 'x', 'a.md/b.md': 'y' }, 'Bad')).toThrow(
       'Conflicting',
     );
+  });
+  it('accepts 100,000 selected files without reading excluded dependency content', async () => {
+    const dependency = selected('project/node_modules/package/README.md', 'not read');
+    const read = vi.spyOn(dependency, 'arrayBuffer');
+    const selection = Array<File>(99_999).fill(dependency);
+    selection.push(selected('project/docs/notes.md', '# Local notes'));
+    const result = await importReadOnlyFiles(selection);
+    expect(read).not.toHaveBeenCalled();
+    expect(result.skipped).toBe(99_999);
+    expect((await new ProjectStore(result.handle, true).refresh()).files).toEqual({
+      'docs/notes.md': '# Local notes',
+    });
+  });
+  it('rejects more than 100,000 selected files before reading content', async () => {
+    const file = selected('project/docs/notes.md', '# Local notes');
+    const read = vi.spyOn(file, 'arrayBuffer');
+    await expect(importReadOnlyFiles(Array<File>(100_001).fill(file))).rejects.toThrow(
+      'at most 100,000 files',
+    );
+    expect(read).not.toHaveBeenCalled();
+  });
+  it('imports and indexes more than the previous 5,000-document limit', async () => {
+    const result = await importReadOnlyFiles(
+      Array.from({ length: 5_001 }, (_, index) =>
+        selected(`project/docs/note-${index}.md`, '# Note'),
+      ),
+    );
+    const snapshot = await new ProjectStore(result.handle, true).refresh();
+    expect(Object.keys(snapshot.files)).toHaveLength(5_001);
+    expect(snapshot.diagnostics.some((diagnostic) => diagnostic.code === 'file-limit')).toBe(false);
   });
 });
