@@ -1,7 +1,7 @@
 # Third-party notices
 
 Generated from the locked production dependency tree and build tools that can emit runtime helpers by `npm run notices`.
-Lockfile SHA-256: `145128558b7eb8bfebcf6bb5c01ee7c0817f09720d10631c7a2b8858c01dc59c`.
+Lockfile SHA-256: `d10266ec623de678f53428315eea68c0988a7c0f71c270c3aa4dcb8d8ad1e0b7`.
 This inventory is deliberately inclusive: a particular web or connector bundle may use only a subset.
 These notices cover dependencies, not the first-party Agile Project UI license.
 Top-level license and attribution files from each production package are retained, including mixed notices such as Lucide/Feather.
