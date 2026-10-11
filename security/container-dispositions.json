@@ -5,11 +5,14 @@
     "major": "13"
   },
   "opensshReview": {
-    "version": "10.5p1",
-    "reviewedOn": "2026-09-27",
-    "expiresOn": "2026-10-27",
-    "rationale": "The runtime pins the reviewed OpenSSH client release, verifies its source archive and actual client binary hashes, and removes legacy distro clients and servers. An upstream review is required because a package scanner may not recognize independently compiled clients.",
-    "sources": ["https://www.openssh.com/releasenotes.html"]
+    "version": "10.6p1",
+    "reviewedOn": "2026-10-11",
+    "expiresOn": "2026-11-10",
+    "rationale": "The runtime pins OpenSSH 10.6p1, the latest upstream release at review. Its source archive matches the SHA-256 in the official release notes and carries a valid OpenSSH release key signature. The release fixes client issues in ssh, sftp and ssh-keygen; the application only runs ssh as Git transport. The build verifies the source archive and actual client binary hashes, and removes legacy distro clients and servers. An upstream review is required because a package scanner may not recognize independently compiled clients.",
+    "sources": [
+      "https://www.openssh.com/releasenotes.html",
+      "https://www.openssh.com/txt/release-10.6"
+    ]
   },
   "dispositions": [
     {
