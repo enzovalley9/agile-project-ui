@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { randomBytes } from 'node:crypto';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { serve } from '@hono/node-server';
+import { serveOnLoopback } from './loopback';
 import { createGitApp } from '../../apps/git-connector/src/app';
 
 const git = promisify(execFile);
@@ -198,16 +198,17 @@ test('binds Git to the selected child repository, not the shared installation', 
   const tokenFile = join(state, 'session');
   const token = randomBytes(32).toString('hex');
   await writeFile(tokenFile, token, { mode: 0o600 });
-  const port = 43228;
-  const app = createGitApp({
-    repo: child,
-    origin: 'http://127.0.0.1:5173',
-    token,
-    port,
-    stateDir: join(state, 'journal'),
+  const connector = await serveOnLoopback(async (port) => {
+    const app = createGitApp({
+      repo: child,
+      origin: 'http://127.0.0.1:5173',
+      token,
+      port,
+      stateDir: join(state, 'journal'),
+    });
+    await app.service.ready;
+    return app;
   });
-  await app.service.ready;
-  const server = serve({ fetch: app.fetch, hostname: '127.0.0.1', port });
   try {
     await page.goto('/');
     await queueDiskPickerSelections(page, [
@@ -221,7 +222,7 @@ test('binds Git to the selected child repository, not the shared installation', 
     await page.getByRole('button', { name: /Connect to Git/ }).click();
     await page
       .getByLabel('Local connector address', { exact: true })
-      .fill(`http://127.0.0.1:${port}`);
+      .fill(`http://127.0.0.1:${connector.port}`);
     await page.getByLabel('Load session file', { exact: true }).setInputFiles(tokenFile);
     await page.getByRole('checkbox', { name: /I trust the hooks/ }).check();
     await page.getByRole('button', { name: 'Connect and bind project' }).click();
@@ -229,9 +230,6 @@ test('binds Git to the selected child repository, not the shared installation', 
     await expect(page.getByRole('heading', { name: 'garden' })).toBeVisible();
     expect(await runGit('rev-parse', '--show-toplevel')).toBe(child);
   } finally {
-    await new Promise<void>((resolve, reject) => {
-      server.close((error) => (error ? reject(error) : resolve()));
-      if ('closeAllConnections' in server) server.closeAllConnections();
-    });
+    await connector.close();
   }
 });
