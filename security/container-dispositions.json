@@ -327,6 +327,29 @@
       }
     },
     {
+      "id": "CVE-2026-77214",
+      "package": "libexpat1",
+      "version": "2.8.3-1~deb13u1",
+      "architecture": "amd64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-10-11",
+      "expiresOn": "2026-11-10",
+      "status": "mitigated",
+      "rationale": "The installed Expat package remains affected. The over-read needs a caller that passes XML_ParseBuffer a length beyond the parse buffer capacity. The only Expat consumer in the pinned Git 2.47.3 is its legacy WebDAV push helper, which calls XML_Parse and never XML_ParseBuffer or XML_GetBuffer, and which the image removes. Exact-image HTTPS/SSH acceptance confirms supported clone/push operation and rejects legacy WebDAV before sending XML requests. The application does not invoke another Expat XML parser. Restoring the helper, adding parser consumers or arbitrary hooks, or changing the pinned Git version invalidates this route-specific mitigation.",
+      "sources": [
+        "https://github.com/libexpat/libexpat/pull/1393",
+        "https://raw.githubusercontent.com/git/git/v2.47.3/Makefile",
+        "https://raw.githubusercontent.com/git/git/v2.47.3/http-push.c",
+        "https://security-tracker.debian.org/tracker/CVE-2026-77214"
+      ],
+      "evidence": {
+        "packageVersions": {
+          "git": "1:2.47.3-0+deb13u1"
+        },
+        "absentPaths": ["/usr/lib/git-core/git-http-push"]
+      }
+    },
+    {
       "id": "CVE-2026-93990",
       "package": "libexpat1",
       "version": "2.8.3-1~deb13u1",
@@ -347,6 +370,56 @@
           "git": "1:2.47.3-0+deb13u1"
         },
         "absentPaths": ["/usr/lib/git-core/git-http-push"]
+      }
+    },
+    {
+      "id": "CVE-2026-88647",
+      "package": "libgnutls30t64",
+      "version": "3.8.9-3+deb13u4",
+      "architecture": "amd64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-10-11",
+      "expiresOn": "2026-11-10",
+      "status": "mitigated",
+      "rationale": "The bypass needs an on-path attacker presenting a certificate that chains to a trusted anchor, carries a malformed SRV otherName, has no dNSName or iPAddress entry, and names the victim host in its CN. Git over HTTPS through libcurl is the only shipped GnuTLS TLS client and trusts the pinned public ca-certificates bundle; connector commands drop inherited GIT_SSL_* overrides. The CA/Browser Forum Baseline Requirements forbid otherName entries, require a dNSName or iPAddress, and require any CN to repeat a validated SAN value, so a compliant public CA cannot issue this profile. No upstream or Debian fix or assessment exists yet. Private trust anchors or relaxed verification supplied through the optional Git configuration mount, other GnuTLS consumers, added hooks and modified images are outside this reviewed route.",
+      "sources": [
+        "https://gist.github.com/lkloliver/f98ec3de1a871fdfc02b70b8b9ba7642",
+        "https://security-tracker.debian.org/tracker/CVE-2026-88647",
+        "https://sources.debian.org/src/gnutls28/3.8.9-3%2Bdeb13u4/lib/x509/hostname-verify.c/",
+        "https://cabforum.org/working-groups/server/baseline-requirements/requirements/"
+      ],
+      "evidence": {
+        "packageVersions": {
+          "git": "1:2.47.3-0+deb13u1",
+          "libcurl3t64-gnutls": "8.14.1-2+deb13u5",
+          "ca-certificates": "20250419"
+        },
+        "absentPackages": ["gnutls-bin"]
+      }
+    },
+    {
+      "id": "CVE-2026-88648",
+      "package": "libgnutls30t64",
+      "version": "3.8.9-3+deb13u4",
+      "architecture": "amd64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-10-11",
+      "expiresOn": "2026-11-10",
+      "status": "mitigated",
+      "rationale": "The report covers unenforced permitted directoryName and excluded msUPN/SRV otherName name constraints, plus an over-broad rejection for excluded directoryName that fails closed. The only shipped TLS client using GnuTLS is libcurl for Git over HTTPS, which authenticates servers by dNSName or iPAddress, with the CN checked as a DNS name. The packaged verifier still enforces dNSName and iPAddress constraints, so a constrained subordinate CA gains no additional way to impersonate an HTTPS host on this route. Connector commands enforce GIT_ALLOW_PROTOCOL=https:ssh. No upstream or Debian fix or assessment exists yet. Other GnuTLS consumers, added hooks and modified images are outside this reviewed route.",
+      "sources": [
+        "https://gist.github.com/lkloliver/1f2a97cb8d0b31aa27b6bd0354358d7d",
+        "https://security-tracker.debian.org/tracker/CVE-2026-88648",
+        "https://sources.debian.org/src/gnutls28/3.8.9-3%2Bdeb13u4/lib/x509/verify.c/",
+        "https://sources.debian.org/src/gnutls28/3.8.9-3%2Bdeb13u4/lib/x509/name_constraints.c/",
+        "https://www.rfc-editor.org/rfc/rfc5280#section-4.2.1.10"
+      ],
+      "evidence": {
+        "packageVersions": {
+          "git": "1:2.47.3-0+deb13u1",
+          "libcurl3t64-gnutls": "8.14.1-2+deb13u5"
+        },
+        "absentPackages": ["gnutls-bin"]
       }
     },
     {
@@ -1334,6 +1407,29 @@
       }
     },
     {
+      "id": "CVE-2026-77214",
+      "package": "libexpat1",
+      "version": "2.8.3-1~deb13u1",
+      "architecture": "arm64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-10-11",
+      "expiresOn": "2026-11-10",
+      "status": "mitigated",
+      "rationale": "The installed Expat package remains affected. The over-read needs a caller that passes XML_ParseBuffer a length beyond the parse buffer capacity. The only Expat consumer in the pinned Git 2.47.3 is its legacy WebDAV push helper, which calls XML_Parse and never XML_ParseBuffer or XML_GetBuffer, and which the image removes. Exact-image HTTPS/SSH acceptance confirms supported clone/push operation and rejects legacy WebDAV before sending XML requests. The application does not invoke another Expat XML parser. Restoring the helper, adding parser consumers or arbitrary hooks, or changing the pinned Git version invalidates this route-specific mitigation.",
+      "sources": [
+        "https://github.com/libexpat/libexpat/pull/1393",
+        "https://raw.githubusercontent.com/git/git/v2.47.3/Makefile",
+        "https://raw.githubusercontent.com/git/git/v2.47.3/http-push.c",
+        "https://security-tracker.debian.org/tracker/CVE-2026-77214"
+      ],
+      "evidence": {
+        "packageVersions": {
+          "git": "1:2.47.3-0+deb13u1"
+        },
+        "absentPaths": ["/usr/lib/git-core/git-http-push"]
+      }
+    },
+    {
       "id": "CVE-2026-93990",
       "package": "libexpat1",
       "version": "2.8.3-1~deb13u1",
@@ -1354,6 +1450,56 @@
           "git": "1:2.47.3-0+deb13u1"
         },
         "absentPaths": ["/usr/lib/git-core/git-http-push"]
+      }
+    },
+    {
+      "id": "CVE-2026-88647",
+      "package": "libgnutls30t64",
+      "version": "3.8.9-3+deb13u4",
+      "architecture": "arm64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-10-11",
+      "expiresOn": "2026-11-10",
+      "status": "mitigated",
+      "rationale": "The bypass needs an on-path attacker presenting a certificate that chains to a trusted anchor, carries a malformed SRV otherName, has no dNSName or iPAddress entry, and names the victim host in its CN. Git over HTTPS through libcurl is the only shipped GnuTLS TLS client and trusts the pinned public ca-certificates bundle; connector commands drop inherited GIT_SSL_* overrides. The CA/Browser Forum Baseline Requirements forbid otherName entries, require a dNSName or iPAddress, and require any CN to repeat a validated SAN value, so a compliant public CA cannot issue this profile. No upstream or Debian fix or assessment exists yet. Private trust anchors or relaxed verification supplied through the optional Git configuration mount, other GnuTLS consumers, added hooks and modified images are outside this reviewed route.",
+      "sources": [
+        "https://gist.github.com/lkloliver/f98ec3de1a871fdfc02b70b8b9ba7642",
+        "https://security-tracker.debian.org/tracker/CVE-2026-88647",
+        "https://sources.debian.org/src/gnutls28/3.8.9-3%2Bdeb13u4/lib/x509/hostname-verify.c/",
+        "https://cabforum.org/working-groups/server/baseline-requirements/requirements/"
+      ],
+      "evidence": {
+        "packageVersions": {
+          "git": "1:2.47.3-0+deb13u1",
+          "libcurl3t64-gnutls": "8.14.1-2+deb13u5",
+          "ca-certificates": "20250419"
+        },
+        "absentPackages": ["gnutls-bin"]
+      }
+    },
+    {
+      "id": "CVE-2026-88648",
+      "package": "libgnutls30t64",
+      "version": "3.8.9-3+deb13u4",
+      "architecture": "arm64",
+      "severity": "HIGH",
+      "reviewedOn": "2026-10-11",
+      "expiresOn": "2026-11-10",
+      "status": "mitigated",
+      "rationale": "The report covers unenforced permitted directoryName and excluded msUPN/SRV otherName name constraints, plus an over-broad rejection for excluded directoryName that fails closed. The only shipped TLS client using GnuTLS is libcurl for Git over HTTPS, which authenticates servers by dNSName or iPAddress, with the CN checked as a DNS name. The packaged verifier still enforces dNSName and iPAddress constraints, so a constrained subordinate CA gains no additional way to impersonate an HTTPS host on this route. Connector commands enforce GIT_ALLOW_PROTOCOL=https:ssh. No upstream or Debian fix or assessment exists yet. Other GnuTLS consumers, added hooks and modified images are outside this reviewed route.",
+      "sources": [
+        "https://gist.github.com/lkloliver/1f2a97cb8d0b31aa27b6bd0354358d7d",
+        "https://security-tracker.debian.org/tracker/CVE-2026-88648",
+        "https://sources.debian.org/src/gnutls28/3.8.9-3%2Bdeb13u4/lib/x509/verify.c/",
+        "https://sources.debian.org/src/gnutls28/3.8.9-3%2Bdeb13u4/lib/x509/name_constraints.c/",
+        "https://www.rfc-editor.org/rfc/rfc5280#section-4.2.1.10"
+      ],
+      "evidence": {
+        "packageVersions": {
+          "git": "1:2.47.3-0+deb13u1",
+          "libcurl3t64-gnutls": "8.14.1-2+deb13u5"
+        },
+        "absentPackages": ["gnutls-bin"]
       }
     },
     {
