@@ -102,7 +102,7 @@ docker compose --profile git up -d
 
 In the app's Git panel, keep the connector address `http://127.0.0.1:43120`, load the generated `git-token` file from your host state directory, and complete the folder-binding/trust flow. Treat session files as private credentials; do not paste their contents into terminals, reports or project files.
 
-The supplied image supports smart HTTPS and SSH Git remotes. Legacy HTTP/WebDAV push is disabled: the XML-parsing `git-http-push` helper is absent. The connector restricts native remote transports to HTTPS and SSH, including redirects. The image ships a verified OpenSSH 10.5p1 client and no SSH server. SSH host-key verification remains enabled; configure a dedicated trusted `known_hosts` file for your remote.
+The supplied image supports smart HTTPS and SSH Git remotes. Legacy HTTP/WebDAV push is disabled: the XML-parsing `git-http-push` helper is absent. The connector restricts native remote transports to HTTPS and SSH, including redirects. The image ships a verified OpenSSH 10.6p1 client and no SSH server. SSH host-key verification remains enabled; configure a dedicated trusted `known_hosts` file for your remote.
 
 The image removes privileged setuid/setgid execution, `infocmp`, and Perl's `Archive::Tar` entry point. Perl itself remains available for Git. These removals do not affect the tested core Git workflows, but optional repository hooks requiring them, PKCS#11/FIDO helper programs, or other external tooling require a maintained custom image. Review such additions and their security updates before trusting repository hooks.
 
