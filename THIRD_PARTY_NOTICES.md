@@ -1,7 +1,7 @@
 # Third-party notices
 
 Generated from the locked production dependency tree and build tools that can emit runtime helpers by `npm run notices`.
-Lockfile SHA-256: `012d9b424759d282409a00f28d3e9f1a9e05bef567592abafee7553080e71de1`.
+Lockfile SHA-256: `871428327f7672bdb09d580a20083cf58468f9c96be471a453f71a63da303f1c`.
 This inventory is deliberately inclusive: a particular web or connector bundle may use only a subset.
 These notices cover dependencies, not the first-party Agile Project UI license.
 Top-level license and attribution files from each production package are retained, including mixed notices such as Lucide/Feather.
@@ -19,12 +19,13 @@ The Vite, esbuild and Rolldown notices are included conservatively for generated
 | @codemirror/lang-html | 6.4.12 | MIT |
 | @codemirror/lang-javascript | 6.2.5 | MIT |
 | @codemirror/lang-markdown | 6.5.2 | MIT |
-| @codemirror/language | 6.12.4 | MIT |
+| @codemirror/language | 6.13.1 | MIT |
 | @codemirror/lint | 6.9.7 | MIT |
 | @codemirror/search | 6.7.2 | MIT |
 | @codemirror/state | 6.7.6 | MIT |
+| @codemirror/streamparser | 6.0.0 | MIT |
 | @codemirror/view | 6.43.13 | MIT |
-| @hono/node-server | 2.1.3 | MIT |
+| @hono/node-server | 2.1.4 | MIT |
 | @iconify/types | 2.0.0 | MIT |
 | @iconify/utils | 3.1.7 | MIT |
 | @lezer/common | 1.5.3 | MIT |
@@ -717,7 +718,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ~~~~
 
-## @codemirror/language@6.12.4
+## @codemirror/language@6.13.1
 
 License: MIT. Locked package: `node_modules/@codemirror/language`.
 
@@ -837,6 +838,36 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ~~~~
 
+## @codemirror/streamparser@6.0.0
+
+License: MIT. Locked package: `node_modules/@codemirror/streamparser`.
+
+### LICENSE
+
+~~~~text
+MIT License
+
+Copyright (C) 2018-2021 by Marijn Haverbeke <marijn@haverbeke.berlin> and others
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+~~~~
+
 ## @codemirror/view@6.43.13
 
 License: MIT. Locked package: `node_modules/@codemirror/view`.
@@ -867,7 +898,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ~~~~
 
-## @hono/node-server@2.1.3
+## @hono/node-server@2.1.4
 
 License: MIT. Locked package: `node_modules/@hono/node-server`.
 
