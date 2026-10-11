@@ -1,7 +1,7 @@
 # Third-party notices
 
 Generated from the locked production dependency tree and build tools that can emit runtime helpers by `npm run notices`.
-Lockfile SHA-256: `d10266ec623de678f53428315eea68c0988a7c0f71c270c3aa4dcb8d8ad1e0b7`.
+Lockfile SHA-256: `012d9b424759d282409a00f28d3e9f1a9e05bef567592abafee7553080e71de1`.
 This inventory is deliberately inclusive: a particular web or connector bundle may use only a subset.
 These notices cover dependencies, not the first-party Agile Project UI license.
 Top-level license and attribution files from each production package are retained, including mixed notices such as Lucide/Feather.
@@ -24,12 +24,12 @@ The Vite, esbuild and Rolldown notices are included conservatively for generated
 | @codemirror/search | 6.7.2 | MIT |
 | @codemirror/state | 6.7.6 | MIT |
 | @codemirror/view | 6.43.13 | MIT |
-| @hono/node-server | 2.1.1 | MIT |
+| @hono/node-server | 2.1.3 | MIT |
 | @iconify/types | 2.0.0 | MIT |
 | @iconify/utils | 3.1.7 | MIT |
 | @lezer/common | 1.5.3 | MIT |
 | @lezer/css | 1.3.8 | MIT |
-| @lezer/highlight | 1.2.4 | MIT |
+| @lezer/highlight | 1.2.5 | MIT |
 | @lezer/html | 1.3.13 | MIT |
 | @lezer/javascript | 1.5.5 | MIT |
 | @lezer/lr | 1.4.10 | MIT |
@@ -867,7 +867,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ~~~~
 
-## @hono/node-server@2.1.1
+## @hono/node-server@2.1.3
 
 License: MIT. Locked package: `node_modules/@hono/node-server`.
 
@@ -1017,7 +1017,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ~~~~
 
-## @lezer/highlight@1.2.4
+## @lezer/highlight@1.2.5
 
 License: MIT. Locked package: `node_modules/@lezer/highlight`.
 
