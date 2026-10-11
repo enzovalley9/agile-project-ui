@@ -1,4 +1,4 @@
-import { inspectProcessLeases } from './launch-connectors.mjs';
+import { inspectProcessLeases, renameDirectory } from './launch-connectors.mjs';
 import { promises as fs, constants, createReadStream } from 'node:fs';
 import { createHash, randomUUID } from 'node:crypto';
 import { execFile } from 'node:child_process';
@@ -179,11 +179,11 @@ async function install() {
       const prior = await verifyPackage(previous, false, true);
       await verifyRuntime(previous, prior);
       const retained = destination + '.rollback-retained-' + randomUUID();
-      await fs.rename(destination, retained);
+      await renameDirectory(destination, retained);
       try {
-        await fs.rename(previous, destination);
+        await renameDirectory(previous, destination);
       } catch (error) {
-        await fs.rename(retained, destination);
+        await renameDirectory(retained, destination);
         throw error;
       }
       process.stdout.write(
@@ -211,17 +211,17 @@ async function install() {
     );
     await verifyRuntime(staging, manifest);
     if (mode === 'update') {
-      await fs.rename(destination, previous);
+      await renameDirectory(destination, previous);
       try {
-        await fs.rename(staging, destination);
+        await renameDirectory(staging, destination);
       } catch (error) {
-        await fs.rename(previous, destination);
+        await renameDirectory(previous, destination);
         throw error;
       }
     } else {
       if (await exists(destination))
         throw new Error('The destination appeared during installation. It has been preserved.');
-      await fs.rename(staging, destination);
+      await renameDirectory(staging, destination);
     }
     staging = undefined;
     process.stdout.write(
