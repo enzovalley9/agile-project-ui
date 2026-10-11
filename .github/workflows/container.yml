@@ -63,7 +63,7 @@ jobs:
             --mount "type=bind,src=$PWD/scripts/container-security-evidence.mjs,dst=/security-evidence.mjs,readonly" \
             --entrypoint node "$image_id" /security-evidence.mjs > distribution-metadata/runtime-security.json
           : > distribution-metadata/no-vulnerabilities-ignored.txt
-      - uses: aquasecurity/trivy-action@d2a0b60797ff03db6132bd4e2b293f9b37081297
+      - uses: aquasecurity/trivy-action@c03d123cb480c08c69b054af418ea5e69fe6e57e
         with:
           version: v0.74.0
           image-ref: agile-project-ui:local
