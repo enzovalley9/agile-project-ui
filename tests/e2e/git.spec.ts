@@ -1,5 +1,5 @@
 import { test, expect } from './filesystem';
-import { serve } from '@hono/node-server';
+import { serveOnLoopback } from './loopback';
 import { createGitApp } from '../../apps/git-connector/src/app';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
@@ -10,7 +10,7 @@ import { randomBytes } from 'node:crypto';
 const exec = promisify(execFile);
 const command = async (root: string, ...args: string[]) =>
   (await exec('git', args, { cwd: root })).stdout.trim();
-async function setup(root: string, port: number) {
+async function setup(root: string) {
   const state = await mkdtemp(join(tmpdir(), 'agile-git-e2e-')),
     remote = join(state, 'remote.git'),
     tokenFile = join(state, 'session');
@@ -27,27 +27,19 @@ async function setup(root: string, port: number) {
   await command(root, 'push', '-u', 'origin', 'main');
   const token = randomBytes(32).toString('hex');
   await writeFile(tokenFile, token, { mode: 0o600 });
-  const app = createGitApp({
-    repo: root,
-    origin: 'http://127.0.0.1:5173',
-    token,
-    port,
-    stateDir: join(state, 'journal'),
-    allowLocalRemotes: true,
+  const connector = await serveOnLoopback(async (port) => {
+    const app = createGitApp({
+      repo: root,
+      origin: 'http://127.0.0.1:5173',
+      token,
+      port,
+      stateDir: join(state, 'journal'),
+      allowLocalRemotes: true,
+    });
+    await app.service.ready;
+    return app;
   });
-  await app.service.ready;
-  const server = serve({ fetch: app.fetch, hostname: '127.0.0.1', port });
-  return {
-    remote,
-    tokenFile,
-    close: () =>
-      new Promise<void>((resolve, reject) => {
-        server.close((e) => (e ? reject(e) : resolve()));
-        // Open browser connections can hold server.close open after every assertion
-        // passed. This disposable fixture owns its sockets and closes them at teardown.
-        if ('closeAllConnections' in server) server.closeAllConnections();
-      }),
-  };
+  return { remote, tokenFile, ...connector };
 }
 async function open(page: import('@playwright/test').Page) {
   await page.goto('/');
@@ -79,10 +71,10 @@ test('native Git roundtrip from browser: save, exact review, commit, push and ex
   page,
   project,
 }) => {
-  const setupResult = await setup(project, 43220);
+  const setupResult = await setup(project);
   try {
     await open(page);
-    await connect(page, 43220, setupResult.tokenFile);
+    await connect(page, setupResult.port, setupResult.tokenFile);
     const before = await readFile(join(project, 'docs/notes/meeting.md'), 'utf8');
     const after = before + '\nReviewed Git E2E change.\n';
     await edit(page, after);
@@ -130,10 +122,10 @@ test('external branch switch with identical document bytes cannot receive the ol
   page,
   project,
 }) => {
-  const setupResult = await setup(project, 43221);
+  const setupResult = await setup(project);
   try {
     await open(page);
-    await connect(page, 43221, setupResult.tokenFile);
+    await connect(page, setupResult.port, setupResult.tokenFile);
     const path = join(project, 'docs/notes/meeting.md'),
       before = await readFile(path, 'utf8');
     await edit(page, before + '\nDraft from main.\n');
@@ -151,7 +143,7 @@ test('opens a preexisting merge safely and resumes editing only after external r
   page,
   project,
 }) => {
-  const instance = await setup(project, 43222),
+  const instance = await setup(project),
     conflictPath = join(project, 'docs/manual/watering.md'),
     notePath = join(project, 'docs/notes/meeting.md');
   try {
@@ -175,7 +167,7 @@ test('opens a preexisting merge safely and resumes editing only after external r
     await expect(page.getByLabel('Markdown source')).toContainText('<<<<<<< HEAD');
     await expect(page.locator('.cm-content')).toHaveAttribute('contenteditable', 'false');
     await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeDisabled();
-    await connect(page, 43222, instance.tokenFile);
+    await connect(page, instance.port, instance.tokenFile);
     await expect(page.getByRole('alert').filter({ hasText: 'Conflicts found' })).toBeVisible();
     await expect(page.getByRole('alert').filter({ hasText: 'MERGE_HEAD' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Review push', exact: true })).toBeDisabled();
@@ -202,7 +194,7 @@ test('opens a preexisting merge safely and resumes editing only after external r
     await page.getByRole('button', { name: 'Check', exact: true }).click();
     await expect(page.getByRole('alert').filter({ hasText: 'Conflicts found' })).toHaveCount(0);
     await page.getByRole('button', { name: 'Disconnect', exact: true }).click();
-    await connect(page, 43222, instance.tokenFile);
+    await connect(page, instance.port, instance.tokenFile);
     await page.getByRole('button', { name: 'Refresh files' }).click();
     await page.getByRole('button', { name: 'Documents', exact: true }).click();
     await page.getByRole('button', { name: 'watering.md', exact: true }).click();
@@ -225,8 +217,8 @@ for (const phase of ['operation observation', 'panel refresh'] as const) {
     page,
     project,
   }) => {
-    const port = phase === 'operation observation' ? 43223 : 43224;
-    const instance = await setup(project, port);
+    const instance = await setup(project);
+    const { port } = instance;
     const notePath = join(project, 'docs/notes/meeting.md');
     const before = await readFile(notePath, 'utf8');
     await writeFile(notePath, before + '\nOne recoverable native commit.\n');

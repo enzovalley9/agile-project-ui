@@ -1,4 +1,5 @@
 import { test, expect } from '../e2e/filesystem';
+import { freeLoopbackPort } from '../e2e/loopback';
 import { execFile, spawn } from 'node:child_process';
 import { promisify } from 'node:util';
 import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
@@ -63,7 +64,7 @@ test('hosted frontend reads and saves real disk files, moves work and commits th
   await git(project, 'commit', '-m', 'Original hosted acceptance fixture');
   const state = await mkdtemp(join(tmpdir(), 'hosted-connector-'));
   const tokenFile = join(state, 'capability');
-  const port = 43320;
+  const port = await freeLoopbackPort();
   const child = spawn(
     process.execPath,
     [
@@ -77,13 +78,20 @@ test('hosted frontend reads and saves real disk files, moves work and commits th
       '--token-file',
       tokenFile,
     ],
-    { stdio: 'ignore' },
+    { stdio: ['ignore', 'pipe', 'pipe'] },
   );
-  const closed = once(child, 'exit');
+  // The connector never prints its capability. Its output is the only record of
+  // why a start failed, so it belongs in the test log.
+  child.stdout.on('data', (chunk: Buffer) => process.stdout.write(chunk));
+  child.stderr.on('data', (chunk: Buffer) => process.stderr.write(chunk));
+  const closed = once(child, 'close');
   try {
     await expect
       .poll(async () => {
-        if (child.exitCode !== null) throw new Error('Local connector exited before readiness.');
+        if (child.exitCode !== null) {
+          await closed;
+          throw new Error(`Local connector exited with code ${child.exitCode} before readiness.`);
+        }
         return fetch(`http://127.0.0.1:${port}/v1/health`)
           .then((r) => r.ok)
           .catch(() => false);
