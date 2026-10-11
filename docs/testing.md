@@ -55,7 +55,7 @@ Record source revision, browser/version, OS, steps, screenshots where useful, an
 
 Prefer a minimal reproduction for a defect and assert the resulting behavior, not internal implementation details. For write/recovery changes, verify original bytes, external edits, the retained draft and journal state. For an indeterminate connector outcome, verify reconciliation without replay.
 
-Tests must own their temporary files, ports and processes and release them in cleanup. A timeout after the last assertion can still be a fixture failure. Investigate traces and logs before changing timeouts. Do not remove assertions or accept retries solely to make CI green.
+Tests must own their temporary files, ports and processes and release them in cleanup. Let the operating system assign listener ports (bind port 0 and read the result) instead of choosing a number: a fixed port inside the ephemeral range can already be the source port of an unrelated connection. A timeout after the last assertion can still be a fixture failure. Investigate traces and logs before changing timeouts. Do not remove assertions or accept retries solely to make CI green.
 
 Playwright stores its HTML report in `playwright-report` and failure evidence in `test-results`; these outputs are ignored by Git. Capture durable, sanitized evidence separately when needed. The fixture directory is synthetic and can be reused without installing BMAD or executing its agents.
 
