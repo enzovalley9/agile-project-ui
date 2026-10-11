@@ -9,11 +9,15 @@ import path from 'node:path';
 import assert from 'node:assert/strict';
 
 const exec = promisify(execFile);
-await exec(process.execPath, ['--test', 'tests/launcher/lifecycle.test.mjs'], {
-  timeout: 60000,
-  windowsHide: true,
-  maxBuffer: 1024 * 1024,
-});
+await exec(
+  process.execPath,
+  ['--test', 'tests/launcher/lifecycle.test.mjs', 'tests/launcher/rename-retry.test.mjs'],
+  {
+    timeout: 60000,
+    windowsHide: true,
+    maxBuffer: 1024 * 1024,
+  },
+);
 const name = `agile-project-ui-connectors-${process.platform}-${process.arch}`;
 const archive = path.resolve(process.argv[2] || `dist/artifacts/${name}.tar.gz`);
 const root = await fs.mkdtemp(path.join(tmpdir(), 'agile-project-ui-package-smoke-'));
@@ -363,6 +367,38 @@ try {
   );
   assert.equal(await fs.readFile(path.join(destination, 'manifest.json'), 'utf8'), beforeUpdate);
   await assert.rejects(fs.lstat(destination + '.previous'), { code: 'ENOENT' });
+  const renameAttempts = path.join(root, 'refused-rename-attempts');
+  const refusedFault = path.join(root, 'refused-rename-fault.mjs');
+  await fs.writeFile(
+    refusedFault,
+    `import {promises as fs, writeFileSync} from 'node:fs'; let count = 0; fs.rename = async () => { writeFileSync(${JSON.stringify(renameAttempts)}, String(++count)); throw Object.assign(new Error('Simulated sharing violation'), {code: 'EPERM'}); };\n`,
+  );
+  await assert.rejects(
+    exec(
+      runtime,
+      [
+        '--import',
+        pathToFileURL(refusedFault).href,
+        installer,
+        '--update',
+        '--confirm-stopped',
+        '--destination',
+        destination,
+      ],
+      options,
+    ),
+    /Simulated sharing violation/,
+  );
+  // Only Windows waits for another process to release the directory, and it
+  // still gives up: seven bounded waits there, a single attempt elsewhere.
+  assert.equal(await fs.readFile(renameAttempts, 'utf8'), process.platform === 'win32' ? '8' : '1');
+  assert.equal(await fs.readFile(path.join(destination, 'manifest.json'), 'utf8'), beforeUpdate);
+  await assert.rejects(fs.lstat(destination + '.previous'), { code: 'ENOENT' });
+  assert.deepEqual(
+    (await fs.readdir(path.dirname(destination))).filter((name) => name.startsWith('.connectors.')),
+    [],
+    'A refused update leaves no lock or staging copy.',
+  );
   const privateState = path.join(root, 'private', 'keep-journal.json');
   await fs.writeFile(privateState, '{"schema":1,"status":"uncertain"}');
   // Only the disposable fixture's version label differs; the package payload is
@@ -445,7 +481,7 @@ try {
   );
   await assert.rejects(fs.lstat(rejectedDestination), { code: 'ENOENT' });
   process.stdout.write(
-    `Package smoke passed on ${process.platform}/${process.arch}: interrupted copy, failed-activation restore, explicit update, rollback, external-journal preservation, live-process protection, diagnostics, verified install, installed Git session/root binding, installed Jira health/auth boundary, listener shutdown, complete launcher arguments, existing-install preservation, checksum rejection and disposable uninstall.\n`,
+    `Package smoke passed on ${process.platform}/${process.arch}: interrupted copy, failed-activation restore, refused-rename preservation, explicit update, rollback, external-journal preservation, live-process protection, diagnostics, verified install, installed Git session/root binding, installed Jira health/auth boundary, listener shutdown, complete launcher arguments, existing-install preservation, checksum rejection and disposable uninstall.\n`,
   );
 } finally {
   // Windows can keep the packaged runtime executable locked briefly after its

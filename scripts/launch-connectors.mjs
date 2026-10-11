@@ -287,6 +287,30 @@ export async function processIdentity(pid) {
     throw new Error('Cannot verify connector process birth identity. Maintenance was not applied.');
   }
 }
+const renameRetryDelays = [50, 100, 200, 400, 800, 1600, 3200];
+const pause = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
+/**
+ * Windows refuses to rename a directory while another process, typically
+ * antivirus or an indexer, briefly holds a file inside it. Only there, and only
+ * for those sharing errors, wait for the handle before failing with the last
+ * error. A rejected rename has moved nothing.
+ */
+export async function renameDirectory(from, to, platform = process.platform, wait = pause) {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      // Resolved on every attempt so a replaced fs.rename is still honored.
+      return await fs.rename(from, to);
+    } catch (error) {
+      if (
+        platform !== 'win32' ||
+        !['EPERM', 'EBUSY', 'EACCES'].includes(error.code) ||
+        attempt === renameRetryDelays.length
+      )
+        throw error;
+      await wait(renameRetryDelays[attempt]);
+    }
+  }
+}
 /** Call only while holding this installation's maintenance lock. */
 export async function inspectProcessLeases(installation, requireStopped) {
   const directory = installation + '.running';
