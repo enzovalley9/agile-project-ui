@@ -367,11 +367,10 @@ try {
   );
   assert.equal(await fs.readFile(path.join(destination, 'manifest.json'), 'utf8'), beforeUpdate);
   await assert.rejects(fs.lstat(destination + '.previous'), { code: 'ENOENT' });
-  const renameAttempts = path.join(root, 'refused-rename-attempts');
   const refusedFault = path.join(root, 'refused-rename-fault.mjs');
   await fs.writeFile(
     refusedFault,
-    `import {promises as fs, writeFileSync} from 'node:fs'; let count = 0; fs.rename = async () => { writeFileSync(${JSON.stringify(renameAttempts)}, String(++count)); throw Object.assign(new Error('Simulated sharing violation'), {code: 'EPERM'}); };\n`,
+    "import {promises as fs} from 'node:fs'; let count = 0; fs.rename = async () => { throw Object.assign(new Error(`Simulated sharing violation, attempt ${++count}.`), {code: 'EPERM'}); };\n",
   );
   await assert.rejects(
     exec(
@@ -387,11 +386,12 @@ try {
       ],
       options,
     ),
-    /Simulated sharing violation/,
+    // Only Windows waits for another process to release the directory, and it
+    // still gives up: the eighth refusal is reported there, the first elsewhere.
+    process.platform === 'win32'
+      ? /Simulated sharing violation, attempt 8\./
+      : /Simulated sharing violation, attempt 1\./,
   );
-  // Only Windows waits for another process to release the directory, and it
-  // still gives up: seven bounded waits there, a single attempt elsewhere.
-  assert.equal(await fs.readFile(renameAttempts, 'utf8'), process.platform === 'win32' ? '8' : '1');
   assert.equal(await fs.readFile(path.join(destination, 'manifest.json'), 'utf8'), beforeUpdate);
   await assert.rejects(fs.lstat(destination + '.previous'), { code: 'ENOENT' });
   assert.deepEqual(

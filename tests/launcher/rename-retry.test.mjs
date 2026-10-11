@@ -57,9 +57,12 @@ for (const [name, platform, failure] of [
     assert.deepEqual(f.waits, []);
   });
 test('the default wait is a real delay and the platform defaults to the running one', async (t) => {
-  const f = fixture(t, (attempt) => attempt <= 2 && refused('EPERM'));
+  const f = fixture(t, (attempt) => attempt <= 2 && refused('EPERM')),
+    started = performance.now();
   await renameDirectory(from, to, 'win32');
   assert.deepEqual(f.calls, attempts(3));
+  // 50 ms and 100 ms were slept; the margin only allows for timer rounding.
+  assert(performance.now() - started >= 140);
   f.calls.length = 0;
   if (process.platform === 'win32') {
     await renameDirectory(from, to);
