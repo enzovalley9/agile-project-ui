@@ -42,7 +42,7 @@
     "@hono/node-server": "^2.1.4",
     "@lezer/highlight": "^1.2.5",
     "codemirror": "^6.0.2",
-    "dompurify": "^3.4.16",
+    "dompurify": "^3.4.17",
     "hono": "^4.13.9",
     "lucide-react": "^1.48.0",
     "mermaid": "^11.17.2",
